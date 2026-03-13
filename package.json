@@ -1,0 +1,28 @@
+{
+  "name": "qile-wodi-server",
+  "version": "0.1.0",
+  "description": "奇乐谁是卧底后端服务",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon -L --watch src --ext js,json src/index.js",
+    "test:events": "node scripts/test-events-sync.js",
+    "test:room-idle": "node scripts/test-room-idle.js",
+    "test:room-switch": "node scripts/test-room-switch.js",
+    "test:connection": "node scripts/test-connection.js",
+    "smoke:phase2": "node scripts/phase2-smoke.js",
+    "smoke:phase3": "node scripts/phase3-smoke.js",
+    "smoke:phase6": "node scripts/phase6-smoke.js",
+    "smoke:phase6-timeout": "node scripts/phase6-timeout-smoke.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10",
+    "socket.io-client": "^4.8.1"
+  }
+}
