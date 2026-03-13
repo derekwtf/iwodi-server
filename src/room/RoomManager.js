@@ -312,6 +312,45 @@ class RoomManager extends EventEmitter {
     }
   }
 
+  updatePlayerProfile(playerId, { nickname, avatar } = {}) {
+    const { room, player } = this._getRoomAndPlayerByPlayerId(playerId)
+    const session = this._getRequiredSession(playerId)
+    const nextNickname = String(nickname || '').trim()
+      ? this._normalizeNickname(nickname)
+      : player.nickname
+    const nextAvatar = avatar === undefined
+      ? player.avatar
+      : this._normalizeAvatar(avatar)
+
+    player.nickname = nextNickname
+    player.avatar = nextAvatar
+    session.profile = {
+      nickname: nextNickname,
+      avatar: nextAvatar,
+    }
+
+    if (room.gameState && Array.isArray(room.gameState.playerRoster)) {
+      const rosterPlayer = room.gameState.playerRoster.find((item) => item.id === playerId)
+      if (rosterPlayer) {
+        rosterPlayer.nickname = nextNickname
+        rosterPlayer.avatar = nextAvatar
+      }
+    }
+
+    this._markRoomActive(room)
+
+    return {
+      room,
+      player: this._toPublicPlayer(player),
+      roomState: this.getRoomState(room.id),
+      gameState: room.gameState
+        ? this.getGamePublicState(room.id, {
+            includeEndedSecrets: room.gameState.phase === 'ended',
+          })
+        : null,
+    }
+  }
+
   startGame(playerId) {
     if (!this.wordLibrary) {
       throw this._createError('WORD_LIBRARY_NOT_READY', '词库未加载，无法开始游戏')

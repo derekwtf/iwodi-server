@@ -225,6 +225,32 @@ function registerRoomHandlers(io, socket, roomManager, getRoomChannel) {
     }
   })
 
+  socket.on(EVENTS.client.ROOM_UPDATE_PROFILE, (payload = {}, ack) => {
+    try {
+      const result = roomManager.updatePlayerProfile(socket.data.playerId, {
+        nickname: payload.nickname,
+        avatar: payload.avatar,
+      })
+      const roomChannel = getRoomChannel(result.room.id)
+
+      io.to(roomChannel).emit(EVENTS.server.ROOM_STATE, {
+        room: result.roomState,
+      })
+
+      if (result.gameState) {
+        io.to(roomChannel).emit(EVENTS.server.GAME_STATE_SYNC, result.gameState)
+      }
+
+      handleSuccess(ack, {
+        room: result.roomState,
+        gameState: result.gameState,
+        player: result.player,
+      })
+    } catch (error) {
+      handleError(EVENTS.client.ROOM_UPDATE_PROFILE, ack, error)
+    }
+  })
+
   socket.on(EVENTS.client.ROOM_KICK_PLAYER, (payload = {}, ack) => {
     try {
       const targetPlayerId = String(payload.playerId || '')

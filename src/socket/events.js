@@ -7,6 +7,7 @@ const EVENTS = {
     ROOM_KEEP_ALIVE: 'room:keepAlive',
     ROOM_KICK_PLAYER: 'room:kickPlayer',
     ROOM_SET_SPY_COUNT: 'room:setSpyCount',
+    ROOM_UPDATE_PROFILE: 'room:updateProfile',
     ROOM_START_GAME: 'room:startGame',
     GAME_CONFIRM_WORD: 'game:confirmWord',
     GAME_START_VOTE: 'game:startVote',
