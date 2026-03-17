@@ -3,13 +3,14 @@ const SpeakOrder = require('./SpeakOrder')
 const VoteManager = require('./VoteManager')
 const Judge = require('./Judge')
 
-function createGameState({ players, spyCount, wordLibrary, usedWordPairIndices }) {
+function createGameState({ players, spyCount, gameMode, wordLibrary, usedWordPairIndices }) {
   const dealResult = Dealer.deal(players, spyCount, wordLibrary, usedWordPairIndices)
   const alivePlayers = players.map((player) => player.id)
 
   return {
     phase: 'dealing',
     round: 1,
+    gameMode: gameMode || 'full',
     pairIndex: dealResult.pairIndex,
     wordPair: dealResult.wordPair,
     roles: dealResult.roles,

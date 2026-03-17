@@ -3,6 +3,11 @@ const { randomInt, randomUUID } = require('crypto')
 const GameState = require('../game/GameState')
 const Judge = require('../game/Judge')
 const VoteManager = require('../game/VoteManager')
+const {
+  GAME_MODE_FULL,
+  normalizeGameMode,
+  isDealOnlyMode,
+} = require('./gameMode')
 
 class RoomManager extends EventEmitter {
   constructor(options = {}) {
@@ -100,7 +105,7 @@ class RoomManager extends EventEmitter {
     return session ? session.socketId : null
   }
 
-  createRoom({ playerId, nickname, avatar }) {
+  createRoom({ playerId, nickname, avatar, gameMode }) {
     const session = this._getRequiredSession(playerId)
 
     let previousRoomResult = null
@@ -123,6 +128,7 @@ class RoomManager extends EventEmitter {
         }),
       ],
       spyCount: 1,
+      gameMode: normalizeGameMode(gameMode),
       status: 'waiting',
       gameState: null,
       createdAt: Date.now(),
@@ -317,6 +323,23 @@ class RoomManager extends EventEmitter {
     }
   }
 
+  setGameMode(playerId, requestedMode) {
+    const { room, player } = this._getRoomAndPlayerByPlayerId(playerId)
+    this._assertHost(player)
+    if (room.status !== 'waiting') {
+      throw this._createError('GAME_ALREADY_STARTED', '游戏已开始，无法调整游戏模式')
+    }
+
+    room.gameMode = normalizeGameMode(requestedMode)
+    this._markRoomActive(room)
+
+    return {
+      room,
+      roomState: this.getRoomState(room.id),
+      gameMode: room.gameMode,
+    }
+  }
+
   updatePlayerProfile(playerId, { nickname, avatar } = {}) {
     const { room, player } = this._getRoomAndPlayerByPlayerId(playerId)
     const session = this._getRequiredSession(playerId)
@@ -375,6 +398,7 @@ class RoomManager extends EventEmitter {
     room.gameState = GameState.createGameState({
       players: room.players,
       spyCount: room.spyCount,
+      gameMode: room.gameMode,
       wordLibrary: this.wordLibrary,
       usedWordPairIndices: room.usedWordPairIndices,
     })
@@ -392,6 +416,10 @@ class RoomManager extends EventEmitter {
     const { room } = this._getRoomAndPlayerByPlayerId(playerId)
     this._assertGamePhase(room, ['dealing'])
     this._assertAlivePlayer(room, playerId)
+
+    if (isDealOnlyMode(room.gameMode)) {
+      throw this._createError('GAME_CONFIRM_DISABLED', '仅发牌模式无需确认')
+    }
 
     const progress = GameState.confirmWord(room.gameState, playerId)
     let speakingState = null
@@ -547,7 +575,10 @@ class RoomManager extends EventEmitter {
   restartGame(playerId) {
     const { room, player } = this._getRoomAndPlayerByPlayerId(playerId)
     this._assertHost(player)
-    this._assertGamePhase(room, ['ended'])
+    this._assertGamePhase(
+      room,
+      isDealOnlyMode(room.gameMode) ? ['dealing', 'ended'] : ['ended']
+    )
 
     room.status = 'waiting'
     room.gameState = null
@@ -662,6 +693,7 @@ class RoomManager extends EventEmitter {
       gamePhase: room.gameState ? room.gameState.phase : null,
       round: room.gameState ? room.gameState.round : null,
       spyCount: room.spyCount,
+      gameMode: room.gameMode || GAME_MODE_FULL,
       maxPlayers: this.maxPlayers,
       playerCount: room.players.length,
       players: room.players
@@ -682,6 +714,7 @@ class RoomManager extends EventEmitter {
       roomId: room.id,
       phase: room.gameState.phase,
       round: room.gameState.round,
+      gameMode: room.gameMode || GAME_MODE_FULL,
       players: this._getGamePlayersForPublicState(room),
       alivePlayers: [...room.gameState.alivePlayers],
       eliminatedPlayers: [...room.gameState.eliminatedPlayers],
@@ -929,6 +962,13 @@ class RoomManager extends EventEmitter {
     }
 
     if (room.gameState.phase === 'dealing') {
+      if (isDealOnlyMode(room.gameMode)) {
+        return {
+          type: 'stateSync',
+          payload: this.getGamePublicState(room.id),
+        }
+      }
+
       if (
         room.gameState.confirmedPlayers.length === room.gameState.alivePlayers.length &&
         room.gameState.alivePlayers.length > 0
