@@ -11,6 +11,28 @@ function registerRoomHandlers(io, socket, roomManager, getRoomChannel) {
         avatar: payload.avatar,
       })
 
+      if (result.previousRoomResult) {
+        const previousRoomId = result.previousRoomResult.roomId
+        const previousRoomChannel = getRoomChannel(previousRoomId)
+        socket.leave(previousRoomChannel)
+
+        if (result.previousRoomResult.roomState) {
+          emitPlayerLeftSequence(io, previousRoomChannel, {
+            removedPlayer: result.previousRoomResult.removedPlayer,
+            roomState: result.previousRoomResult.roomState,
+            hostChanged: result.previousRoomResult.hostChanged,
+            reason: result.previousRoomResult.reason,
+          })
+        }
+
+        emitGameAction(
+          io,
+          getRoomChannel,
+          previousRoomId,
+          result.previousRoomResult.gameAction
+        )
+      }
+
       const roomChannel = getRoomChannel(result.room.id)
       const roomState = roomManager.getRoomState(result.room.id)
       socket.join(roomChannel)

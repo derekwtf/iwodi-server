@@ -12,7 +12,7 @@ function createRoom(roomManager, playerId, nickname) {
     playerId,
     nickname,
     avatar: `${nickname}-avatar`,
-  }).room.id
+  })
 }
 
 function joinRoom(roomManager, roomId, playerId, nickname) {
@@ -29,9 +29,9 @@ function main() {
   const guestAId = registerPlayer(roomManager, 'socket-guest-a')
   const hostBId = registerPlayer(roomManager, 'socket-host-b')
 
-  const roomAId = createRoom(roomManager, hostAId, '房主甲')
+  const roomAId = createRoom(roomManager, hostAId, '房主甲').room.id
   joinRoom(roomManager, roomAId, guestAId, '玩家甲')
-  const roomBId = createRoom(roomManager, hostBId, '房主乙')
+  const roomBId = createRoom(roomManager, hostBId, '房主乙').room.id
 
   const switched = joinRoom(roomManager, roomBId, hostAId, '房主甲')
 
@@ -57,6 +57,14 @@ function main() {
 
   assert.strictEqual(roomManager.getRoomIdForPlayer(hostAId), roomBId)
   assert.strictEqual(roomManager.getRoomIdForPlayer(guestAId), roomAId)
+
+  const created = createRoom(roomManager, guestAId, '玩家甲新房')
+  assert.ok(created.previousRoomResult, '创建新房时应自动退出旧房')
+  assert.strictEqual(created.previousRoomResult.roomId, roomAId)
+  assert.strictEqual(created.previousRoomResult.reason, 'switch_room')
+  assert.strictEqual(created.previousRoomResult.removedPlayer.id, guestAId)
+  assert.strictEqual(roomManager.getRoomState(roomAId), null, '旧房无人后应被销毁')
+  assert.strictEqual(roomManager.getRoomIdForPlayer(guestAId), created.room.id)
 
   console.log('Room switch test passed.')
 }

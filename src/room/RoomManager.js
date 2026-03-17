@@ -102,8 +102,12 @@ class RoomManager extends EventEmitter {
 
   createRoom({ playerId, nickname, avatar }) {
     const session = this._getRequiredSession(playerId)
+
+    let previousRoomResult = null
     if (session.roomId) {
-      throw this._createError('PLAYER_ALREADY_IN_ROOM', '当前玩家已在房间中')
+      previousRoomResult = this.leaveRoom(session.roomId, playerId, {
+        reason: 'switch_room',
+      })
     }
 
     const now = Date.now()
@@ -141,6 +145,7 @@ class RoomManager extends EventEmitter {
     return {
       room,
       player: this._toPublicPlayer(room.players[0]),
+      previousRoomResult,
     }
   }
 
