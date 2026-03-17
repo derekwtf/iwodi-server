@@ -1,4 +1,6 @@
 const EVENTS = require('./events')
+const { emitPlayerLeftSequence } = require('./emitPatterns')
+const { clearVoteTimers, emitGameAction } = require('./helpers')
 const registerRoomHandlers = require('./roomHandler')
 const registerGameHandlers = require('./gameHandler')
 
@@ -9,23 +11,8 @@ function getRoomChannel(roomId) {
 function initializeSocketServer(io, roomManager) {
   const voteTimerStore = new Map()
 
-  const clearVoteTimers = (roomId) => {
-    const timers = voteTimerStore.get(roomId)
-    if (!timers) {
-      return
-    }
-
-    if (timers.reminderTimer) {
-      clearTimeout(timers.reminderTimer)
-    }
-    if (timers.timeoutTimer) {
-      clearTimeout(timers.timeoutTimer)
-    }
-    voteTimerStore.delete(roomId)
-  }
-
   roomManager.on('room:destroyed', ({ roomId }) => {
-    clearVoteTimers(roomId)
+    clearVoteTimers(voteTimerStore, roomId)
   })
 
   roomManager.on('room:idleWarning', (payload) => {
@@ -64,32 +51,6 @@ function initializeSocketServer(io, roomManager) {
     })
   })
 
-  const emitGameAction = (roomId, gameAction) => {
-    if (!roomId || !gameAction || !gameAction.payload) {
-      return
-    }
-
-    const roomChannel = getRoomChannel(roomId)
-    switch (gameAction.type) {
-      case 'speakingStarted':
-        io.to(roomChannel).emit(EVENTS.server.GAME_SPEAKING_STARTED, gameAction.payload)
-        clearVoteTimers(roomId)
-        break
-      case 'result':
-        io.to(roomChannel).emit(EVENTS.server.GAME_RESULT, gameAction.payload)
-        clearVoteTimers(roomId)
-        break
-      case 'ended':
-        io.to(roomChannel).emit(EVENTS.server.GAME_ENDED, gameAction.payload)
-        clearVoteTimers(roomId)
-        break
-      case 'stateSync':
-      default:
-        io.to(roomChannel).emit(EVENTS.server.GAME_STATE_SYNC, gameAction.payload)
-        break
-    }
-  }
-
   roomManager.on('player:disconnectTimeout', (payload) => {
     if (!payload || !payload.roomId) {
       return
@@ -97,24 +58,17 @@ function initializeSocketServer(io, roomManager) {
 
     const roomChannel = getRoomChannel(payload.roomId)
     if (payload.roomState) {
-      io.to(roomChannel).emit(EVENTS.server.ROOM_PLAYER_LEFT, {
-        player: payload.removedPlayer,
-        room: payload.roomState,
+      emitPlayerLeftSequence(io, roomChannel, {
+        removedPlayer: payload.removedPlayer,
+        roomState: payload.roomState,
+        hostChanged: payload.hostChanged,
         reason: payload.reason,
       })
-      io.to(roomChannel).emit(EVENTS.server.ROOM_STATE, {
-        room: payload.roomState,
-      })
-
-      if (payload.hostChanged) {
-        io.to(roomChannel).emit(EVENTS.server.ROOM_HOST_CHANGED, {
-          player: payload.hostChanged,
-          room: payload.roomState,
-        })
-      }
     }
 
-    emitGameAction(payload.roomId, payload.gameAction)
+    emitGameAction(io, getRoomChannel, payload.roomId, payload.gameAction, {
+      onTerminalAction: (targetRoomId) => clearVoteTimers(voteTimerStore, targetRoomId),
+    })
   })
 
   io.on('connection', (socket) => {

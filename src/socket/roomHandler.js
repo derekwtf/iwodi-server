@@ -1,56 +1,8 @@
 const EVENTS = require('./events')
+const { emitPlayerLeftSequence } = require('./emitPatterns')
+const { emitGameAction, handleError, handleSuccess } = require('./helpers')
 
 function registerRoomHandlers(io, socket, roomManager, getRoomChannel) {
-  const emitGameAction = (roomId, gameAction) => {
-    if (!roomId || !gameAction || !gameAction.payload) {
-      return
-    }
-
-    const roomChannel = getRoomChannel(roomId)
-    switch (gameAction.type) {
-      case 'speakingStarted':
-        io.to(roomChannel).emit(EVENTS.server.GAME_SPEAKING_STARTED, gameAction.payload)
-        break
-      case 'result':
-        io.to(roomChannel).emit(EVENTS.server.GAME_RESULT, gameAction.payload)
-        break
-      case 'ended':
-        io.to(roomChannel).emit(EVENTS.server.GAME_ENDED, gameAction.payload)
-        break
-      case 'stateSync':
-      default:
-        io.to(roomChannel).emit(EVENTS.server.GAME_STATE_SYNC, gameAction.payload)
-        break
-    }
-  }
-
-  const handleError = (action, ack, error) => {
-    const payload = {
-      action,
-      error: {
-        code: error.code || 'INTERNAL_ERROR',
-        message: error.message || '服务异常，请稍后重试',
-      },
-    }
-
-    socket.emit(EVENTS.server.REQUEST_ERROR, payload)
-    if (typeof ack === 'function') {
-      ack({
-        ok: false,
-        ...payload,
-      })
-    }
-  }
-
-  const handleSuccess = (ack, payload) => {
-    if (typeof ack === 'function') {
-      ack({
-        ok: true,
-        ...payload,
-      })
-    }
-  }
-
   socket.on(EVENTS.client.ROOM_CREATE, (payload = {}, ack) => {
     try {
       const result = roomManager.createRoom({
@@ -63,11 +15,10 @@ function registerRoomHandlers(io, socket, roomManager, getRoomChannel) {
       const roomState = roomManager.getRoomState(result.room.id)
       socket.join(roomChannel)
       socket.emit(EVENTS.server.ROOM_CREATED, { room: roomState })
-      socket.emit(EVENTS.server.ROOM_STATE, { room: roomState })
 
       handleSuccess(ack, { room: roomState })
     } catch (error) {
-      handleError(EVENTS.client.ROOM_CREATE, ack, error)
+      handleError(socket, EVENTS.client.ROOM_CREATE, ack, error)
     }
   })
 
@@ -86,24 +37,15 @@ function registerRoomHandlers(io, socket, roomManager, getRoomChannel) {
         socket.leave(previousRoomChannel)
 
         if (result.previousRoomResult.roomState) {
-          io.to(previousRoomChannel).emit(EVENTS.server.ROOM_PLAYER_LEFT, {
-            player: result.previousRoomResult.removedPlayer,
-            room: result.previousRoomResult.roomState,
+          emitPlayerLeftSequence(io, previousRoomChannel, {
+            removedPlayer: result.previousRoomResult.removedPlayer,
+            roomState: result.previousRoomResult.roomState,
+            hostChanged: result.previousRoomResult.hostChanged,
             reason: result.previousRoomResult.reason,
           })
-          io.to(previousRoomChannel).emit(EVENTS.server.ROOM_STATE, {
-            room: result.previousRoomResult.roomState,
-          })
-
-          if (result.previousRoomResult.hostChanged) {
-            io.to(previousRoomChannel).emit(EVENTS.server.ROOM_HOST_CHANGED, {
-              player: result.previousRoomResult.hostChanged,
-              room: result.previousRoomResult.roomState,
-            })
-          }
         }
 
-        emitGameAction(previousRoomId, result.previousRoomResult.gameAction)
+        emitGameAction(io, getRoomChannel, previousRoomId, result.previousRoomResult.gameAction)
       }
 
       const roomChannel = getRoomChannel(result.room.id)
@@ -122,7 +64,7 @@ function registerRoomHandlers(io, socket, roomManager, getRoomChannel) {
 
       handleSuccess(ack, { room: roomState })
     } catch (error) {
-      handleError(EVENTS.client.ROOM_JOIN, ack, error)
+      handleError(socket, EVENTS.client.ROOM_JOIN, ack, error)
     }
   })
 
@@ -142,30 +84,22 @@ function registerRoomHandlers(io, socket, roomManager, getRoomChannel) {
 
       if (result && result.roomState) {
         const roomChannel = getRoomChannel(roomId)
-        io.to(roomChannel).emit(EVENTS.server.ROOM_PLAYER_LEFT, {
-          player: result.removedPlayer,
-          room: result.roomState,
+        emitPlayerLeftSequence(io, roomChannel, {
+          removedPlayer: result.removedPlayer,
+          roomState: result.roomState,
+          hostChanged: result.hostChanged,
+          reason: result.reason,
         })
-        io.to(roomChannel).emit(EVENTS.server.ROOM_STATE, {
-          room: result.roomState,
-        })
-
-        if (result.hostChanged) {
-          io.to(roomChannel).emit(EVENTS.server.ROOM_HOST_CHANGED, {
-            player: result.hostChanged,
-            room: result.roomState,
-          })
-        }
       }
 
-      emitGameAction(roomId, result && result.gameAction)
+      emitGameAction(io, getRoomChannel, roomId, result && result.gameAction)
 
       handleSuccess(ack, {
         roomId,
         room: result ? result.roomState : null,
       })
     } catch (error) {
-      handleError(EVENTS.client.ROOM_LEAVE, ack, error)
+      handleError(socket, EVENTS.client.ROOM_LEAVE, ack, error)
     }
   })
 
@@ -177,7 +111,7 @@ function registerRoomHandlers(io, socket, roomManager, getRoomChannel) {
         status: result.status,
       })
     } catch (error) {
-      handleError(EVENTS.client.ROOM_HEARTBEAT, ack, error)
+      handleError(socket, EVENTS.client.ROOM_HEARTBEAT, ack, error)
     }
   })
 
@@ -196,7 +130,7 @@ function registerRoomHandlers(io, socket, roomManager, getRoomChannel) {
         status: result.status,
       })
     } catch (error) {
-      handleError(EVENTS.client.ROOM_KEEP_ALIVE, ack, error)
+      handleError(socket, EVENTS.client.ROOM_KEEP_ALIVE, ack, error)
     }
   })
 
@@ -221,7 +155,7 @@ function registerRoomHandlers(io, socket, roomManager, getRoomChannel) {
         spyCount: result.spyCount,
       })
     } catch (error) {
-      handleError(EVENTS.client.ROOM_SET_SPY_COUNT, ack, error)
+      handleError(socket, EVENTS.client.ROOM_SET_SPY_COUNT, ack, error)
     }
   })
 
@@ -247,7 +181,7 @@ function registerRoomHandlers(io, socket, roomManager, getRoomChannel) {
         player: result.player,
       })
     } catch (error) {
-      handleError(EVENTS.client.ROOM_UPDATE_PROFILE, ack, error)
+      handleError(socket, EVENTS.client.ROOM_UPDATE_PROFILE, ack, error)
     }
   })
 
@@ -269,28 +203,19 @@ function registerRoomHandlers(io, socket, roomManager, getRoomChannel) {
         })
       }
 
-      io.to(roomChannel).emit(EVENTS.server.ROOM_PLAYER_LEFT, {
-        player: result.removedPlayer,
-        room: result.roomState,
+      emitPlayerLeftSequence(io, roomChannel, {
+        removedPlayer: result.removedPlayer,
+        roomState: result.roomState,
+        hostChanged: result.hostChanged,
         reason: result.reason,
       })
-      io.to(roomChannel).emit(EVENTS.server.ROOM_STATE, {
-        room: result.roomState,
-      })
-
-      if (result.hostChanged) {
-        io.to(roomChannel).emit(EVENTS.server.ROOM_HOST_CHANGED, {
-          player: result.hostChanged,
-          room: result.roomState,
-        })
-      }
 
       handleSuccess(ack, {
         room: result.roomState,
         player: result.removedPlayer,
       })
     } catch (error) {
-      handleError(EVENTS.client.ROOM_KICK_PLAYER, ack, error)
+      handleError(socket, EVENTS.client.ROOM_KICK_PLAYER, ack, error)
     }
   })
 
@@ -317,7 +242,7 @@ function registerRoomHandlers(io, socket, roomManager, getRoomChannel) {
 
       handleSuccess(ack, { room: result.roomState })
     } catch (error) {
-      handleError(EVENTS.client.ROOM_START_GAME, ack, error)
+      handleError(socket, EVENTS.client.ROOM_START_GAME, ack, error)
     }
   })
 
@@ -335,30 +260,22 @@ function registerRoomHandlers(io, socket, roomManager, getRoomChannel) {
 
       if (result && result.roomState) {
         const roomChannel = getRoomChannel(roomId)
-        io.to(roomChannel).emit(EVENTS.server.ROOM_PLAYER_LEFT, {
-          player: result.removedPlayer,
-          room: result.roomState,
+        emitPlayerLeftSequence(io, roomChannel, {
+          removedPlayer: result.removedPlayer,
+          roomState: result.roomState,
+          hostChanged: result.hostChanged,
+          reason: result.reason,
         })
-        io.to(roomChannel).emit(EVENTS.server.ROOM_STATE, {
-          room: result.roomState,
-        })
-
-        if (result.hostChanged) {
-          io.to(roomChannel).emit(EVENTS.server.ROOM_HOST_CHANGED, {
-            player: result.hostChanged,
-            room: result.roomState,
-          })
-        }
       }
 
-      emitGameAction(roomId, result && result.gameAction)
+      emitGameAction(io, getRoomChannel, roomId, result && result.gameAction)
 
       handleSuccess(ack, {
         roomId,
         room: result ? result.roomState : null,
       })
     } catch (error) {
-      handleError(EVENTS.client.RECONNECT_ABANDON, ack, error)
+      handleError(socket, EVENTS.client.RECONNECT_ABANDON, ack, error)
     }
   })
 }

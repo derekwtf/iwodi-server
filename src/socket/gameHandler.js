@@ -1,4 +1,5 @@
 const EVENTS = require('./events')
+const { clearVoteTimers, handleError, handleSuccess } = require('./helpers')
 
 function registerGameHandlers(
   io,
@@ -7,22 +8,6 @@ function registerGameHandlers(
   getRoomChannel,
   voteTimerStore
 ) {
-  const clearVoteTimers = (roomId) => {
-    const timers = voteTimerStore.get(roomId)
-    if (!timers) {
-      return
-    }
-
-    if (timers.reminderTimer) {
-      clearTimeout(timers.reminderTimer)
-    }
-    if (timers.timeoutTimer) {
-      clearTimeout(timers.timeoutTimer)
-    }
-
-    voteTimerStore.delete(roomId)
-  }
-
   const emitRoomState = (roomId) => {
     io.to(getRoomChannel(roomId)).emit(EVENTS.server.ROOM_STATE, {
       room: roomManager.getRoomState(roomId),
@@ -35,62 +20,55 @@ function registerGameHandlers(
   }
 
   const scheduleVoteTimers = (roomId) => {
-    clearVoteTimers(roomId)
+    clearVoteTimers(voteTimerStore, roomId)
 
     const reminderTimer = setTimeout(() => {
-      const pendingPlayers = roomManager.getPendingVoters(roomId)
-      pendingPlayers.forEach((playerId) => {
-        const targetSocketId = roomManager.getActiveSocketId(playerId)
-        if (!targetSocketId) {
-          return
-        }
+      try {
+        const pendingPlayers = roomManager.getPendingVoters(roomId)
+        pendingPlayers.forEach((playerId) => {
+          const targetSocketId = roomManager.getActiveSocketId(playerId)
+          if (!targetSocketId) {
+            return
+          }
 
-        io.to(targetSocketId).emit(EVENTS.server.GAME_VOTE_REMINDER, {
-          roomId,
-          pendingPlayerIds: pendingPlayers,
+          io.to(targetSocketId).emit(EVENTS.server.GAME_VOTE_REMINDER, {
+            roomId,
+            pendingPlayerIds: pendingPlayers,
+          })
         })
-      })
+
+      } catch (error) {
+        console.error('[vote-timer:reminder] failed', {
+          roomId,
+          error,
+        })
+      }
     }, roomManager.voteReminderMs)
 
     const timeoutTimer = setTimeout(() => {
-      const resolution = roomManager.completeVoteTimeout(roomId)
-      if (resolution) {
-        emitVoteResult(roomId, resolution)
+      try {
+        const resolution = roomManager.completeVoteTimeout(roomId)
+        if (resolution) {
+          emitVoteResult(roomId, resolution)
+        } else {
+          console.warn('[vote-timer:timeout] completed without resolution', {
+            roomId,
+          })
+        }
+      } catch (error) {
+        console.error('[vote-timer:timeout] failed', {
+          roomId,
+          error,
+        })
+      } finally {
+        clearVoteTimers(voteTimerStore, roomId)
       }
-      clearVoteTimers(roomId)
     }, roomManager.voteTimeoutMs)
 
     voteTimerStore.set(roomId, {
       reminderTimer,
       timeoutTimer,
     })
-  }
-
-  const handleError = (action, ack, error) => {
-    const payload = {
-      action,
-      error: {
-        code: error.code || 'INTERNAL_ERROR',
-        message: error.message || '服务异常，请稍后重试',
-      },
-    }
-
-    socket.emit(EVENTS.server.REQUEST_ERROR, payload)
-    if (typeof ack === 'function') {
-      ack({
-        ok: false,
-        ...payload,
-      })
-    }
-  }
-
-  const handleSuccess = (ack, payload) => {
-    if (typeof ack === 'function') {
-      ack({
-        ok: true,
-        ...payload,
-      })
-    }
   }
 
   socket.on(EVENTS.client.GAME_CONFIRM_WORD, (payload = {}, ack) => {
@@ -105,7 +83,6 @@ function registerGameHandlers(
         confirmedCount: result.confirmedCount,
         totalPlayers: result.totalPlayers,
       })
-      emitRoomState(result.room.id)
 
       if (result.allConfirmed && result.speakingState) {
         io.to(roomChannel).emit(EVENTS.server.GAME_SPEAKING_STARTED, result.speakingState)
@@ -116,7 +93,7 @@ function registerGameHandlers(
         speakingState: result.speakingState,
       })
     } catch (error) {
-      handleError(EVENTS.client.GAME_CONFIRM_WORD, ack, error)
+      handleError(socket, EVENTS.client.GAME_CONFIRM_WORD, ack, error)
     }
   })
 
@@ -137,7 +114,7 @@ function registerGameHandlers(
         game: result.publicState,
       })
     } catch (error) {
-      handleError(EVENTS.client.GAME_START_VOTE, ack, error)
+      handleError(socket, EVENTS.client.GAME_START_VOTE, ack, error)
     }
   })
 
@@ -154,7 +131,7 @@ function registerGameHandlers(
       })
 
       if (result.allVoted) {
-        clearVoteTimers(result.room.id)
+        clearVoteTimers(voteTimerStore, result.room.id)
         const resolution = roomManager.finalizeVoting(result.room.id)
         emitVoteResult(result.room.id, resolution)
       } else {
@@ -165,14 +142,14 @@ function registerGameHandlers(
         room: result.roomState,
       })
     } catch (error) {
-      handleError(EVENTS.client.GAME_VOTE, ack, error)
+      handleError(socket, EVENTS.client.GAME_VOTE, ack, error)
     }
   })
 
   socket.on(EVENTS.client.GAME_CONTINUE, (payload = {}, ack) => {
     try {
       const result = roomManager.continueGame(socket.data.playerId)
-      clearVoteTimers(result.room.id)
+      clearVoteTimers(voteTimerStore, result.room.id)
 
       if (result.type === 'nextRound') {
         io.to(getRoomChannel(result.room.id)).emit(
@@ -191,25 +168,24 @@ function registerGameHandlers(
         room: result.roomState,
       })
     } catch (error) {
-      handleError(EVENTS.client.GAME_CONTINUE, ack, error)
+      handleError(socket, EVENTS.client.GAME_CONTINUE, ack, error)
     }
   })
 
   socket.on(EVENTS.client.GAME_RESTART, (payload = {}, ack) => {
     try {
       const result = roomManager.restartGame(socket.data.playerId)
-      clearVoteTimers(result.room.id)
+      clearVoteTimers(voteTimerStore, result.room.id)
 
       io.to(getRoomChannel(result.room.id)).emit(EVENTS.server.GAME_RESTARTED, {
         room: result.roomState,
       })
-      emitRoomState(result.room.id)
 
       handleSuccess(ack, {
         room: result.roomState,
       })
     } catch (error) {
-      handleError(EVENTS.client.GAME_RESTART, ack, error)
+      handleError(socket, EVENTS.client.GAME_RESTART, ack, error)
     }
   })
 }
