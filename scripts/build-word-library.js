@@ -1,5 +1,6 @@
 const fs = require('fs')
 const path = require('path')
+const { createPairExpander } = require('./word-group-expansions')
 
 const SOURCE_PATH = path.resolve(
   __dirname,
@@ -98,7 +99,7 @@ function buildMergedGroups(pairs, categoryKey) {
   }
 }
 
-function buildCategory(categoryKey, rawPairs) {
+function buildCategory(categoryKey, rawPairs, expandPairWords) {
   const pairs = buildPairs(rawPairs)
   const { groups: mergedGroups, coveredPairIndices } = buildMergedGroups(pairs, categoryKey)
   const [label, description] = CATEGORY_META[categoryKey] || [categoryKey, '']
@@ -108,7 +109,11 @@ function buildCategory(categoryKey, rawPairs) {
     .filter(({ index }) => !coveredPairIndices.has(index))
     .map(({ pair }, index) => ({
       id: `${categoryKey}-pair-${String(index + 1).padStart(3, '0')}`,
-      words: [pair.civilian, pair.spy],
+      words: [
+        pair.civilian,
+        pair.spy,
+        expandPairWords(categoryKey, [pair.civilian, pair.spy]),
+      ].filter(Boolean),
     }))
 
   return {
@@ -121,15 +126,16 @@ function buildCategory(categoryKey, rawPairs) {
 
 function main() {
   const source = require(SOURCE_PATH)
+  const expandPairWords = createPairExpander(source)
   const categories = Object.keys(source)
     .filter((key) => key !== 'meta')
-    .map((key) => buildCategory(key, source[key]))
+    .map((key) => buildCategory(key, source[key], expandPairWords))
 
   const output = {
     meta: {
       version: 2,
       name: source.meta ? source.meta.name : 'who_is_the_spy_word_library',
-      description: '分类词库。每个词组包含 2 个或以上近义词，发牌时随机抽取其中 2 个并随机分配给平民/卧底。',
+      description: '分类词库。每个词组尽量包含 3 个近似但不完全相同的词，发牌时随机抽取其中 2 个并随机分配给平民/卧底。',
       source: path.relative(path.dirname(TARGET_PATH), SOURCE_PATH),
       generatedAt: new Date().toISOString(),
       categoryCount: categories.length,
