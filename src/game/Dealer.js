@@ -24,10 +24,14 @@ function deal(players, spyCount, wordLibrary, excludeIndices = []) {
   })
 
   return {
-    pairIndex: wordPair.index,
+    wordGroupIndex: wordPair.index,
     wordPair: {
       civilian: wordPair.civilian,
       spy: wordPair.spy,
+      groupId: wordPair.groupId,
+      categoryId: wordPair.categoryId,
+      categoryLabel: wordPair.categoryLabel,
+      candidateWords: [...wordPair.candidateWords],
     },
     roles,
     playerWords,

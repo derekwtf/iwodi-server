@@ -138,7 +138,7 @@ class RoomManager extends EventEmitter {
       idleWarningTimer: null,
       lastActivityAt: now,
       lastHeartbeatAt: now,
-      usedWordPairIndices: [],
+      usedWordGroupIndices: [],
     }
 
     session.roomId = room.id
@@ -400,10 +400,10 @@ class RoomManager extends EventEmitter {
       spyCount: room.spyCount,
       gameMode: room.gameMode,
       wordLibrary: this.wordLibrary,
-      usedWordPairIndices: room.usedWordPairIndices,
+      usedWordGroupIndices: room.usedWordGroupIndices,
     })
     room.status = 'playing'
-    room.usedWordPairIndices.push(room.gameState.pairIndex)
+    room.usedWordGroupIndices.push(room.gameState.wordGroupIndex)
     this._markRoomActive(room)
 
     return {
