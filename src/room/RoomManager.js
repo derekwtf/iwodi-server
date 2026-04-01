@@ -715,6 +715,9 @@ class RoomManager extends EventEmitter {
       phase: room.gameState.phase,
       round: room.gameState.round,
       gameMode: room.gameMode || GAME_MODE_FULL,
+      wordCategoryLabel: room.gameState.wordPair
+        ? room.gameState.wordPair.categoryLabel || ''
+        : '',
       players: this._getGamePlayersForPublicState(room),
       alivePlayers: [...room.gameState.alivePlayers],
       eliminatedPlayers: [...room.gameState.eliminatedPlayers],
