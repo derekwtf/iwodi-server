@@ -766,6 +766,7 @@ class RoomManager extends EventEmitter {
     })
 
     snapshot.myWord = room.gameState.playerWords[playerId] || null
+    snapshot.myRole = room.gameState.roles[playerId] || null
     return snapshot
   }
 
