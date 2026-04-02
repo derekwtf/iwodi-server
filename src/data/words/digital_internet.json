@@ -14,77 +14,26 @@
     {
       "id": "digital_internet-002",
       "words": [
-        "数据线",
-        "充电线",
-        "转接头"
+        "有线耳机",
+        "蓝牙耳机"
       ]
     },
     {
       "id": "digital_internet-003",
       "words": [
-        "固态硬盘",
-        "机械硬盘",
-        "外置硬盘"
+        "自拍杆",
+        "三脚架"
       ]
     },
     {
       "id": "digital_internet-004",
       "words": [
-        "自拍杆",
-        "三脚架",
-        "稳定器"
+        "手机壳",
+        "手机膜"
       ]
     },
     {
       "id": "digital_internet-005",
-      "words": [
-        "夜景模式",
-        "人像模式",
-        "全景模式"
-      ]
-    },
-    {
-      "id": "digital_internet-006",
-      "words": [
-        "前端",
-        "后端",
-        "全栈"
-      ]
-    },
-    {
-      "id": "digital_internet-007",
-      "words": [
-        "单反",
-        "微单",
-        "运动相机"
-      ]
-    },
-    {
-      "id": "digital_internet-008",
-      "words": [
-        "快充",
-        "闪充",
-        "无线充"
-      ]
-    },
-    {
-      "id": "digital_internet-009",
-      "words": [
-        "电磁炉",
-        "电陶炉",
-        "电火锅"
-      ]
-    },
-    {
-      "id": "digital_internet-010",
-      "words": [
-        "手机壳",
-        "手机膜",
-        "手机支架"
-      ]
-    },
-    {
-      "id": "digital_internet-011",
       "words": [
         "美颜",
         "滤镜",
@@ -92,55 +41,56 @@
       ]
     },
     {
-      "id": "digital_internet-012",
+      "id": "digital_internet-006",
+      "words": [
+        "快充",
+        "无线充"
+      ]
+    },
+    {
+      "id": "digital_internet-007",
+      "words": [
+        "电磁炉",
+        "电火锅"
+      ]
+    },
+    {
+      "id": "digital_internet-008",
       "words": [
         "充电宝",
-        "充电器",
-        "充电板"
+        "充电头"
+      ]
+    },
+    {
+      "id": "digital_internet-009",
+      "words": [
+        "智能音箱",
+        "蓝牙音箱"
+      ]
+    },
+    {
+      "id": "digital_internet-010",
+      "words": [
+        "指纹锁",
+        "密码锁"
+      ]
+    },
+    {
+      "id": "digital_internet-011",
+      "words": [
+        "运动手表",
+        "智能手环"
+      ]
+    },
+    {
+      "id": "digital_internet-012",
+      "words": [
+        "人脸识别",
+        "指纹解锁"
       ]
     },
     {
       "id": "digital_internet-013",
-      "words": [
-        "智能音箱",
-        "蓝牙音箱",
-        "回音壁"
-      ]
-    },
-    {
-      "id": "digital_internet-014",
-      "words": [
-        "指纹锁",
-        "密码锁",
-        "人脸锁"
-      ]
-    },
-    {
-      "id": "digital_internet-015",
-      "words": [
-        "运动手表",
-        "智能手环",
-        "智能戒指"
-      ]
-    },
-    {
-      "id": "digital_internet-016",
-      "words": [
-        "人脸识别",
-        "指纹解锁",
-        "虹膜识别"
-      ]
-    },
-    {
-      "id": "digital_internet-017",
-      "words": [
-        "贴吧",
-        "论坛",
-        "NGA"
-      ]
-    },
-    {
-      "id": "digital_internet-018",
       "words": [
         "榨汁杯",
         "保温杯",
@@ -148,15 +98,7 @@
       ]
     },
     {
-      "id": "digital_internet-019",
-      "words": [
-        "智能冰箱",
-        "普通冰箱",
-        "冰柜"
-      ]
-    },
-    {
-      "id": "digital_internet-020",
+      "id": "digital_internet-014",
       "words": [
         "电饭煲",
         "电压力锅",
@@ -164,7 +106,7 @@
       ]
     },
     {
-      "id": "digital_internet-021",
+      "id": "digital_internet-015",
       "words": [
         "加湿器",
         "除湿机",
@@ -172,23 +114,21 @@
       ]
     },
     {
-      "id": "digital_internet-022",
+      "id": "digital_internet-016",
       "words": [
         "公众号",
-        "服务号",
         "视频号"
       ]
     },
     {
-      "id": "digital_internet-023",
+      "id": "digital_internet-017",
       "words": [
         "电纸书",
-        "平板",
-        "纸质书"
+        "平板电脑"
       ]
     },
     {
-      "id": "digital_internet-024",
+      "id": "digital_internet-018",
       "words": [
         "打印机",
         "复印机",
@@ -196,15 +136,7 @@
       ]
     },
     {
-      "id": "digital_internet-025",
-      "words": [
-        "电动窗帘",
-        "普通窗帘",
-        "百叶窗"
-      ]
-    },
-    {
-      "id": "digital_internet-026",
+      "id": "digital_internet-019",
       "words": [
         "净水器",
         "饮水机",
@@ -212,7 +144,7 @@
       ]
     },
     {
-      "id": "digital_internet-027",
+      "id": "digital_internet-020",
       "words": [
         "破壁机",
         "榨汁机",
@@ -220,15 +152,15 @@
       ]
     },
     {
-      "id": "digital_internet-028",
+      "id": "digital_internet-021",
       "words": [
         "电动牙刷",
-        "普通牙刷",
-        "漱口水"
+        "牙刷",
+        "冲牙器"
       ]
     },
     {
-      "id": "digital_internet-029",
+      "id": "digital_internet-022",
       "words": [
         "游戏本",
         "轻薄本",
@@ -236,39 +168,7 @@
       ]
     },
     {
-      "id": "digital_internet-030",
-      "words": [
-        "人脸解锁",
-        "屏下指纹",
-        "侧边指纹"
-      ]
-    },
-    {
-      "id": "digital_internet-031",
-      "words": [
-        "长焦",
-        "广角",
-        "微距"
-      ]
-    },
-    {
-      "id": "digital_internet-032",
-      "words": [
-        "息屏显示",
-        "灵动岛",
-        "呼吸灯"
-      ]
-    },
-    {
-      "id": "digital_internet-033",
-      "words": [
-        "智能家居",
-        "全屋智能",
-        "智能家电"
-      ]
-    },
-    {
-      "id": "digital_internet-034",
+      "id": "digital_internet-023",
       "words": [
         "智能灯",
         "声控灯",
@@ -276,7 +176,7 @@
       ]
     },
     {
-      "id": "digital_internet-035",
+      "id": "digital_internet-024",
       "words": [
         "自拍",
         "合影",
@@ -284,13 +184,41 @@
       ]
     },
     {
-      "id": "digital_internet-036",
+      "id": "digital_internet-025",
       "words": [
         "弹幕",
         "评论",
         "点赞"
       ]
+    },
+    {
+      "id": "digital_internet-026",
+      "words": [
+        "U盘",
+        "移动硬盘"
+      ]
+    },
+    {
+      "id": "digital_internet-027",
+      "words": [
+        "短视频",
+        "直播"
+      ]
+    },
+    {
+      "id": "digital_internet-028",
+      "words": [
+        "投屏",
+        "截屏"
+      ]
+    },
+    {
+      "id": "digital_internet-029",
+      "words": [
+        "表情包",
+        "贴纸"
+      ]
     }
   ],
-  "groupCount": 36
+  "groupCount": 29
 }
