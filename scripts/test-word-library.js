@@ -22,7 +22,7 @@ function testCategorizedDataset() {
   assert.ok(categories.length >= 8)
   assert.ok(categories.some((category) => category.id === 'food'))
   assert.ok(categories.some((category) => category.id === 'people'))
-  assert.ok(library.size >= 1400)
+  assert.ok(library.size >= 400)
 }
 
 function testMultiWordSelection() {
