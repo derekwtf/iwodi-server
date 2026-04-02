@@ -1,4 +1,4 @@
-const defaultGroups = require('./words.json')
+const loadWordCategories = require('./loadWordCategories')
 
 function normalizeWord(value) {
   return String(value || '').trim()
@@ -22,8 +22,9 @@ function pickRandomItem(list) {
 }
 
 class WordLibrary {
-  constructor(wordGroups = defaultGroups) {
-    const normalized = this.normalizeSource(wordGroups)
+  constructor(wordGroups = null) {
+    const source = wordGroups || loadWordCategories()
+    const normalized = this.normalizeSource(source)
 
     if (normalized.groups.length === 0) {
       throw new Error('词库不能为空')

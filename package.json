@@ -7,6 +7,7 @@
     "start": "node src/index.js",
     "dev": "nodemon -L --watch src --ext js,json src/index.js",
     "build:words": "node scripts/build-word-library.js",
+    "test:words:loader": "node scripts/test-word-library-loader.js",
     "test:words": "node scripts/test-word-library.js",
     "test:events": "node scripts/test-events-sync.js",
     "test:room-idle": "node scripts/test-room-idle.js",

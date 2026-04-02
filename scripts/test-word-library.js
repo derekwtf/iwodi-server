@@ -1,6 +1,8 @@
 const assert = require('assert')
 const WordLibrary = require('../src/data/WordLibrary')
-const dataset = require('../src/data/words.json')
+const loadWordCategories = require('../src/data/loadWordCategories')
+
+const dataset = loadWordCategories()
 
 function testLegacyCompatibility() {
   const library = new WordLibrary([
@@ -23,6 +25,13 @@ function testCategorizedDataset() {
   assert.ok(categories.some((category) => category.id === 'food'))
   assert.ok(categories.some((category) => category.id === 'people'))
   assert.ok(library.size >= 400)
+}
+
+function testDefaultDirectoryLoading() {
+  const library = new WordLibrary()
+
+  assert.ok(library.size >= 400)
+  assert.ok(library.getCategories().length >= 8)
 }
 
 function testMultiWordSelection() {
@@ -84,6 +93,7 @@ function testCategoryFiltering() {
 function main() {
   testLegacyCompatibility()
   testCategorizedDataset()
+  testDefaultDirectoryLoading()
   testMultiWordSelection()
   testCategoryFiltering()
   console.log('Word library tests passed.')

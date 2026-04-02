@@ -1,0 +1,360 @@
+{
+  "id": "tradition_nature",
+  "label": "传统与自然",
+  "description": "传统节日、工艺、文化符号、自然地理",
+  "groups": [
+    {
+      "id": "tradition_nature-001",
+      "words": [
+        "春节",
+        "元宵",
+        "端午"
+      ]
+    },
+    {
+      "id": "tradition_nature-002",
+      "words": [
+        "中秋",
+        "重阳",
+        "腊八"
+      ]
+    },
+    {
+      "id": "tradition_nature-003",
+      "words": [
+        "清明",
+        "寒食",
+        "中元"
+      ]
+    },
+    {
+      "id": "tradition_nature-004",
+      "words": [
+        "春联",
+        "年画",
+        "灯笼"
+      ]
+    },
+    {
+      "id": "tradition_nature-005",
+      "words": [
+        "鞭炮",
+        "烟花",
+        "孔明灯"
+      ]
+    },
+    {
+      "id": "tradition_nature-006",
+      "words": [
+        "剪纸",
+        "泥人",
+        "皮影"
+      ]
+    },
+    {
+      "id": "tradition_nature-007",
+      "words": [
+        "刺绣",
+        "织锦",
+        "蜡染"
+      ]
+    },
+    {
+      "id": "tradition_nature-008",
+      "words": [
+        "陶瓷",
+        "紫砂",
+        "琉璃"
+      ]
+    },
+    {
+      "id": "tradition_nature-009",
+      "words": [
+        "毛笔",
+        "墨汁",
+        "宣纸"
+      ]
+    },
+    {
+      "id": "tradition_nature-010",
+      "words": [
+        "砚台",
+        "镇纸",
+        "笔架"
+      ]
+    },
+    {
+      "id": "tradition_nature-011",
+      "words": [
+        "二胡",
+        "古筝",
+        "琵琶"
+      ]
+    },
+    {
+      "id": "tradition_nature-012",
+      "words": [
+        "笛子",
+        "箫",
+        "唢呐"
+      ]
+    },
+    {
+      "id": "tradition_nature-013",
+      "words": [
+        "象棋",
+        "围棋",
+        "跳棋"
+      ]
+    },
+    {
+      "id": "tradition_nature-014",
+      "words": [
+        "龙舟",
+        "风筝",
+        "秋千"
+      ]
+    },
+    {
+      "id": "tradition_nature-015",
+      "words": [
+        "蹴鞠",
+        "投壶",
+        "射箭"
+      ]
+    },
+    {
+      "id": "tradition_nature-016",
+      "words": [
+        "太极",
+        "咏春",
+        "少林"
+      ]
+    },
+    {
+      "id": "tradition_nature-017",
+      "words": [
+        "丝绸",
+        "瓷器",
+        "茶叶"
+      ]
+    },
+    {
+      "id": "tradition_nature-018",
+      "words": [
+        "火药",
+        "指南针",
+        "造纸"
+      ]
+    },
+    {
+      "id": "tradition_nature-019",
+      "words": [
+        "梅花",
+        "兰花",
+        "竹子"
+      ]
+    },
+    {
+      "id": "tradition_nature-020",
+      "words": [
+        "菊花",
+        "荷花",
+        "桂花"
+      ]
+    },
+    {
+      "id": "tradition_nature-021",
+      "words": [
+        "松树",
+        "柏树",
+        "杉树"
+      ]
+    },
+    {
+      "id": "tradition_nature-022",
+      "words": [
+        "泰山",
+        "华山",
+        "嵩山"
+      ]
+    },
+    {
+      "id": "tradition_nature-023",
+      "words": [
+        "黄山",
+        "庐山",
+        "峨眉山"
+      ]
+    },
+    {
+      "id": "tradition_nature-024",
+      "words": [
+        "长江",
+        "黄河",
+        "珠江"
+      ]
+    },
+    {
+      "id": "tradition_nature-025",
+      "words": [
+        "渤海",
+        "黄海",
+        "东海"
+      ]
+    },
+    {
+      "id": "tradition_nature-026",
+      "words": [
+        "长城",
+        "故宫",
+        "天坛"
+      ]
+    },
+    {
+      "id": "tradition_nature-027",
+      "words": [
+        "兵马俑",
+        "莫高窟",
+        "龙门石窟"
+      ]
+    },
+    {
+      "id": "tradition_nature-028",
+      "words": [
+        "茶壶",
+        "茶杯",
+        "茶盘"
+      ]
+    },
+    {
+      "id": "tradition_nature-029",
+      "words": [
+        "龙凤",
+        "麒麟",
+        "貔貅"
+      ]
+    },
+    {
+      "id": "tradition_nature-030",
+      "words": [
+        "红包",
+        "压岁钱",
+        "福袋"
+      ]
+    },
+    {
+      "id": "tradition_nature-031",
+      "words": [
+        "糖葫芦",
+        "棉花糖",
+        "麦芽糖"
+      ]
+    },
+    {
+      "id": "tradition_nature-032",
+      "words": [
+        "旗袍",
+        "汉服",
+        "唐装"
+      ]
+    },
+    {
+      "id": "tradition_nature-033",
+      "words": [
+        "秧歌",
+        "腰鼓",
+        "舞狮"
+      ]
+    },
+    {
+      "id": "tradition_nature-034",
+      "words": [
+        "算盘",
+        "铜钱",
+        "元宝"
+      ]
+    },
+    {
+      "id": "tradition_nature-035",
+      "words": [
+        "亭子",
+        "牌坊",
+        "宝塔"
+      ]
+    },
+    {
+      "id": "tradition_nature-036",
+      "words": [
+        "石桥",
+        "木桥",
+        "吊桥"
+      ]
+    },
+    {
+      "id": "tradition_nature-037",
+      "words": [
+        "拜年",
+        "祭祖",
+        "赏月"
+      ]
+    },
+    {
+      "id": "tradition_nature-038",
+      "words": [
+        "麻将",
+        "扑克",
+        "骰子"
+      ]
+    },
+    {
+      "id": "tradition_nature-039",
+      "words": [
+        "扇子",
+        "油纸伞",
+        "拨浪鼓"
+      ]
+    },
+    {
+      "id": "tradition_nature-040",
+      "words": [
+        "青铜器",
+        "玉器",
+        "漆器"
+      ]
+    },
+    {
+      "id": "tradition_nature-041",
+      "words": [
+        "京剧",
+        "越剧",
+        "黄梅戏"
+      ]
+    },
+    {
+      "id": "tradition_nature-042",
+      "words": [
+        "花脸",
+        "青衣",
+        "小生"
+      ]
+    },
+    {
+      "id": "tradition_nature-043",
+      "words": [
+        "编钟",
+        "古琴",
+        "瑟"
+      ]
+    },
+    {
+      "id": "tradition_nature-044",
+      "words": [
+        "景泰蓝",
+        "唐三彩",
+        "青花瓷"
+      ]
+    }
+  ],
+  "groupCount": 44
+}

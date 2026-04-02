@@ -6,11 +6,21 @@
 
 const fs = require('fs');
 const path = require('path');
+const loadWordCategories = require('../src/data/loadWordCategories');
+const writeWordCategories = require('../src/data/writeWordCategories');
 
-const INPUT = path.join(__dirname, '..', 'src', 'data', 'words.json');
-const OUTPUT = path.join(__dirname, '..', 'src', 'data', 'words.json');
+const LEGACY_SOURCE_PATH = path.join(__dirname, '..', 'src', 'data', 'words.json');
+const OUTPUT_DIR = path.join(__dirname, '..', 'src', 'data', 'words');
 
-const data = JSON.parse(fs.readFileSync(INPUT, 'utf-8'));
+function loadSourceDataset() {
+  if (fs.existsSync(LEGACY_SOURCE_PATH)) {
+    return JSON.parse(fs.readFileSync(LEGACY_SOURCE_PATH, 'utf-8'));
+  }
+
+  return loadWordCategories(OUTPUT_DIR);
+}
+
+const data = loadSourceDataset();
 
 // ========== people: 保留指定ID，新增30组 ==========
 const PEOPLE_KEEP_IDS = new Set([
@@ -327,7 +337,7 @@ const newData = {
 };
 
 // 写入文件
-fs.writeFileSync(OUTPUT, JSON.stringify(newData, null, 2) + '\n', 'utf-8');
+writeWordCategories(newData, OUTPUT_DIR);
 
 console.log(`\n总计: ${totalGroups} 组词，${newCategories.length} 个分类`);
-console.log(`已写入: ${OUTPUT}`);
+console.log(`已写入: ${OUTPUT_DIR}`);
