@@ -198,21 +198,13 @@
     {
       "id": "tradition_nature-025",
       "words": [
-        "渤海",
-        "黄海",
-        "东海"
-      ]
-    },
-    {
-      "id": "tradition_nature-026",
-      "words": [
         "长城",
         "故宫",
         "天坛"
       ]
     },
     {
-      "id": "tradition_nature-027",
+      "id": "tradition_nature-026",
       "words": [
         "兵马俑",
         "莫高窟",
@@ -220,7 +212,7 @@
       ]
     },
     {
-      "id": "tradition_nature-028",
+      "id": "tradition_nature-027",
       "words": [
         "茶壶",
         "茶杯",
@@ -228,23 +220,23 @@
       ]
     },
     {
+      "id": "tradition_nature-028",
+      "words": [
+        "龙",
+        "凤凰",
+        "麒麟"
+      ]
+    },
+    {
       "id": "tradition_nature-029",
       "words": [
-        "龙凤",
-        "麒麟",
-        "貔貅"
+        "红包",
+        "福袋",
+        "压岁钱"
       ]
     },
     {
       "id": "tradition_nature-030",
-      "words": [
-        "红包",
-        "压岁钱",
-        "福袋"
-      ]
-    },
-    {
-      "id": "tradition_nature-031",
       "words": [
         "糖葫芦",
         "棉花糖",
@@ -252,7 +244,7 @@
       ]
     },
     {
-      "id": "tradition_nature-032",
+      "id": "tradition_nature-031",
       "words": [
         "旗袍",
         "汉服",
@@ -260,7 +252,7 @@
       ]
     },
     {
-      "id": "tradition_nature-033",
+      "id": "tradition_nature-032",
       "words": [
         "秧歌",
         "腰鼓",
@@ -268,7 +260,7 @@
       ]
     },
     {
-      "id": "tradition_nature-034",
+      "id": "tradition_nature-033",
       "words": [
         "算盘",
         "铜钱",
@@ -276,7 +268,7 @@
       ]
     },
     {
-      "id": "tradition_nature-035",
+      "id": "tradition_nature-034",
       "words": [
         "亭子",
         "牌坊",
@@ -284,15 +276,15 @@
       ]
     },
     {
-      "id": "tradition_nature-036",
+      "id": "tradition_nature-035",
       "words": [
-        "石桥",
-        "木桥",
+        "拱桥",
+        "廊桥",
         "吊桥"
       ]
     },
     {
-      "id": "tradition_nature-037",
+      "id": "tradition_nature-036",
       "words": [
         "拜年",
         "祭祖",
@@ -300,7 +292,7 @@
       ]
     },
     {
-      "id": "tradition_nature-038",
+      "id": "tradition_nature-037",
       "words": [
         "麻将",
         "扑克",
@@ -308,7 +300,7 @@
       ]
     },
     {
-      "id": "tradition_nature-039",
+      "id": "tradition_nature-038",
       "words": [
         "扇子",
         "油纸伞",
@@ -316,7 +308,7 @@
       ]
     },
     {
-      "id": "tradition_nature-040",
+      "id": "tradition_nature-039",
       "words": [
         "青铜器",
         "玉器",
@@ -324,7 +316,7 @@
       ]
     },
     {
-      "id": "tradition_nature-041",
+      "id": "tradition_nature-040",
       "words": [
         "京剧",
         "越剧",
@@ -332,7 +324,7 @@
       ]
     },
     {
-      "id": "tradition_nature-042",
+      "id": "tradition_nature-041",
       "words": [
         "花脸",
         "青衣",
@@ -340,15 +332,15 @@
       ]
     },
     {
-      "id": "tradition_nature-043",
+      "id": "tradition_nature-042",
       "words": [
         "编钟",
         "古琴",
-        "瑟"
+        "鼓"
       ]
     },
     {
-      "id": "tradition_nature-044",
+      "id": "tradition_nature-043",
       "words": [
         "景泰蓝",
         "唐三彩",
@@ -356,5 +348,5 @@
       ]
     }
   ],
-  "groupCount": 44
+  "groupCount": 43
 }
