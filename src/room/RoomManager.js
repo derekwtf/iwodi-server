@@ -18,6 +18,8 @@ class RoomManager extends EventEmitter {
     this.wordLibrary = options.wordLibrary || null
     this.maxPlayers = options.maxPlayers || 12
     this.disconnectGraceMs = options.disconnectGraceMs || 30 * 1000
+    this.hostTransferGraceMs = options.hostTransferGraceMs || 30 * 1000
+    this.allDisconnectedTtlMs = options.allDisconnectedTtlMs || 10 * 60 * 1000
     this.emptyRoomTtlMs = options.emptyRoomTtlMs || 5 * 60 * 1000
     this.waitingIdleMs = options.waitingIdleMs || 15 * 60 * 1000
     this.playingIdleMs = options.playingIdleMs || 10 * 60 * 1000
@@ -64,6 +66,9 @@ class RoomManager extends EventEmitter {
         player.disconnected = false
         player.disconnectedAt = null
       }
+      this._clearHostTransfer(room, session.playerId)
+      this._refreshPresenceState(room)
+      this._ensureHostTransfer(room)
 
       reconnectEvent = {
         event:
@@ -136,6 +141,9 @@ class RoomManager extends EventEmitter {
       emptyRoomTimer: null,
       idleTimer: null,
       idleWarningTimer: null,
+      hostTransferTimer: null,
+      hostTransferPlayerId: null,
+      allDisconnectedAt: null,
       lastActivityAt: now,
       lastHeartbeatAt: now,
       usedWordGroupIndices: [],
@@ -288,6 +296,7 @@ class RoomManager extends EventEmitter {
       room.gameState = null
       this.destroyRoom(room.id)
     } else {
+      this._clearHostTransfer(room, playerId)
       this._refreshSpyCount(room)
       this._markRoomActive(room)
     }
@@ -625,22 +634,8 @@ class RoomManager extends EventEmitter {
 
     player.disconnected = true
     player.disconnectedAt = Date.now()
-
-    if (session.disconnectTimer) {
-      clearTimeout(session.disconnectTimer)
-    }
-
-    session.disconnectTimer = setTimeout(() => {
-      session.disconnectTimer = null
-      const result = this.leaveRoom(room.id, playerId, {
-        reason: 'disconnect_timeout',
-      })
-
-      this.emit('player:disconnectTimeout', {
-        playerId,
-        ...result,
-      })
-    }, this.disconnectGraceMs)
+    this._ensureHostTransfer(room)
+    this._refreshPresenceState(room)
 
     return {
       playerId,
@@ -820,6 +815,7 @@ class RoomManager extends EventEmitter {
 
     this._clearRoomCleanup(room)
     this._clearRoomIdleTimers(room)
+    this._clearHostTransfer(room)
     this.rooms.delete(roomId)
     this.emit('room:destroyed', { roomId })
     return true
@@ -1120,12 +1116,26 @@ class RoomManager extends EventEmitter {
     if (options.heartbeat || room.status === 'playing') {
       room.lastHeartbeatAt = now
     }
+    if (this._getOnlinePlayers(room).length > 0) {
+      room.allDisconnectedAt = null
+    }
     this._scheduleRoomIdleCheck(room)
   }
 
   _getRoomIdlePolicy(room) {
     if (!room || room.players.length === 0) {
       return null
+    }
+
+    if (
+      this._getOnlinePlayers(room).length === 0 &&
+      this.allDisconnectedTtlMs > 0
+    ) {
+      return {
+        ttlMs: this.allDisconnectedTtlMs,
+        baseAt: room.allDisconnectedAt || room.createdAt || Date.now(),
+        reason: 'all_disconnected_timeout',
+      }
     }
 
     if (room.status === 'waiting') {
@@ -1266,6 +1276,128 @@ class RoomManager extends EventEmitter {
 
   _findPlayer(room, playerId) {
     return room.players.find((item) => item.id === playerId) || null
+  }
+
+  _getOnlinePlayers(room) {
+    if (!room) {
+      return []
+    }
+
+    return room.players.filter((player) => !player.disconnected)
+  }
+
+  _refreshPresenceState(room) {
+    if (!room) {
+      return
+    }
+
+    if (this._getOnlinePlayers(room).length > 0) {
+      room.allDisconnectedAt = null
+    } else if (!room.allDisconnectedAt) {
+      room.allDisconnectedAt = Date.now()
+    }
+
+    this._scheduleRoomIdleCheck(room)
+  }
+
+  _clearHostTransfer(room, playerId) {
+    if (!room) {
+      return
+    }
+
+    if (playerId && room.hostTransferPlayerId && room.hostTransferPlayerId !== playerId) {
+      return
+    }
+
+    if (room.hostTransferTimer) {
+      clearTimeout(room.hostTransferTimer)
+      room.hostTransferTimer = null
+    }
+    room.hostTransferPlayerId = null
+  }
+
+  _transferHost(room, playerId) {
+    const player = this._findPlayer(room, playerId)
+    if (!room || !player || !player.isHost) {
+      return false
+    }
+
+    const nextHost = room.players
+      .slice()
+      .filter((candidate) => candidate.id !== playerId && !candidate.disconnected)
+      .sort((left, right) => left.joinedAt - right.joinedAt)[0]
+
+    if (!nextHost) {
+      return false
+    }
+
+    this._clearHostTransfer(room)
+    player.isHost = false
+    nextHost.isHost = true
+    this._markRoomActive(room)
+    this.emit('room:hostTransferred', {
+      roomId: room.id,
+      player: this._toPublicPlayer(nextHost),
+      previousPlayer: this._toPublicPlayer(player),
+      roomState: this.getRoomState(room.id),
+      reason: 'host_disconnect_timeout',
+    })
+    return true
+  }
+
+  _scheduleHostTransfer(room, playerId, delayMs) {
+    this._clearHostTransfer(room)
+    room.hostTransferPlayerId = playerId
+    room.hostTransferTimer = setTimeout(() => {
+      const latestRoom = this.rooms.get(room.id)
+      if (!latestRoom) {
+        return
+      }
+
+      this._transferHost(latestRoom, playerId)
+      if (latestRoom && latestRoom.hostTransferPlayerId === playerId) {
+        latestRoom.hostTransferPlayerId = null
+      }
+    }, delayMs)
+  }
+
+  _ensureHostTransfer(room) {
+    if (!room) {
+      return
+    }
+
+    const currentHost = room.players.find((player) => player.isHost) || null
+    if (!currentHost || !currentHost.disconnected) {
+      this._clearHostTransfer(room)
+      return
+    }
+
+    const onlineCandidates = this._getOnlinePlayers(room).filter(
+      (player) => player.id !== currentHost.id
+    )
+    if (!onlineCandidates.length) {
+      this._clearHostTransfer(room, currentHost.id)
+      return
+    }
+
+    const disconnectedFor = Date.now() - (currentHost.disconnectedAt || Date.now())
+    if (disconnectedFor >= this.hostTransferGraceMs) {
+      this._transferHost(room, currentHost.id)
+      return
+    }
+
+    if (
+      room.hostTransferTimer &&
+      room.hostTransferPlayerId === currentHost.id
+    ) {
+      return
+    }
+
+    this._scheduleHostTransfer(
+      room,
+      currentHost.id,
+      Math.max(this.hostTransferGraceMs - disconnectedFor, 0)
+    )
   }
 
   _assertHost(player) {

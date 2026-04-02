@@ -51,6 +51,19 @@ function initializeSocketServer(io, roomManager) {
     })
   })
 
+  roomManager.on('room:hostTransferred', (payload) => {
+    if (!payload || !payload.roomId) {
+      return
+    }
+
+    io.to(getRoomChannel(payload.roomId)).emit(EVENTS.server.ROOM_HOST_CHANGED, {
+      player: payload.player,
+      previousPlayer: payload.previousPlayer,
+      room: payload.roomState,
+      reason: payload.reason,
+    })
+  })
+
   roomManager.on('player:disconnectTimeout', (payload) => {
     if (!payload || !payload.roomId) {
       return
@@ -114,7 +127,6 @@ function initializeSocketServer(io, roomManager) {
         {
           player: result.player,
           room: result.roomState,
-          graceMs: result.graceMs,
         }
       )
       io.to(getRoomChannel(result.roomId)).emit(EVENTS.server.ROOM_STATE, {
