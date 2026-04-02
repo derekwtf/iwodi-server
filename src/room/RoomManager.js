@@ -670,6 +670,31 @@ class RoomManager extends EventEmitter {
     }
   }
 
+  getSyncState(playerId) {
+    const session = this._getRequiredSession(playerId)
+    if (!session.roomId) {
+      throw this._createError('ROOM_NOT_FOUND', '房间不存在或已关闭')
+    }
+
+    const room = this.rooms.get(session.roomId)
+    if (!room) {
+      session.roomId = null
+      throw this._createError('ROOM_NOT_FOUND', '房间不存在或已关闭')
+    }
+
+    const player = this._findPlayer(room, playerId)
+    if (!player) {
+      session.roomId = null
+      throw this._createError('PLAYER_NOT_IN_ROOM', '房间不存在或已关闭')
+    }
+
+    return {
+      room: this.getRoomState(room.id),
+      game: room.gameState ? this.getReconnectGameSnapshot(room.id, playerId) : null,
+      status: room.gameState ? room.gameState.phase : room.status,
+    }
+  }
+
   keepAlive(playerId) {
     const { room } = this._getRoomAndPlayerByPlayerId(playerId)
     this._markRoomActive(room)

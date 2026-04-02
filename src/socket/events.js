@@ -4,6 +4,7 @@ const EVENTS = {
     ROOM_JOIN: 'room:join',
     ROOM_LEAVE: 'room:leave',
     ROOM_HEARTBEAT: 'room:heartbeat',
+    ROOM_SYNC_STATE: 'room:syncState',
     ROOM_KEEP_ALIVE: 'room:keepAlive',
     ROOM_KICK_PLAYER: 'room:kickPlayer',
     ROOM_SET_SPY_COUNT: 'room:setSpyCount',

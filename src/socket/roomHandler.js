@@ -138,6 +138,15 @@ function registerRoomHandlers(io, socket, roomManager, getRoomChannel) {
     }
   })
 
+  socket.on(EVENTS.client.ROOM_SYNC_STATE, (payload = {}, ack) => {
+    try {
+      const result = roomManager.getSyncState(socket.data.playerId)
+      handleSuccess(ack, result)
+    } catch (error) {
+      handleError(socket, EVENTS.client.ROOM_SYNC_STATE, ack, error)
+    }
+  })
+
   socket.on(EVENTS.client.ROOM_KEEP_ALIVE, (payload = {}, ack) => {
     try {
       const result = roomManager.keepAlive(socket.data.playerId)
