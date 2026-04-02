@@ -39,8 +39,7 @@
       "id": "daily_items-005",
       "words": [
         "衣架",
-        "裤架",
-        "裙架"
+        "晾衣绳"
       ]
     },
     {
@@ -71,36 +70,26 @@
       "id": "daily_items-009",
       "words": [
         "抹布",
-        "海绵擦",
-        "百洁布"
+        "拖把"
       ]
     },
     {
       "id": "daily_items-010",
       "words": [
         "口红",
-        "唇釉",
-        "唇膏"
+        "指甲油"
       ]
     },
     {
       "id": "daily_items-011",
       "words": [
         "粉底",
-        "BB霜",
-        "气垫"
+        "腮红",
+        "眉笔"
       ]
     },
     {
       "id": "daily_items-012",
-      "words": [
-        "香薰蜡烛",
-        "电子蜡烛",
-        "香薰机"
-      ]
-    },
-    {
-      "id": "daily_items-013",
       "words": [
         "帆布包",
         "托特包",
@@ -108,15 +97,14 @@
       ]
     },
     {
-      "id": "daily_items-014",
+      "id": "daily_items-013",
       "words": [
-        "调料罐",
-        "调料盒",
-        "调料瓶"
+        "盐",
+        "糖"
       ]
     },
     {
-      "id": "daily_items-015",
+      "id": "daily_items-014",
       "words": [
         "荧光笔",
         "记号笔",
@@ -124,15 +112,14 @@
       ]
     },
     {
-      "id": "daily_items-016",
+      "id": "daily_items-015",
       "words": [
         "指南针",
-        "地图",
-        "GPS"
+        "地图"
       ]
     },
     {
-      "id": "daily_items-017",
+      "id": "daily_items-016",
       "words": [
         "胶水",
         "固体胶",
@@ -140,7 +127,7 @@
       ]
     },
     {
-      "id": "daily_items-018",
+      "id": "daily_items-017",
       "words": [
         "落地灯",
         "台灯",
@@ -148,7 +135,7 @@
       ]
     },
     {
-      "id": "daily_items-019",
+      "id": "daily_items-018",
       "words": [
         "洗发露",
         "护发素",
@@ -156,7 +143,7 @@
       ]
     },
     {
-      "id": "daily_items-020",
+      "id": "daily_items-019",
       "words": [
         "枕巾",
         "枕套",
@@ -164,15 +151,14 @@
       ]
     },
     {
-      "id": "daily_items-021",
+      "id": "daily_items-020",
       "words": [
-        "有线耳机",
-        "蓝牙耳机",
-        "降噪耳机"
+        "耳机",
+        "音箱"
       ]
     },
     {
-      "id": "daily_items-022",
+      "id": "daily_items-021",
       "words": [
         "香水",
         "身体喷雾",
@@ -180,7 +166,7 @@
       ]
     },
     {
-      "id": "daily_items-023",
+      "id": "daily_items-022",
       "words": [
         "吹风机",
         "卷发棒",
@@ -188,7 +174,7 @@
       ]
     },
     {
-      "id": "daily_items-024",
+      "id": "daily_items-023",
       "words": [
         "鞋柜",
         "玄关柜",
@@ -196,23 +182,21 @@
       ]
     },
     {
-      "id": "daily_items-025",
+      "id": "daily_items-024",
       "words": [
         "体重秤",
-        "体脂秤",
-        "厨房秤"
+        "身高尺"
+      ]
+    },
+    {
+      "id": "daily_items-025",
+      "words": [
+        "鼠标",
+        "触控板"
       ]
     },
     {
       "id": "daily_items-026",
-      "words": [
-        "鼠标",
-        "触控板",
-        "轨迹球"
-      ]
-    },
-    {
-      "id": "daily_items-027",
       "words": [
         "手电筒",
         "应急灯",
@@ -220,7 +204,7 @@
       ]
     },
     {
-      "id": "daily_items-028",
+      "id": "daily_items-027",
       "words": [
         "行李箱",
         "旅行袋",
@@ -228,7 +212,7 @@
       ]
     },
     {
-      "id": "daily_items-029",
+      "id": "daily_items-028",
       "words": [
         "笔袋",
         "笔筒",
@@ -236,7 +220,7 @@
       ]
     },
     {
-      "id": "daily_items-030",
+      "id": "daily_items-029",
       "words": [
         "抱枕",
         "靠枕",
@@ -244,15 +228,7 @@
       ]
     },
     {
-      "id": "daily_items-031",
-      "words": [
-        "机械键盘",
-        "薄膜键盘",
-        "无线键盘"
-      ]
-    },
-    {
-      "id": "daily_items-032",
+      "id": "daily_items-030",
       "words": [
         "发卡",
         "发带",
@@ -260,7 +236,7 @@
       ]
     },
     {
-      "id": "daily_items-033",
+      "id": "daily_items-031",
       "words": [
         "铅笔",
         "钢笔",
@@ -268,7 +244,7 @@
       ]
     },
     {
-      "id": "daily_items-034",
+      "id": "daily_items-032",
       "words": [
         "保温饭盒",
         "焖烧杯",
@@ -276,7 +252,7 @@
       ]
     },
     {
-      "id": "daily_items-035",
+      "id": "daily_items-033",
       "words": [
         "锅铲",
         "汤勺",
@@ -284,7 +260,7 @@
       ]
     },
     {
-      "id": "daily_items-036",
+      "id": "daily_items-034",
       "words": [
         "手套",
         "袖套",
@@ -292,7 +268,7 @@
       ]
     },
     {
-      "id": "daily_items-037",
+      "id": "daily_items-035",
       "words": [
         "餐桌",
         "茶几",
@@ -300,7 +276,7 @@
       ]
     },
     {
-      "id": "daily_items-038",
+      "id": "daily_items-036",
       "words": [
         "橡皮",
         "修正带",
@@ -308,15 +284,14 @@
       ]
     },
     {
-      "id": "daily_items-039",
+      "id": "daily_items-037",
       "words": [
-        "刷子",
         "钢丝球",
-        "清洁球"
+        "海绵擦"
       ]
     },
     {
-      "id": "daily_items-040",
+      "id": "daily_items-038",
       "words": [
         "电熨斗",
         "挂烫机",
@@ -324,7 +299,7 @@
       ]
     },
     {
-      "id": "daily_items-041",
+      "id": "daily_items-039",
       "words": [
         "榨汁机",
         "豆浆机",
@@ -332,7 +307,7 @@
       ]
     },
     {
-      "id": "daily_items-042",
+      "id": "daily_items-040",
       "words": [
         "被子",
         "床单",
@@ -340,7 +315,7 @@
       ]
     },
     {
-      "id": "daily_items-043",
+      "id": "daily_items-041",
       "words": [
         "订书机",
         "打孔器",
@@ -348,7 +323,7 @@
       ]
     },
     {
-      "id": "daily_items-044",
+      "id": "daily_items-042",
       "words": [
         "围巾",
         "丝巾",
@@ -356,7 +331,7 @@
       ]
     },
     {
-      "id": "daily_items-045",
+      "id": "daily_items-043",
       "words": [
         "棉签",
         "洗脸扑",
@@ -364,7 +339,7 @@
       ]
     },
     {
-      "id": "daily_items-046",
+      "id": "daily_items-044",
       "words": [
         "运动鞋",
         "板鞋",
@@ -372,7 +347,7 @@
       ]
     },
     {
-      "id": "daily_items-047",
+      "id": "daily_items-045",
       "words": [
         "纽扣",
         "拉链",
@@ -380,7 +355,7 @@
       ]
     },
     {
-      "id": "daily_items-048",
+      "id": "daily_items-046",
       "words": [
         "水杯",
         "水壶",
@@ -388,7 +363,7 @@
       ]
     },
     {
-      "id": "daily_items-049",
+      "id": "daily_items-047",
       "words": [
         "卷尺",
         "直尺",
@@ -396,7 +371,7 @@
       ]
     },
     {
-      "id": "daily_items-050",
+      "id": "daily_items-048",
       "words": [
         "茶壶",
         "茶杯",
@@ -404,7 +379,7 @@
       ]
     },
     {
-      "id": "daily_items-051",
+      "id": "daily_items-049",
       "words": [
         "耳环",
         "耳钉",
@@ -412,15 +387,14 @@
       ]
     },
     {
-      "id": "daily_items-052",
+      "id": "daily_items-050",
       "words": [
-        "透明胶",
-        "美纹纸",
-        "电工胶带"
+        "绳子",
+        "胶带"
       ]
     },
     {
-      "id": "daily_items-053",
+      "id": "daily_items-051",
       "words": [
         "圆规",
         "量角器",
@@ -428,7 +402,7 @@
       ]
     },
     {
-      "id": "daily_items-054",
+      "id": "daily_items-052",
       "words": [
         "文件夹",
         "档案袋",
@@ -436,7 +410,7 @@
       ]
     },
     {
-      "id": "daily_items-055",
+      "id": "daily_items-053",
       "words": [
         "冰箱",
         "冰柜",
@@ -444,7 +418,7 @@
       ]
     },
     {
-      "id": "daily_items-056",
+      "id": "daily_items-054",
       "words": [
         "空调",
         "风扇",
@@ -452,7 +426,7 @@
       ]
     },
     {
-      "id": "daily_items-057",
+      "id": "daily_items-055",
       "words": [
         "置物架",
         "书架",
@@ -460,7 +434,7 @@
       ]
     },
     {
-      "id": "daily_items-058",
+      "id": "daily_items-056",
       "words": [
         "纸巾",
         "湿巾",
@@ -468,7 +442,7 @@
       ]
     },
     {
-      "id": "daily_items-059",
+      "id": "daily_items-057",
       "words": [
         "打蛋器",
         "搅拌器",
@@ -476,7 +450,7 @@
       ]
     },
     {
-      "id": "daily_items-060",
+      "id": "daily_items-058",
       "words": [
         "皮带",
         "背带",
@@ -484,15 +458,14 @@
       ]
     },
     {
-      "id": "daily_items-061",
+      "id": "daily_items-059",
       "words": [
-        "洁厕灵",
-        "马桶刷",
-        "洁厕块"
+        "扫把",
+        "簸箕"
       ]
     },
     {
-      "id": "daily_items-062",
+      "id": "daily_items-060",
       "words": [
         "针线盒",
         "缝纫机",
@@ -500,15 +473,14 @@
       ]
     },
     {
-      "id": "daily_items-063",
+      "id": "daily_items-061",
       "words": [
-        "订书钉",
         "图钉",
-        "大头针"
+        "磁铁"
       ]
     },
     {
-      "id": "daily_items-064",
+      "id": "daily_items-062",
       "words": [
         "胸针",
         "领针",
@@ -516,7 +488,7 @@
       ]
     },
     {
-      "id": "daily_items-065",
+      "id": "daily_items-063",
       "words": [
         "电饭煲",
         "高压锅",
@@ -524,7 +496,7 @@
       ]
     },
     {
-      "id": "daily_items-066",
+      "id": "daily_items-064",
       "words": [
         "烧水壶",
         "饮水机",
@@ -532,7 +504,7 @@
       ]
     },
     {
-      "id": "daily_items-067",
+      "id": "daily_items-065",
       "words": [
         "背包",
         "手提包",
@@ -540,7 +512,7 @@
       ]
     },
     {
-      "id": "daily_items-068",
+      "id": "daily_items-066",
       "words": [
         "托盘",
         "餐盘",
@@ -548,7 +520,7 @@
       ]
     },
     {
-      "id": "daily_items-069",
+      "id": "daily_items-067",
       "words": [
         "鸭舌帽",
         "遮阳帽",
@@ -556,7 +528,7 @@
       ]
     },
     {
-      "id": "daily_items-070",
+      "id": "daily_items-068",
       "words": [
         "回形针",
         "书签",
@@ -564,7 +536,7 @@
       ]
     },
     {
-      "id": "daily_items-071",
+      "id": "daily_items-069",
       "words": [
         "剪刀",
         "裁纸刀",
@@ -572,7 +544,7 @@
       ]
     },
     {
-      "id": "daily_items-072",
+      "id": "daily_items-070",
       "words": [
         "拖鞋",
         "洞洞鞋",
@@ -580,7 +552,7 @@
       ]
     },
     {
-      "id": "daily_items-073",
+      "id": "daily_items-071",
       "words": [
         "电动牙刷",
         "普通牙刷",
@@ -588,23 +560,21 @@
       ]
     },
     {
-      "id": "daily_items-074",
+      "id": "daily_items-072",
       "words": [
         "怀表",
-        "智能手表",
-        "电子表"
+        "手表"
       ]
     },
     {
-      "id": "daily_items-075",
+      "id": "daily_items-073",
       "words": [
         "计算器",
-        "电子词典",
-        "翻译笔"
+        "算盘"
       ]
     },
     {
-      "id": "daily_items-076",
+      "id": "daily_items-074",
       "words": [
         "窗帘",
         "窗纱",
@@ -612,7 +582,7 @@
       ]
     },
     {
-      "id": "daily_items-077",
+      "id": "daily_items-075",
       "words": [
         "梳子",
         "发夹",
@@ -620,7 +590,7 @@
       ]
     },
     {
-      "id": "daily_items-078",
+      "id": "daily_items-076",
       "words": [
         "雨伞",
         "太阳伞",
@@ -628,7 +598,7 @@
       ]
     },
     {
-      "id": "daily_items-079",
+      "id": "daily_items-077",
       "words": [
         "打火机",
         "火柴",
@@ -636,7 +606,7 @@
       ]
     },
     {
-      "id": "daily_items-080",
+      "id": "daily_items-078",
       "words": [
         "筷子",
         "勺子",
@@ -644,7 +614,7 @@
       ]
     },
     {
-      "id": "daily_items-081",
+      "id": "daily_items-079",
       "words": [
         "油壶",
         "醋瓶",
@@ -652,7 +622,7 @@
       ]
     },
     {
-      "id": "daily_items-082",
+      "id": "daily_items-080",
       "words": [
         "浴袍",
         "睡衣",
@@ -660,7 +630,7 @@
       ]
     },
     {
-      "id": "daily_items-083",
+      "id": "daily_items-081",
       "words": [
         "牙刷",
         "牙膏",
@@ -668,7 +638,7 @@
       ]
     },
     {
-      "id": "daily_items-084",
+      "id": "daily_items-082",
       "words": [
         "笔记本",
         "日记本",
@@ -676,7 +646,7 @@
       ]
     },
     {
-      "id": "daily_items-085",
+      "id": "daily_items-083",
       "words": [
         "蜡笔",
         "彩笔",
@@ -684,13 +654,118 @@
       ]
     },
     {
-      "id": "daily_items-086",
+      "id": "daily_items-084",
       "words": [
         "洗手液",
         "洗洁精",
         "洗衣液"
       ]
+    },
+    {
+      "id": "daily_items-085",
+      "words": [
+        "毛巾",
+        "浴巾"
+      ]
+    },
+    {
+      "id": "daily_items-086",
+      "words": [
+        "钥匙",
+        "锁"
+      ]
+    },
+    {
+      "id": "daily_items-087",
+      "words": [
+        "日历",
+        "闹钟"
+      ]
+    },
+    {
+      "id": "daily_items-088",
+      "words": [
+        "眼镜",
+        "墨镜"
+      ]
+    },
+    {
+      "id": "daily_items-089",
+      "words": [
+        "信封",
+        "信纸"
+      ]
+    },
+    {
+      "id": "daily_items-090",
+      "words": [
+        "锤子",
+        "扳手"
+      ]
+    },
+    {
+      "id": "daily_items-091",
+      "words": [
+        "肥皂",
+        "香皂"
+      ]
+    },
+    {
+      "id": "daily_items-092",
+      "words": [
+        "镜子",
+        "玻璃"
+      ]
+    },
+    {
+      "id": "daily_items-093",
+      "words": [
+        "梯子",
+        "凳子"
+      ]
+    },
+    {
+      "id": "daily_items-094",
+      "words": [
+        "扇子",
+        "电风扇"
+      ]
+    },
+    {
+      "id": "daily_items-095",
+      "words": [
+        "沙发",
+        "椅子"
+      ]
+    },
+    {
+      "id": "daily_items-096",
+      "words": [
+        "碗",
+        "盘子"
+      ]
+    },
+    {
+      "id": "daily_items-097",
+      "words": [
+        "水桶",
+        "脸盆"
+      ]
+    },
+    {
+      "id": "daily_items-098",
+      "words": [
+        "袜子",
+        "鞋子"
+      ]
+    },
+    {
+      "id": "daily_items-099",
+      "words": [
+        "水龙头",
+        "花洒"
+      ]
     }
   ],
-  "groupCount": 86
+  "groupCount": 99
 }
