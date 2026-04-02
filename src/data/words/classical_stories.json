@@ -30,36 +30,13 @@
     {
       "id": "classical_stories-004",
       "words": [
-        "孟姜女",
-        "精卫",
-        "愚公"
-      ]
-    },
-    {
-      "id": "classical_stories-005",
-      "words": [
-        "嫦娥",
-        "夸父",
-        "后羿"
-      ]
-    },
-    {
-      "id": "classical_stories-006",
-      "words": [
         "唐诗",
         "宋词",
         "元曲"
       ]
     },
     {
-      "id": "classical_stories-007",
-      "words": [
-        "五言诗",
-        "七言诗"
-      ]
-    },
-    {
-      "id": "classical_stories-008",
+      "id": "classical_stories-005",
       "words": [
         "西厢记",
         "牡丹亭",
@@ -67,14 +44,7 @@
       ]
     },
     {
-      "id": "classical_stories-009",
-      "words": [
-        "岳飞",
-        "韩世忠"
-      ]
-    },
-    {
-      "id": "classical_stories-010",
+      "id": "classical_stories-006",
       "words": [
         "三字经",
         "百家姓",
@@ -82,15 +52,7 @@
       ]
     },
     {
-      "id": "classical_stories-011",
-      "words": [
-        "孙子兵法",
-        "三十六计",
-        "孙膑兵法"
-      ]
-    },
-    {
-      "id": "classical_stories-012",
+      "id": "classical_stories-007",
       "words": [
         "论语",
         "孟子",
@@ -98,23 +60,21 @@
       ]
     },
     {
-      "id": "classical_stories-013",
+      "id": "classical_stories-008",
+      "words": [
+        "孙子兵法",
+        "三十六计"
+      ]
+    },
+    {
+      "id": "classical_stories-009",
       "words": [
         "诗经",
-        "楚辞",
-        "离骚"
+        "楚辞"
       ]
     },
     {
-      "id": "classical_stories-014",
-      "words": [
-        "盘古",
-        "女娲",
-        "伏羲"
-      ]
-    },
-    {
-      "id": "classical_stories-015",
+      "id": "classical_stories-010",
       "words": [
         "空城计",
         "连环计",
@@ -122,7 +82,7 @@
       ]
     },
     {
-      "id": "classical_stories-016",
+      "id": "classical_stories-011",
       "words": [
         "景阳冈",
         "野猪林",
@@ -130,15 +90,14 @@
       ]
     },
     {
-      "id": "classical_stories-017",
+      "id": "classical_stories-012",
       "words": [
         "大观园",
-        "潇湘馆",
-        "怡红院"
+        "潇湘馆"
       ]
     },
     {
-      "id": "classical_stories-018",
+      "id": "classical_stories-013",
       "words": [
         "火焰山",
         "流沙河",
@@ -146,56 +105,103 @@
       ]
     },
     {
-      "id": "classical_stories-019",
+      "id": "classical_stories-014",
       "words": [
         "卧龙",
         "凤雏"
       ]
     },
     {
-      "id": "classical_stories-020",
-      "words": [
-        "青龙",
-        "白虎",
-        "朱雀",
-        "玄武"
-      ]
-    },
-    {
-      "id": "classical_stories-021",
-      "words": [
-        "饕餮",
-        "穷奇"
-      ]
-    },
-    {
-      "id": "classical_stories-022",
-      "words": [
-        "金箍棒",
-        "金箍"
-      ]
-    },
-    {
-      "id": "classical_stories-023",
+      "id": "classical_stories-015",
       "words": [
         "丈八蛇矛",
         "方天画戟"
       ]
     },
     {
+      "id": "classical_stories-016",
+      "words": [
+        "蟠桃",
+        "人参果"
+      ]
+    },
+    {
+      "id": "classical_stories-017",
+      "words": [
+        "三顾茅庐",
+        "草船借箭"
+      ]
+    },
+    {
+      "id": "classical_stories-018",
+      "words": [
+        "大闹天宫",
+        "龙宫借宝"
+      ]
+    },
+    {
+      "id": "classical_stories-019",
+      "words": [
+        "桃园结义",
+        "单刀赴会"
+      ]
+    },
+    {
+      "id": "classical_stories-020",
+      "words": [
+        "精卫填海",
+        "愚公移山"
+      ]
+    },
+    {
+      "id": "classical_stories-021",
+      "words": [
+        "嫦娥奔月",
+        "夸父逐日"
+      ]
+    },
+    {
+      "id": "classical_stories-022",
+      "words": [
+        "完璧归赵",
+        "负荆请罪"
+      ]
+    },
+    {
+      "id": "classical_stories-023",
+      "words": [
+        "破釜沉舟",
+        "背水一战"
+      ]
+    },
+    {
       "id": "classical_stories-024",
       "words": [
-        "花果山",
-        "水帘洞"
+        "掩耳盗铃",
+        "刻舟求剑"
       ]
     },
     {
       "id": "classical_stories-025",
       "words": [
-        "蟠桃",
-        "人参果"
+        "狐假虎威",
+        "守株待兔"
+      ]
+    },
+    {
+      "id": "classical_stories-026",
+      "words": [
+        "四大名著",
+        "四书五经"
+      ]
+    },
+    {
+      "id": "classical_stories-027",
+      "words": [
+        "八仙过海",
+        "女娲补天"
       ]
     }
   ],
-  "groupCount": 25
+  "groupCount": 27
 }
