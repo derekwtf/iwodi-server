@@ -15,6 +15,7 @@ class RoomManager extends EventEmitter {
     this.rooms = new Map()
     this.sessions = new Map()
     this.socketToPlayer = new Map()
+    this.identityToPlayer = new Map()
     this.wordLibrary = options.wordLibrary || null
     this.maxPlayers = options.maxPlayers || 12
     this.disconnectGraceMs = options.disconnectGraceMs || 30 * 1000
@@ -29,12 +30,27 @@ class RoomManager extends EventEmitter {
     this.voteTimeoutMs = options.voteTimeoutMs || 3 * 60 * 1000
   }
 
-  registerConnection({ playerId, socketId }) {
-    let session = playerId ? this.sessions.get(playerId) : null
+  registerConnection({ playerId, socketId, identityKey }) {
+    const normalizedIdentityKey = this._normalizeIdentityKey(identityKey)
+    let session = null
+
+    if (normalizedIdentityKey) {
+      const resolvedPlayerId = this.resolvePlayerIdByIdentity(
+        normalizedIdentityKey,
+        playerId || null
+      )
+      session = this.sessions.get(resolvedPlayerId) || null
+    }
+
+    if (!session && playerId) {
+      session = this.sessions.get(playerId) || null
+    }
     let reconnectEvent = null
 
     if (!session) {
-      session = this._createSession()
+      session = this._createSession({
+        identityKey: normalizedIdentityKey,
+      })
       if (playerId) {
         reconnectEvent = {
           event: 'reconnect:expired',
@@ -57,7 +73,10 @@ class RoomManager extends EventEmitter {
 
     session.socketId = socketId
     session.lastSeenAt = Date.now()
-    this.socketToPlayer.set(socketId, session.playerId)
+    this._bindIdentityToSession(session, normalizedIdentityKey)
+    if (socketId) {
+      this.socketToPlayer.set(socketId, session.playerId)
+    }
 
     const room = session.roomId ? this.rooms.get(session.roomId) : null
     if (room) {
@@ -98,6 +117,45 @@ class RoomManager extends EventEmitter {
 
   getPlayerIdBySocketId(socketId) {
     return this.socketToPlayer.get(socketId) || null
+  }
+
+  resolvePlayerIdByIdentity(identityKey, preferredPlayerId = null) {
+    const normalizedIdentityKey = this._normalizeIdentityKey(identityKey)
+    if (!normalizedIdentityKey) {
+      throw this._createError('IDENTITY_REQUIRED', '缺少有效的用户身份')
+    }
+
+    const existingPlayerId = this.identityToPlayer.get(normalizedIdentityKey)
+    if (existingPlayerId) {
+      const existingSession = this.sessions.get(existingPlayerId)
+      if (existingSession) {
+        this._bindIdentityToSession(existingSession, normalizedIdentityKey)
+        return existingSession.playerId
+      }
+
+      this.identityToPlayer.delete(normalizedIdentityKey)
+    }
+
+    if (preferredPlayerId) {
+      const preferredSession = this.sessions.get(preferredPlayerId)
+      if (
+        preferredSession &&
+        (!preferredSession.identityKey ||
+          preferredSession.identityKey === normalizedIdentityKey)
+      ) {
+        this._bindIdentityToSession(preferredSession, normalizedIdentityKey)
+        return preferredSession.playerId
+      }
+    }
+
+    const session = this._createSession({
+      identityKey: normalizedIdentityKey,
+    })
+    return session.playerId
+  }
+
+  resolvePlayerIdForIdentity(identityKey, preferredPlayerId = null) {
+    return this.resolvePlayerIdByIdentity(identityKey, preferredPlayerId)
   }
 
   getRoomIdForPlayer(playerId) {
@@ -861,10 +919,11 @@ class RoomManager extends EventEmitter {
     return payload
   }
 
-  _createSession() {
+  _createSession({ identityKey } = {}) {
     const playerId = randomUUID()
     const session = {
       playerId,
+      identityKey: '',
       socketId: null,
       roomId: null,
       disconnectTimer: null,
@@ -876,6 +935,7 @@ class RoomManager extends EventEmitter {
     }
 
     this.sessions.set(playerId, session)
+    this._bindIdentityToSession(session, identityKey)
     return session
   }
 
@@ -1436,6 +1496,36 @@ class RoomManager extends EventEmitter {
 
   _normalizeAvatar(avatar) {
     return String(avatar || '').trim()
+  }
+
+  _normalizeIdentityKey(identityKey) {
+    return String(identityKey || '').trim()
+  }
+
+  _bindIdentityToSession(session, identityKey) {
+    if (!session) {
+      return
+    }
+
+    const normalizedIdentityKey = this._normalizeIdentityKey(identityKey)
+    if (!normalizedIdentityKey) {
+      return
+    }
+
+    const existingPlayerId = this.identityToPlayer.get(normalizedIdentityKey)
+    if (existingPlayerId && existingPlayerId !== session.playerId) {
+      const existingSession = this.sessions.get(existingPlayerId)
+      if (existingSession && existingSession.identityKey === normalizedIdentityKey) {
+        return
+      }
+    }
+
+    if (session.identityKey && session.identityKey !== normalizedIdentityKey) {
+      this.identityToPlayer.delete(session.identityKey)
+    }
+
+    session.identityKey = normalizedIdentityKey
+    this.identityToPlayer.set(normalizedIdentityKey, session.playerId)
   }
 
   _toPublicPlayer(player) {

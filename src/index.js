@@ -6,6 +6,8 @@ const http = require('http')
 const { Server } = require('socket.io')
 const WordLibrary = require('./data/WordLibrary')
 const RoomManager = require('./room/RoomManager')
+const createAuthRouter = require('./auth/createAuthRouter')
+const createWechatSessionFetcher = require('./auth/createWechatSessionFetcher')
 const { initializeSocketServer } = require('./socket')
 
 const app = express()
@@ -44,11 +46,27 @@ app.use(
   })
 )
 app.use(express.json())
+app.use(
+  '/auth',
+  createAuthRouter({
+    roomManager,
+    fetchWechatSession: createWechatSessionFetcher({
+      appId: process.env.WECHAT_APP_ID,
+      appSecret: process.env.WECHAT_APP_SECRET,
+      timeoutMs: Number(process.env.WECHAT_LOGIN_TIMEOUT_MS || 5000),
+    }),
+  })
+)
 
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
     service: 'qile-wodi-server',
+    auth: {
+      wechatLoginConfigured: Boolean(
+        process.env.WECHAT_APP_ID && process.env.WECHAT_APP_SECRET
+      ),
+    },
     socket: {
       disconnectGraceMs: roomManager.disconnectGraceMs,
       hostTransferGraceMs: roomManager.hostTransferGraceMs,
