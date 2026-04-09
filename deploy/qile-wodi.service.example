@@ -1,0 +1,19 @@
+[Unit]
+Description=QileWodi Socket Server
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/qile-wodi/server
+ExecStart=/usr/bin/npm start
+Restart=always
+RestartSec=5
+User=www-data
+Environment=NODE_ENV=production
+EnvironmentFile=/opt/qile-wodi/server/.env
+
+# 如需明确 npm / node 路径，可改为：
+# ExecStart=/usr/bin/node /opt/qile-wodi/server/src/index.js
+
+[Install]
+WantedBy=multi-user.target
