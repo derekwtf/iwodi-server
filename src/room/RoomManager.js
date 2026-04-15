@@ -390,23 +390,6 @@ class RoomManager extends EventEmitter {
     }
   }
 
-  setGameMode(playerId, requestedMode) {
-    const { room, player } = this._getRoomAndPlayerByPlayerId(playerId)
-    this._assertHost(player)
-    if (room.status !== 'waiting') {
-      throw this._createError('GAME_ALREADY_STARTED', '游戏已开始，无法调整游戏模式')
-    }
-
-    room.gameMode = normalizeGameMode(requestedMode)
-    this._markRoomActive(room)
-
-    return {
-      room,
-      roomState: this.getRoomState(room.id),
-      gameMode: room.gameMode,
-    }
-  }
-
   updatePlayerProfile(playerId, { nickname, avatar } = {}) {
     const { room, player } = this._getRoomAndPlayerByPlayerId(playerId)
     const session = this._getRequiredSession(playerId)

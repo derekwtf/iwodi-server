@@ -191,27 +191,6 @@ function registerRoomHandlers(io, socket, roomManager, getRoomChannel) {
     }
   })
 
-  socket.on(EVENTS.client.ROOM_SET_GAME_MODE, (payload = {}, ack) => {
-    try {
-      const result = roomManager.setGameMode(
-        socket.data.playerId,
-        payload.gameMode
-      )
-      const roomChannel = getRoomChannel(result.room.id)
-
-      io.to(roomChannel).emit(EVENTS.server.ROOM_STATE, {
-        room: result.roomState,
-      })
-
-      handleSuccess(ack, {
-        room: result.roomState,
-        gameMode: result.gameMode,
-      })
-    } catch (error) {
-      handleError(socket, EVENTS.client.ROOM_SET_GAME_MODE, ack, error)
-    }
-  })
-
   socket.on(EVENTS.client.ROOM_UPDATE_PROFILE, (payload = {}, ack) => {
     try {
       const result = roomManager.updatePlayerProfile(socket.data.playerId, {
