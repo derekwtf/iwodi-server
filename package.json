@@ -12,6 +12,7 @@
     "test:room-idle": "node scripts/test-room-idle.js",
     "test:room-identity": "node scripts/test-room-identity.js",
     "test:room-switch": "node scripts/test-room-switch.js",
+    "test:min-start-players": "node scripts/test-min-start-players.js",
     "test:session-lifecycle": "node scripts/test-session-lifecycle.js",
     "test:socket-flow": "node scripts/test-socket-flow.js",
     "test:wechat-auth-route": "node scripts/test-wechat-auth-route.js",

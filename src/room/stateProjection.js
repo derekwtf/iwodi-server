@@ -11,7 +11,7 @@ function toPublicPlayer(player) {
   }
 }
 
-function getRoomState(room, maxPlayers) {
+function getRoomState(room, maxPlayers, minStartPlayers = 4) {
   if (!room) return null
   return {
     roomId: room.id,
@@ -21,6 +21,7 @@ function getRoomState(room, maxPlayers) {
     spyCount: room.spyCount,
     gameMode: room.gameMode || GAME_MODE_FULL,
     maxPlayers,
+    minStartPlayers,
     playerCount: room.players.length,
     players: room.players
       .slice()
@@ -109,11 +110,11 @@ function getReconnectGameSnapshot(room, playerId) {
   }
 }
 
-function getEndedPayload(room, maxPlayers) {
+function getEndedPayload(room, maxPlayers, minStartPlayers = 4) {
   if (!room || !room.gameState || room.gameState.phase !== 'ended') return null
   return {
     ...getGamePublicState(room, { includeEndedSecrets: true }),
-    room: getRoomState(room, maxPlayers),
+    room: getRoomState(room, maxPlayers, minStartPlayers),
   }
 }
 

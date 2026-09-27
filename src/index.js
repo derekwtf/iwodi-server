@@ -19,6 +19,7 @@ const allowedOrigins = String(process.env.CLIENT_ORIGIN || '*')
 const wordLibrary = new WordLibrary()
 const roomManager = new RoomManager({
   wordLibrary,
+  minStartPlayers: process.env.MIN_START_PLAYERS,
   hostTransferGraceMs: Number(process.env.HOST_TRANSFER_GRACE_MS || 30 * 1000),
   allDisconnectedTtlMs: Number(
     process.env.ROOM_ALL_DISCONNECTED_TTL_MS || 10 * 60 * 1000

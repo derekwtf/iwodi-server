@@ -17,6 +17,10 @@ class RoomManager extends EventEmitter {
     this.sessionRegistry = new SessionRegistry()
     this.wordLibrary = options.wordLibrary || null
     this.maxPlayers = options.maxPlayers || 12
+    const minStartPlayers = String(options.minStartPlayers ?? '').trim()
+    this.minStartPlayers = /^(?:[2-9]|1[0-2])$/.test(minStartPlayers)
+      ? Number(minStartPlayers)
+      : 4
     this.hostTransferGraceMs = options.hostTransferGraceMs || 30 * 1000
     this.allDisconnectedTtlMs = options.allDisconnectedTtlMs || 10 * 60 * 1000
     this.waitingIdleMs = options.waitingIdleMs || 15 * 60 * 1000
@@ -349,8 +353,8 @@ class RoomManager extends EventEmitter {
       throw this._createError('GAME_ALREADY_STARTED', '当前房间已开始游戏')
     }
 
-    if (room.players.length < 4) {
-      throw this._createError('NOT_ENOUGH_PLAYERS', '至少需要 4 人才能开始游戏')
+    if (room.players.length < this.minStartPlayers) {
+      throw this._createError('NOT_ENOUGH_PLAYERS', `至少需要 ${this.minStartPlayers} 人才能开始游戏`)
     }
 
     room.gameState = GameState.createGameState({
@@ -633,7 +637,9 @@ class RoomManager extends EventEmitter {
   }
 
   getRoomState(roomId) {
-    return stateProjection.getRoomState(this.rooms.get(roomId), this.maxPlayers)
+    return stateProjection.getRoomState(
+      this.rooms.get(roomId), this.maxPlayers, this.minStartPlayers
+    )
   }
 
   getGamePublicState(roomId, options = {}) {
@@ -645,7 +651,9 @@ class RoomManager extends EventEmitter {
   }
 
   getEndedPayload(roomId) {
-    return stateProjection.getEndedPayload(this.rooms.get(roomId), this.maxPlayers)
+    return stateProjection.getEndedPayload(
+      this.rooms.get(roomId), this.maxPlayers, this.minStartPlayers
+    )
   }
 
   destroyRoom(roomId) {
