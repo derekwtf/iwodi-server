@@ -1,4 +1,4 @@
-const { GAME_MODE_FULL } = require('./gameMode')
+const { GAME_MODE_FULL, getMinStartPlayers } = require('./gameMode')
 
 function toPublicPlayer(player) {
   return {
@@ -11,7 +11,7 @@ function toPublicPlayer(player) {
   }
 }
 
-function getRoomState(room, maxPlayers, minStartPlayers = 4) {
+function getRoomState(room, maxPlayers, configuredMinStartPlayers) {
   if (!room) return null
   return {
     roomId: room.id,
@@ -21,7 +21,7 @@ function getRoomState(room, maxPlayers, minStartPlayers = 4) {
     spyCount: room.spyCount,
     gameMode: room.gameMode || GAME_MODE_FULL,
     maxPlayers,
-    minStartPlayers,
+    minStartPlayers: getMinStartPlayers(room.gameMode, configuredMinStartPlayers),
     playerCount: room.players.length,
     players: room.players
       .slice()
@@ -110,11 +110,11 @@ function getReconnectGameSnapshot(room, playerId) {
   }
 }
 
-function getEndedPayload(room, maxPlayers, minStartPlayers = 4) {
+function getEndedPayload(room, maxPlayers, configuredMinStartPlayers) {
   if (!room || !room.gameState || room.gameState.phase !== 'ended') return null
   return {
     ...getGamePublicState(room, { includeEndedSecrets: true }),
-    room: getRoomState(room, maxPlayers, minStartPlayers),
+    room: getRoomState(room, maxPlayers, configuredMinStartPlayers),
   }
 }
 

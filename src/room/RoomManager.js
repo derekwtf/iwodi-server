@@ -8,6 +8,7 @@ const stateProjection = require('./stateProjection')
 const {
   normalizeGameMode,
   isDealOnlyMode,
+  getMinStartPlayers,
 } = require('./gameMode')
 
 class RoomManager extends EventEmitter {
@@ -353,8 +354,9 @@ class RoomManager extends EventEmitter {
       throw this._createError('GAME_ALREADY_STARTED', '当前房间已开始游戏')
     }
 
-    if (room.players.length < this.minStartPlayers) {
-      throw this._createError('NOT_ENOUGH_PLAYERS', `至少需要 ${this.minStartPlayers} 人才能开始游戏`)
+    const minStartPlayers = getMinStartPlayers(room.gameMode, this.minStartPlayers)
+    if (room.players.length < minStartPlayers) {
+      throw this._createError('NOT_ENOUGH_PLAYERS', `至少需要 ${minStartPlayers} 人才能开始游戏`)
     }
 
     room.gameState = GameState.createGameState({

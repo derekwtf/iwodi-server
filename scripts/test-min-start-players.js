@@ -1,5 +1,6 @@
 const assert = require('assert')
 const RoomManager = require('../src/room/RoomManager')
+const Judge = require('../src/game/Judge')
 
 const wordLibrary = {
   getRandomPair() {
@@ -76,9 +77,65 @@ function testConfiguredMinimum() {
 
   const fullManager = new RoomManager({ wordLibrary, minStartPlayers: 2 })
   const fullRoom = createRoom(fullManager, 'full', 'full-host')
-  addPlayer(fullManager, fullRoom.roomId, 'full-guest')
-  assert.strictEqual(fullManager.startGame(fullRoom.hostId).roomState.minStartPlayers, 2)
+  assert.strictEqual(fullManager.getRoomState(fullRoom.roomId).minStartPlayers, 3)
+  const fullGuestId = addPlayer(fullManager, fullRoom.roomId, 'full-guest')
+  assertTooFewPlayers(fullManager, fullRoom.hostId, 3)
+  assert.strictEqual(fullManager.getRoomState(fullRoom.roomId).status, 'waiting')
+  assert.strictEqual(fullManager.rooms.get(fullRoom.roomId).gameState, null)
+  assert.strictEqual(fullManager.getSyncState(fullGuestId).room.minStartPlayers, 3)
+  const fullReconnect = fullManager.registerConnection({
+    playerId: fullRoom.hostId,
+    socketId: 'full-host-reconnected',
+  })
+  assert.strictEqual(fullReconnect.reconnectEvent.payload.minStartPlayers, 3)
+  addPlayer(fullManager, fullRoom.roomId, 'full-third')
+  const fullStarted = fullManager.startGame(fullRoom.hostId)
+  assert.strictEqual(fullStarted.roomState.minStartPlayers, 3)
+  assert.strictEqual(fullStarted.roomState.status, 'playing')
+  const gameState = fullManager.rooms.get(fullRoom.roomId).gameState
+  assert.deepStrictEqual(Judge.checkGameOver(gameState.alivePlayers, gameState.roles), {
+    gameOver: false,
+    winner: null,
+  })
+  const leavingCivilian = gameState.alivePlayers.find(
+    (playerId) => playerId !== fullRoom.hostId && gameState.roles[playerId] === 'civilian'
+  )
+  const ended = fullManager.leaveRoom(fullRoom.roomId, leavingCivilian)
+  assert.strictEqual(ended.gameAction.type, 'ended')
+  assert.strictEqual(ended.gameAction.payload.room.minStartPlayers, 3)
+  const fullRestarted = fullManager.restartGame(fullRoom.hostId)
+  assert.strictEqual(fullRestarted.roomState.status, 'waiting')
+  assert.strictEqual(fullRestarted.roomState.minStartPlayers, 3)
+  assertTooFewPlayers(fullManager, fullRoom.hostId, 3)
+  assert.strictEqual(fullManager.getRoomState(fullRoom.roomId).status, 'waiting')
   fullManager.destroyRoom(fullRoom.roomId)
+}
+
+function testConfiguredThresholds() {
+  for (const configuredMinimum of [2, 3, 4, 5, 12]) {
+    for (const gameMode of ['deal-only', 'full']) {
+      const manager = new RoomManager({ wordLibrary, minStartPlayers: configuredMinimum })
+      const { roomId, hostId } = createRoom(
+        manager, gameMode, `threshold-${configuredMinimum}-${gameMode}-host`
+      )
+      const expectedMinimum = gameMode === 'full'
+        ? Math.max(configuredMinimum, 3)
+        : configuredMinimum
+      assert.strictEqual(manager.getRoomState(roomId).minStartPlayers, expectedMinimum)
+
+      for (let count = 1; count < expectedMinimum; count += 1) {
+        assertTooFewPlayers(manager, hostId, expectedMinimum)
+        assert.strictEqual(manager.getRoomState(roomId).status, 'waiting')
+        assert.strictEqual(manager.rooms.get(roomId).gameState, null)
+        addPlayer(manager, roomId, `threshold-${configuredMinimum}-${gameMode}-${count}`)
+      }
+
+      const started = manager.startGame(hostId)
+      assert.strictEqual(started.roomState.status, 'playing')
+      assert.strictEqual(started.roomState.minStartPlayers, expectedMinimum)
+      manager.destroyRoom(roomId)
+    }
+  }
 }
 
 function testInvalidValues() {
@@ -91,5 +148,6 @@ function testInvalidValues() {
 
 testDefault()
 testConfiguredMinimum()
+testConfiguredThresholds()
 testInvalidValues()
 console.log('Minimum start players test passed.')
