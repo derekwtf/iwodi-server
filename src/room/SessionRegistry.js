@@ -33,6 +33,9 @@ class SessionRegistry {
       const existingSession = this.get(existingPlayerId)
       if (existingSession) {
         this._bindIdentity(existingSession, key)
+        if (!existingSession.roomId && !existingSession.socketId) {
+          existingSession.disconnectedAt = Date.now()
+        }
         return existingPlayerId
       }
       this.identityToPlayer.delete(key)
@@ -41,6 +44,9 @@ class SessionRegistry {
     const preferredSession = preferredPlayerId && this.get(preferredPlayerId)
     if (preferredSession && (!preferredSession.identityKey || preferredSession.identityKey === key)) {
       this._bindIdentity(preferredSession, key)
+      if (!preferredSession.roomId && !preferredSession.socketId) {
+        preferredSession.disconnectedAt = Date.now()
+      }
       return preferredSession.playerId
     }
 

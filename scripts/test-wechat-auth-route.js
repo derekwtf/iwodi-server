@@ -2,8 +2,9 @@ const assert = require('assert')
 const RoomManager = require('../src/room/RoomManager')
 const createWechatLoginHandler = require('../src/auth/createWechatLoginHandler')
 
-function createHandler() {
-  const roomManager = new RoomManager()
+const DAY_MS = 24 * 60 * 60 * 1000
+
+function createHandler(roomManager = new RoomManager()) {
   return createWechatLoginHandler({
     roomManager,
     fetchWechatSession: async (code) => {
@@ -91,6 +92,47 @@ async function testWechatLoginBindsExistingPlayerIdWhenPreferred() {
   assert.strictEqual(repeat.payload.playerId, anonymousPlayerId)
 }
 
+async function testWechatLoginRenewsIdleSessionBeforeSocketRegistration() {
+  for (const usePreferredPlayerId of [false, true]) {
+    const roomManager = new RoomManager()
+    const playerId = usePreferredPlayerId
+      ? roomManager.registerConnection({ socketId: 'socket-anonymous' }).playerId
+      : roomManager.resolvePlayerIdByIdentity('wx:guest-openid')
+    if (usePreferredPlayerId) {
+      roomManager.markDisconnected('socket-anonymous')
+    }
+
+    const session = roomManager.sessionRegistry.get(playerId)
+    session.disconnectedAt = Date.now() - DAY_MS - 1000
+    const beforeLogin = Date.now()
+    const handler = createHandler(roomManager)
+    const response = await invokeHandler(handler, {
+      code: 'guest-code',
+      ...(usePreferredPlayerId ? { playerId } : {}),
+    })
+
+    assert.strictEqual(response.status, 200)
+    assert.strictEqual(response.payload.playerId, playerId)
+    assert.ok(session.disconnectedAt >= beforeLogin)
+    assert.ok(session.disconnectedAt <= Date.now())
+    assert.strictEqual(roomManager.cleanupExpiredSessions(Date.now()), 0)
+
+    const socketId = `socket-reconnected-${usePreferredPlayerId}`
+    const connection = roomManager.registerConnection({ playerId: response.payload.playerId, socketId })
+    assert.strictEqual(connection.playerId, response.payload.playerId)
+    assert.strictEqual(connection.reconnectEvent, null)
+    assert.strictEqual(roomManager.getPlayerIdBySocketId(socketId), playerId)
+
+    roomManager.markDisconnected(socketId)
+    const repeat = await invokeHandler(handler, { code: 'guest-code' })
+    const renewedAt = session.disconnectedAt
+    assert.strictEqual(repeat.payload.playerId, playerId)
+    assert.strictEqual(roomManager.cleanupExpiredSessions(renewedAt + DAY_MS - 1), 0)
+    assert.strictEqual(roomManager.cleanupExpiredSessions(renewedAt + DAY_MS), 1)
+    assert.strictEqual(roomManager.sessionRegistry.get(playerId), null)
+  }
+}
+
 async function testWechatLoginRequiresCode() {
   const handler = createHandler()
   const response = await invokeHandler(handler, {})
@@ -102,6 +144,7 @@ async function testWechatLoginRequiresCode() {
 async function main() {
   await testWechatLoginReusesStablePlayerId()
   await testWechatLoginBindsExistingPlayerIdWhenPreferred()
+  await testWechatLoginRenewsIdleSessionBeforeSocketRegistration()
   await testWechatLoginRequiresCode()
   console.log('WeChat auth route test passed.')
 }
