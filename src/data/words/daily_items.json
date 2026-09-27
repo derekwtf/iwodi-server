@@ -1,7 +1,7 @@
 {
   "id": "daily_items",
   "label": "日常用品",
-  "description": "",
+  "description": "家居、穿戴、个护与常用器具",
   "groups": [
     {
       "id": "daily_items-001",
@@ -97,13 +97,6 @@
       ]
     },
     {
-      "id": "daily_items-013",
-      "words": [
-        "盐",
-        "糖"
-      ]
-    },
-    {
       "id": "daily_items-014",
       "words": [
         "荧光笔",
@@ -151,13 +144,6 @@
       ]
     },
     {
-      "id": "daily_items-020",
-      "words": [
-        "耳机",
-        "音箱"
-      ]
-    },
-    {
       "id": "daily_items-021",
       "words": [
         "香水",
@@ -189,13 +175,6 @@
       ]
     },
     {
-      "id": "daily_items-025",
-      "words": [
-        "鼠标",
-        "触控板"
-      ]
-    },
-    {
       "id": "daily_items-026",
       "words": [
         "手电筒",
@@ -207,8 +186,7 @@
       "id": "daily_items-027",
       "words": [
         "行李箱",
-        "旅行袋",
-        "拉杆箱"
+        "旅行袋"
       ]
     },
     {
@@ -352,14 +330,6 @@
         "纽扣",
         "拉链",
         "魔术贴"
-      ]
-    },
-    {
-      "id": "daily_items-046",
-      "words": [
-        "水杯",
-        "水壶",
-        "水瓶"
       ]
     },
     {
@@ -704,13 +674,6 @@
       ]
     },
     {
-      "id": "daily_items-091",
-      "words": [
-        "肥皂",
-        "香皂"
-      ]
-    },
-    {
       "id": "daily_items-092",
       "words": [
         "镜子",
@@ -765,7 +728,141 @@
         "水龙头",
         "花洒"
       ]
+    },
+    {
+      "id": "daily_items-100",
+      "words": [
+        "电磁炉",
+        "电火锅"
+      ]
+    },
+    {
+      "id": "daily_items-101",
+      "words": [
+        "加湿器",
+        "除湿机",
+        "香薰机"
+      ]
+    },
+    {
+      "id": "daily_items-102",
+      "words": [
+        "浴缸",
+        "鱼缸"
+      ]
+    },
+    {
+      "id": "daily_items-103",
+      "words": [
+        "口红",
+        "唇釉"
+      ]
+    },
+    {
+      "id": "daily_items-104",
+      "words": [
+        "近视眼镜",
+        "隐形眼镜"
+      ]
+    },
+    {
+      "id": "daily_items-105",
+      "words": [
+        "蒸汽眼罩",
+        "暖宝宝"
+      ]
+    },
+    {
+      "id": "daily_items-106",
+      "words": [
+        "羽绒服",
+        "冲锋衣"
+      ]
+    },
+    {
+      "id": "daily_items-107",
+      "words": [
+        "密封袋",
+        "保鲜膜"
+      ]
+    },
+    {
+      "id": "daily_items-108",
+      "words": [
+        "护手霜",
+        "身体乳"
+      ]
+    },
+    {
+      "id": "daily_items-109",
+      "words": [
+        "扫地机器人",
+        "洗地机"
+      ]
+    },
+    {
+      "id": "daily_items-110",
+      "words": [
+        "空气炸锅",
+        "烤箱"
+      ]
+    },
+    {
+      "id": "daily_items-111",
+      "words": [
+        "睡眠面膜",
+        "贴片面膜"
+      ]
+    },
+    {
+      "id": "daily_items-112",
+      "words": [
+        "漱口水",
+        "口气清新剂"
+      ]
+    },
+    {
+      "id": "daily_items-113",
+      "words": [
+        "削皮刀",
+        "刨丝器"
+      ]
+    },
+    {
+      "id": "daily_items-114",
+      "words": [
+        "电热毯",
+        "暖手宝"
+      ]
+    },
+    {
+      "id": "daily_items-115",
+      "words": [
+        "湿厕纸",
+        "湿纸巾"
+      ]
+    },
+    {
+      "id": "daily_items-116",
+      "words": [
+        "气垫粉底",
+        "粉饼"
+      ]
+    },
+    {
+      "id": "daily_items-117",
+      "words": [
+        "牙膏",
+        "洗面奶"
+      ]
+    },
+    {
+      "id": "daily_items-118",
+      "words": [
+        "沐浴露",
+        "沐浴盐"
+      ]
     }
   ],
-  "groupCount": 99
+  "groupCount": 113
 }

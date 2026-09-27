@@ -90,12 +90,41 @@ function testCategoryFiltering() {
   assert.ok(['杭州', '苏州'].includes(pair.spy))
 }
 
+function testDatasetCandidatePairsAreUnique() {
+  const groupIds = new Set()
+  const candidatePairs = new Map()
+
+  dataset.categories.forEach((category) => {
+    assert.strictEqual(category.groupCount, category.groups.length, `分类词组数量不一致: ${category.id}`)
+    category.groups.forEach((group) => {
+      assert.ok(!groupIds.has(group.id), `重复词组 ID: ${group.id}`)
+      groupIds.add(group.id)
+      assert.ok(Array.isArray(group.words), `候选词格式异常: ${group.id}`)
+      assert.ok(group.words.length >= 2 && group.words.length <= 3, `候选词数量异常: ${group.id}`)
+      assert.strictEqual(new Set(group.words).size, group.words.length, `组内词语重复: ${group.id}`)
+      group.words.forEach((word) => {
+        assert.ok(typeof word === 'string' && word && word === word.trim(), `词语为空或含首尾空格: ${group.id}`)
+      })
+
+      for (let first = 0; first < group.words.length; first += 1) {
+        const firstWord = group.words[first]
+        for (let second = first + 1; second < group.words.length; second += 1) {
+          const pair = [firstWord, group.words[second]].sort().join(' / ')
+          assert.ok(!candidatePairs.has(pair), `重复可抽取词对: ${candidatePairs.get(pair)} 和 ${group.id} (${pair})`)
+          candidatePairs.set(pair, group.id)
+        }
+      }
+    })
+  })
+}
+
 function main() {
   testLegacyCompatibility()
   testCategorizedDataset()
   testDefaultDirectoryLoading()
   testMultiWordSelection()
   testCategoryFiltering()
+  testDatasetCandidatePairsAreUnique()
   console.log('Word library tests passed.')
 }
 

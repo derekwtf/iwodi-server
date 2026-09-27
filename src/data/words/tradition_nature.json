@@ -108,14 +108,6 @@
       ]
     },
     {
-      "id": "tradition_nature-014",
-      "words": [
-        "龙舟",
-        "风筝",
-        "秋千"
-      ]
-    },
-    {
       "id": "tradition_nature-015",
       "words": [
         "蹴鞠",
@@ -129,22 +121,6 @@
         "太极",
         "咏春",
         "少林"
-      ]
-    },
-    {
-      "id": "tradition_nature-017",
-      "words": [
-        "丝绸",
-        "瓷器",
-        "茶叶"
-      ]
-    },
-    {
-      "id": "tradition_nature-018",
-      "words": [
-        "火药",
-        "指南针",
-        "造纸"
       ]
     },
     {
@@ -212,14 +188,6 @@
       ]
     },
     {
-      "id": "tradition_nature-027",
-      "words": [
-        "茶壶",
-        "茶杯",
-        "茶盘"
-      ]
-    },
-    {
       "id": "tradition_nature-028",
       "words": [
         "龙",
@@ -233,14 +201,6 @@
         "红包",
         "福袋",
         "压岁钱"
-      ]
-    },
-    {
-      "id": "tradition_nature-030",
-      "words": [
-        "糖葫芦",
-        "棉花糖",
-        "麦芽糖"
       ]
     },
     {
@@ -276,14 +236,6 @@
       ]
     },
     {
-      "id": "tradition_nature-035",
-      "words": [
-        "拱桥",
-        "廊桥",
-        "吊桥"
-      ]
-    },
-    {
       "id": "tradition_nature-036",
       "words": [
         "拜年",
@@ -302,9 +254,8 @@
     {
       "id": "tradition_nature-038",
       "words": [
-        "扇子",
         "油纸伞",
-        "拨浪鼓"
+        "折扇"
       ]
     },
     {
@@ -346,7 +297,189 @@
         "唐三彩",
         "青花瓷"
       ]
+    },
+    {
+      "id": "tradition_nature-044",
+      "words": [
+        "树林",
+        "竹林"
+      ]
+    },
+    {
+      "id": "tradition_nature-045",
+      "words": [
+        "湖泊",
+        "水库"
+      ]
+    },
+    {
+      "id": "tradition_nature-046",
+      "words": [
+        "草原",
+        "牧场"
+      ]
+    },
+    {
+      "id": "tradition_nature-047",
+      "words": [
+        "海滩",
+        "湖畔"
+      ]
+    },
+    {
+      "id": "tradition_nature-048",
+      "words": [
+        "沙漠",
+        "戈壁"
+      ]
+    },
+    {
+      "id": "tradition_nature-049",
+      "words": [
+        "瀑布",
+        "峡谷"
+      ]
+    },
+    {
+      "id": "tradition_nature-050",
+      "words": [
+        "梯田",
+        "茶园"
+      ]
+    },
+    {
+      "id": "tradition_nature-051",
+      "words": [
+        "玫瑰",
+        "月季"
+      ]
+    },
+    {
+      "id": "tradition_nature-052",
+      "words": [
+        "海豚",
+        "海狮"
+      ]
+    },
+    {
+      "id": "tradition_nature-053",
+      "words": [
+        "蝴蝶",
+        "飞蛾"
+      ]
+    },
+    {
+      "id": "tradition_nature-054",
+      "words": [
+        "麻雀",
+        "乌鸦"
+      ]
+    },
+    {
+      "id": "tradition_nature-055",
+      "words": [
+        "薰衣草",
+        "满天星"
+      ]
+    },
+    {
+      "id": "tradition_nature-056",
+      "words": [
+        "雾",
+        "霾"
+      ]
+    },
+    {
+      "id": "tradition_nature-057",
+      "words": [
+        "露水",
+        "霜"
+      ]
+    },
+    {
+      "id": "tradition_nature-058",
+      "words": [
+        "极光",
+        "彩虹"
+      ]
+    },
+    {
+      "id": "tradition_nature-059",
+      "words": [
+        "珊瑚",
+        "海葵"
+      ]
+    },
+    {
+      "id": "tradition_nature-060",
+      "words": [
+        "竹子",
+        "芦苇"
+      ]
+    },
+    {
+      "id": "tradition_nature-061",
+      "words": [
+        "银杏",
+        "梧桐"
+      ]
+    },
+    {
+      "id": "tradition_nature-062",
+      "words": [
+        "龙卷风",
+        "沙尘暴"
+      ]
+    },
+    {
+      "id": "tradition_nature-063",
+      "words": [
+        "萤火虫",
+        "夜光藻"
+      ]
+    },
+    {
+      "id": "tradition_nature-064",
+      "words": [
+        "蜡染",
+        "扎染"
+      ]
+    },
+    {
+      "id": "tradition_nature-065",
+      "words": [
+        "舞狮",
+        "舞龙"
+      ]
+    },
+    {
+      "id": "tradition_nature-066",
+      "words": [
+        "皮影戏",
+        "木偶戏"
+      ]
+    },
+    {
+      "id": "tradition_nature-067",
+      "words": [
+        "古琴",
+        "古筝"
+      ]
+    },
+    {
+      "id": "tradition_nature-068",
+      "words": [
+        "活字印刷",
+        "雕版印刷"
+      ]
+    },
+    {
+      "id": "tradition_nature-069",
+      "words": [
+        "日晷",
+        "沙漏"
+      ]
     }
   ],
-  "groupCount": 43
+  "groupCount": 63
 }

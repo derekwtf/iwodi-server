@@ -7,16 +7,14 @@
       "id": "classical_stories-001",
       "words": [
         "西游记",
-        "封神榜",
-        "聊斋"
+        "封神榜"
       ]
     },
     {
       "id": "classical_stories-002",
       "words": [
         "三国演义",
-        "水浒传",
-        "红楼梦"
+        "水浒传"
       ]
     },
     {
@@ -196,12 +194,96 @@
       ]
     },
     {
-      "id": "classical_stories-027",
+      "id": "classical_stories-028",
       "words": [
-        "八仙过海",
-        "女娲补天"
+        "武松打虎",
+        "李逵杀虎"
+      ]
+    },
+    {
+      "id": "classical_stories-029",
+      "words": [
+        "三打白骨精",
+        "三借芭蕉扇"
+      ]
+    },
+    {
+      "id": "classical_stories-030",
+      "words": [
+        "天仙配",
+        "牛郎织女"
+      ]
+    },
+    {
+      "id": "classical_stories-031",
+      "words": [
+        "女娲补天",
+        "盘古开天"
+      ]
+    },
+    {
+      "id": "classical_stories-032",
+      "words": [
+        "红楼梦",
+        "西厢记"
+      ]
+    },
+    {
+      "id": "classical_stories-033",
+      "words": [
+        "聊斋",
+        "山海经"
+      ]
+    },
+    {
+      "id": "classical_stories-034",
+      "words": [
+        "梁祝",
+        "罗密欧与朱丽叶"
+      ]
+    },
+    {
+      "id": "classical_stories-035",
+      "words": [
+        "嫦娥奔月",
+        "后羿射日"
+      ]
+    },
+    {
+      "id": "classical_stories-036",
+      "words": [
+        "木兰辞",
+        "孔雀东南飞"
+      ]
+    },
+    {
+      "id": "classical_stories-037",
+      "words": [
+        "滕王阁序",
+        "岳阳楼记"
+      ]
+    },
+    {
+      "id": "classical_stories-038",
+      "words": [
+        "三国演义",
+        "三国志"
+      ]
+    },
+    {
+      "id": "classical_stories-039",
+      "words": [
+        "精卫填海",
+        "大禹治水"
+      ]
+    },
+    {
+      "id": "classical_stories-040",
+      "words": [
+        "木兰从军",
+        "穆桂英挂帅"
       ]
     }
   ],
-  "groupCount": 27
+  "groupCount": 39
 }

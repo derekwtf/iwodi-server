@@ -1,13 +1,12 @@
 {
   "id": "digital_internet",
   "label": "数码互联网",
-  "description": "",
+  "description": "数码设备、网络交流与线上使用场景",
   "groups": [
     {
       "id": "digital_internet-001",
       "words": [
         "朋友圈",
-        "动态",
         "说说"
       ]
     },
@@ -48,13 +47,6 @@
       ]
     },
     {
-      "id": "digital_internet-007",
-      "words": [
-        "电磁炉",
-        "电火锅"
-      ]
-    },
-    {
       "id": "digital_internet-008",
       "words": [
         "充电宝",
@@ -90,30 +82,6 @@
       ]
     },
     {
-      "id": "digital_internet-013",
-      "words": [
-        "榨汁杯",
-        "保温杯",
-        "随行杯"
-      ]
-    },
-    {
-      "id": "digital_internet-014",
-      "words": [
-        "电饭煲",
-        "电压力锅",
-        "空气炸锅"
-      ]
-    },
-    {
-      "id": "digital_internet-015",
-      "words": [
-        "加湿器",
-        "除湿机",
-        "香薰机"
-      ]
-    },
-    {
       "id": "digital_internet-016",
       "words": [
         "公众号",
@@ -133,30 +101,6 @@
         "打印机",
         "复印机",
         "扫描仪"
-      ]
-    },
-    {
-      "id": "digital_internet-019",
-      "words": [
-        "净水器",
-        "饮水机",
-        "烧水壶"
-      ]
-    },
-    {
-      "id": "digital_internet-020",
-      "words": [
-        "破壁机",
-        "榨汁机",
-        "料理机"
-      ]
-    },
-    {
-      "id": "digital_internet-021",
-      "words": [
-        "电动牙刷",
-        "牙刷",
-        "冲牙器"
       ]
     },
     {
@@ -187,8 +131,7 @@
       "id": "digital_internet-025",
       "words": [
         "弹幕",
-        "评论",
-        "点赞"
+        "评论"
       ]
     },
     {
@@ -206,19 +149,159 @@
       ]
     },
     {
-      "id": "digital_internet-028",
-      "words": [
-        "投屏",
-        "截屏"
-      ]
-    },
-    {
       "id": "digital_internet-029",
       "words": [
         "表情包",
         "贴纸"
       ]
+    },
+    {
+      "id": "digital_internet-030",
+      "words": [
+        "耳机",
+        "音箱"
+      ]
+    },
+    {
+      "id": "digital_internet-031",
+      "words": [
+        "鼠标",
+        "触控板"
+      ]
+    },
+    {
+      "id": "digital_internet-032",
+      "words": [
+        "聊天机器人",
+        "搜索引擎"
+      ]
+    },
+    {
+      "id": "digital_internet-033",
+      "words": [
+        "语音输入",
+        "语音消息"
+      ]
+    },
+    {
+      "id": "digital_internet-034",
+      "words": [
+        "群公告",
+        "置顶消息"
+      ]
+    },
+    {
+      "id": "digital_internet-035",
+      "words": [
+        "收藏夹",
+        "稍后再看"
+      ]
+    },
+    {
+      "id": "digital_internet-036",
+      "words": [
+        "已读回执",
+        "输入中"
+      ]
+    },
+    {
+      "id": "digital_internet-037",
+      "words": [
+        "免密支付",
+        "扫码支付"
+      ]
+    },
+    {
+      "id": "digital_internet-038",
+      "words": [
+        "云盘",
+        "手机相册"
+      ]
+    },
+    {
+      "id": "digital_internet-039",
+      "words": [
+        "屏幕共享",
+        "远程控制"
+      ]
+    },
+    {
+      "id": "digital_internet-040",
+      "words": [
+        "二维码",
+        "小程序码"
+      ]
+    },
+    {
+      "id": "digital_internet-041",
+      "words": [
+        "表情包",
+        "颜文字"
+      ]
+    },
+    {
+      "id": "digital_internet-042",
+      "words": [
+        "云游戏",
+        "游戏直播"
+      ]
+    },
+    {
+      "id": "digital_internet-043",
+      "words": [
+        "网购订单",
+        "外卖订单"
+      ]
+    },
+    {
+      "id": "digital_internet-044",
+      "words": [
+        "短视频",
+        "微短剧"
+      ]
+    },
+    {
+      "id": "digital_internet-045",
+      "words": [
+        "电子书",
+        "有声书"
+      ]
+    },
+    {
+      "id": "digital_internet-046",
+      "words": [
+        "验证码",
+        "动态口令"
+      ]
+    },
+    {
+      "id": "digital_internet-047",
+      "words": [
+        "直播连麦",
+        "视频会议"
+      ]
+    },
+    {
+      "id": "digital_internet-048",
+      "words": [
+        "长截图",
+        "录屏"
+      ]
+    },
+    {
+      "id": "digital_internet-049",
+      "words": [
+        "AI绘画",
+        "图片修图"
+      ]
+    },
+    {
+      "id": "digital_internet-050",
+      "words": [
+        "点赞",
+        "收藏"
+      ]
     }
   ],
-  "groupCount": 29
+  "groupCount": 42
 }
