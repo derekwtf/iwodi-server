@@ -1,10 +1,11 @@
 const { EventEmitter } = require('events')
-const { randomInt, randomUUID } = require('crypto')
+const { randomInt } = require('crypto')
 const GameState = require('../game/GameState')
 const Judge = require('../game/Judge')
 const VoteManager = require('../game/VoteManager')
+const SessionRegistry = require('./SessionRegistry')
+const stateProjection = require('./stateProjection')
 const {
-  GAME_MODE_FULL,
   normalizeGameMode,
   isDealOnlyMode,
 } = require('./gameMode')
@@ -13,15 +14,11 @@ class RoomManager extends EventEmitter {
   constructor(options = {}) {
     super()
     this.rooms = new Map()
-    this.sessions = new Map()
-    this.socketToPlayer = new Map()
-    this.identityToPlayer = new Map()
+    this.sessionRegistry = new SessionRegistry()
     this.wordLibrary = options.wordLibrary || null
     this.maxPlayers = options.maxPlayers || 12
-    this.disconnectGraceMs = options.disconnectGraceMs || 30 * 1000
     this.hostTransferGraceMs = options.hostTransferGraceMs || 30 * 1000
     this.allDisconnectedTtlMs = options.allDisconnectedTtlMs || 10 * 60 * 1000
-    this.emptyRoomTtlMs = options.emptyRoomTtlMs || 5 * 60 * 1000
     this.waitingIdleMs = options.waitingIdleMs || 15 * 60 * 1000
     this.playingIdleMs = options.playingIdleMs || 10 * 60 * 1000
     this.endedIdleMs = options.endedIdleMs || 5 * 60 * 1000
@@ -31,52 +28,14 @@ class RoomManager extends EventEmitter {
   }
 
   registerConnection({ playerId, socketId, identityKey }) {
-    const normalizedIdentityKey = this._normalizeIdentityKey(identityKey)
-    let session = null
-
-    if (normalizedIdentityKey) {
-      const resolvedPlayerId = this.resolvePlayerIdByIdentity(
-        normalizedIdentityKey,
-        playerId || null
-      )
-      session = this.sessions.get(resolvedPlayerId) || null
-    }
-
-    if (!session && playerId) {
-      session = this.sessions.get(playerId) || null
-    }
-    let reconnectEvent = null
-
-    if (!session) {
-      session = this._createSession({
-        identityKey: normalizedIdentityKey,
-      })
-      if (playerId) {
-        reconnectEvent = {
+    const { session, previousSocketId, sessionNotFound } =
+      this.sessionRegistry.registerConnection({ playerId, socketId, identityKey })
+    let reconnectEvent = sessionNotFound
+      ? {
           event: 'reconnect:expired',
-          payload: {
-            reason: 'session_not_found',
-            previousPlayerId: playerId,
-          },
+          payload: { reason: 'session_not_found', previousPlayerId: playerId },
         }
-      }
-    }
-
-    if (session.socketId && session.socketId !== socketId) {
-      this.socketToPlayer.delete(session.socketId)
-    }
-
-    if (session.disconnectTimer) {
-      clearTimeout(session.disconnectTimer)
-      session.disconnectTimer = null
-    }
-
-    session.socketId = socketId
-    session.lastSeenAt = Date.now()
-    this._bindIdentityToSession(session, normalizedIdentityKey)
-    if (socketId) {
-      this.socketToPlayer.set(socketId, session.playerId)
-    }
+      : null
 
     const room = session.roomId ? this.rooms.get(session.roomId) : null
     if (room) {
@@ -111,47 +70,17 @@ class RoomManager extends EventEmitter {
 
     return {
       playerId: session.playerId,
+      previousSocketId,
       reconnectEvent,
     }
   }
 
   getPlayerIdBySocketId(socketId) {
-    return this.socketToPlayer.get(socketId) || null
+    return this.sessionRegistry.getPlayerIdBySocketId(socketId)
   }
 
   resolvePlayerIdByIdentity(identityKey, preferredPlayerId = null) {
-    const normalizedIdentityKey = this._normalizeIdentityKey(identityKey)
-    if (!normalizedIdentityKey) {
-      throw this._createError('IDENTITY_REQUIRED', '缺少有效的用户身份')
-    }
-
-    const existingPlayerId = this.identityToPlayer.get(normalizedIdentityKey)
-    if (existingPlayerId) {
-      const existingSession = this.sessions.get(existingPlayerId)
-      if (existingSession) {
-        this._bindIdentityToSession(existingSession, normalizedIdentityKey)
-        return existingSession.playerId
-      }
-
-      this.identityToPlayer.delete(normalizedIdentityKey)
-    }
-
-    if (preferredPlayerId) {
-      const preferredSession = this.sessions.get(preferredPlayerId)
-      if (
-        preferredSession &&
-        (!preferredSession.identityKey ||
-          preferredSession.identityKey === normalizedIdentityKey)
-      ) {
-        this._bindIdentityToSession(preferredSession, normalizedIdentityKey)
-        return preferredSession.playerId
-      }
-    }
-
-    const session = this._createSession({
-      identityKey: normalizedIdentityKey,
-    })
-    return session.playerId
+    return this.sessionRegistry.resolvePlayerIdByIdentity(identityKey, preferredPlayerId)
   }
 
   resolvePlayerIdForIdentity(identityKey, preferredPlayerId = null) {
@@ -159,12 +88,12 @@ class RoomManager extends EventEmitter {
   }
 
   getRoomIdForPlayer(playerId) {
-    const session = this.sessions.get(playerId)
+    const session = this.sessionRegistry.get(playerId)
     return session ? session.roomId : null
   }
 
   getActiveSocketId(playerId) {
-    const session = this.sessions.get(playerId)
+    const session = this.sessionRegistry.get(playerId)
     return session ? session.socketId : null
   }
 
@@ -196,7 +125,6 @@ class RoomManager extends EventEmitter {
       gameState: null,
       createdAt: Date.now(),
       spyCountManual: false,
-      emptyRoomTimer: null,
       idleTimer: null,
       idleWarningTimer: null,
       hostTransferTimer: null,
@@ -208,7 +136,6 @@ class RoomManager extends EventEmitter {
     }
 
     session.roomId = room.id
-    session.profile = this._normalizeProfile({ nickname, avatar })
 
     this.rooms.set(room.id, room)
     this._refreshSpyCount(room)
@@ -240,7 +167,6 @@ class RoomManager extends EventEmitter {
       existingPlayer.disconnected = false
       existingPlayer.disconnectedAt = null
       session.roomId = room.id
-      session.profile = this._normalizeProfile({ nickname, avatar })
       this._markRoomActive(room)
 
       return {
@@ -261,8 +187,6 @@ class RoomManager extends EventEmitter {
       })
     }
 
-    this._clearRoomCleanup(room)
-
     const player = this._buildPlayer({
       playerId,
       nickname,
@@ -272,7 +196,6 @@ class RoomManager extends EventEmitter {
 
     room.players.push(player)
     session.roomId = room.id
-    session.profile = this._normalizeProfile({ nickname, avatar })
     this._refreshSpyCount(room)
     this._markRoomActive(room)
 
@@ -285,7 +208,7 @@ class RoomManager extends EventEmitter {
   }
 
   leaveRoomByPlayerId(playerId, options = {}) {
-    const session = this.sessions.get(playerId)
+    const session = this.sessionRegistry.get(playerId)
     if (!session || !session.roomId) {
       return null
     }
@@ -317,15 +240,10 @@ class RoomManager extends EventEmitter {
 
   leaveRoom(roomId, playerId, options = {}) {
     const room = this.rooms.get(roomId)
-    const session = this.sessions.get(playerId)
+    const session = this.sessionRegistry.get(playerId)
 
     if (!room || !session) {
       return null
-    }
-
-    if (session.disconnectTimer) {
-      clearTimeout(session.disconnectTimer)
-      session.disconnectTimer = null
     }
 
     const playerIndex = room.players.findIndex((item) => item.id === playerId)
@@ -392,7 +310,6 @@ class RoomManager extends EventEmitter {
 
   updatePlayerProfile(playerId, { nickname, avatar } = {}) {
     const { room, player } = this._getRoomAndPlayerByPlayerId(playerId)
-    const session = this._getRequiredSession(playerId)
     const nextNickname = String(nickname || '').trim()
       ? this._normalizeNickname(nickname)
       : player.nickname
@@ -402,11 +319,6 @@ class RoomManager extends EventEmitter {
 
     player.nickname = nextNickname
     player.avatar = nextAvatar
-    session.profile = {
-      nickname: nextNickname,
-      avatar: nextAvatar,
-    }
-
     if (room.gameState && Array.isArray(room.gameState.playerRoster)) {
       const rosterPlayer = room.gameState.playerRoster.find((item) => item.id === playerId)
       if (rosterPlayer) {
@@ -641,49 +553,31 @@ class RoomManager extends EventEmitter {
   }
 
   markDisconnected(socketId) {
-    const playerId = this.socketToPlayer.get(socketId)
-    if (!playerId) {
+    const session = this.sessionRegistry.markDisconnected(socketId)
+    if (!session || !session.roomId) {
       return null
     }
-
-    this.socketToPlayer.delete(socketId)
-
-    const session = this.sessions.get(playerId)
-    if (!session) {
-      return null
-    }
-
-    if (session.socketId === socketId) {
-      session.socketId = null
-    }
-
-    if (!session.roomId) {
-      return null
-    }
-
     const room = this.rooms.get(session.roomId)
     if (!room) {
       session.roomId = null
       return null
     }
-
-    const player = this._findPlayer(room, playerId)
+    const player = this._findPlayer(room, session.playerId)
     if (!player) {
       session.roomId = null
       return null
     }
 
     player.disconnected = true
-    player.disconnectedAt = Date.now()
+    player.disconnectedAt = session.disconnectedAt
     this._ensureHostTransfer(room)
     this._refreshPresenceState(room)
 
     return {
-      playerId,
+      playerId: session.playerId,
       roomId: room.id,
       player: this._toPublicPlayer(player),
       roomState: this.getRoomState(room.id),
-      graceMs: this.disconnectGraceMs,
     }
   }
 
@@ -743,109 +637,19 @@ class RoomManager extends EventEmitter {
   }
 
   getRoomState(roomId) {
-    const room = this.rooms.get(roomId)
-    if (!room) {
-      return null
-    }
-
-    return {
-      roomId: room.id,
-      status: room.status,
-      gamePhase: room.gameState ? room.gameState.phase : null,
-      round: room.gameState ? room.gameState.round : null,
-      spyCount: room.spyCount,
-      gameMode: room.gameMode || GAME_MODE_FULL,
-      maxPlayers: this.maxPlayers,
-      playerCount: room.players.length,
-      players: room.players
-        .slice()
-        .sort((left, right) => left.joinedAt - right.joinedAt)
-        .map((player) => this._toPublicPlayer(player)),
-    }
+    return stateProjection.getRoomState(this.rooms.get(roomId), this.maxPlayers)
   }
 
   getGamePublicState(roomId, options = {}) {
-    const room = this.rooms.get(roomId)
-    if (!room || !room.gameState) {
-      return null
-    }
-
-    const { includeEndedSecrets = false } = options
-    const publicState = {
-      roomId: room.id,
-      phase: room.gameState.phase,
-      round: room.gameState.round,
-      gameMode: room.gameMode || GAME_MODE_FULL,
-      wordCategoryLabel: room.gameState.wordPair
-        ? room.gameState.wordPair.categoryLabel || ''
-        : '',
-      players: this._getGamePlayersForPublicState(room),
-      alivePlayers: [...room.gameState.alivePlayers],
-      eliminatedPlayers: [...room.gameState.eliminatedPlayers],
-      speakOrder: [...room.gameState.speakOrder],
-      roundHistory: room.gameState.roundHistory.map((item) => ({
-        round: item.round,
-        eliminated: item.eliminated,
-        role: item.role,
-        votes: { ...item.votes },
-      })),
-      confirmedPlayers:
-        room.gameState.phase === 'dealing'
-          ? [...room.gameState.confirmedPlayers]
-          : [],
-      votedPlayers:
-        room.gameState.phase === 'voting'
-          ? [...room.gameState.votedPlayers]
-          : [],
-      currentResult: room.gameState.currentResult
-        ? {
-            ...room.gameState.currentResult,
-            votes: { ...room.gameState.currentResult.votes },
-            leaderboard: room.gameState.currentResult.leaderboard.map((item) => ({
-              ...item,
-            })),
-          }
-        : null,
-      finalResult: room.gameState.finalResult
-        ? { ...room.gameState.finalResult }
-        : null,
-    }
-
-    if (includeEndedSecrets && room.gameState.phase === 'ended') {
-      publicState.roles = { ...room.gameState.roles }
-      publicState.wordPair = { ...room.gameState.wordPair }
-    }
-
-    return publicState
+    return stateProjection.getGamePublicState(this.rooms.get(roomId), options)
   }
 
   getReconnectGameSnapshot(roomId, playerId) {
-    const room = this.rooms.get(roomId)
-    if (!room || !room.gameState) {
-      return null
-    }
-
-    const snapshot = this.getGamePublicState(roomId, {
-      includeEndedSecrets: room.gameState.phase === 'ended',
-    })
-
-    snapshot.myWord = room.gameState.playerWords[playerId] || null
-    snapshot.myRole = room.gameState.roles[playerId] || null
-    return snapshot
+    return stateProjection.getReconnectGameSnapshot(this.rooms.get(roomId), playerId)
   }
 
   getEndedPayload(roomId) {
-    const room = this.rooms.get(roomId)
-    if (!room || !room.gameState || room.gameState.phase !== 'ended') {
-      return null
-    }
-
-    return {
-      ...this.getGamePublicState(roomId, {
-        includeEndedSecrets: true,
-      }),
-      room: this.getRoomState(roomId),
-    }
+    return stateProjection.getEndedPayload(this.rooms.get(roomId), this.maxPlayers)
   }
 
   destroyRoom(roomId) {
@@ -854,9 +658,9 @@ class RoomManager extends EventEmitter {
       return false
     }
 
-    this._clearRoomCleanup(room)
     this._clearRoomIdleTimers(room)
     this._clearHostTransfer(room)
+    this.sessionRegistry.clearRoomReferences(roomId)
     this.rooms.delete(roomId)
     this.emit('room:destroyed', { roomId })
     return true
@@ -871,14 +675,9 @@ class RoomManager extends EventEmitter {
     const roomState = this.getRoomState(roomId)
     const activePlayerIds = []
     room.players.forEach((player) => {
-      const session = this.sessions.get(player.id)
+      const session = this.sessionRegistry.get(player.id)
       if (!session) {
         return
-      }
-
-      if (session.disconnectTimer) {
-        clearTimeout(session.disconnectTimer)
-        session.disconnectTimer = null
       }
 
       if (session.socketId) {
@@ -902,24 +701,8 @@ class RoomManager extends EventEmitter {
     return payload
   }
 
-  _createSession({ identityKey } = {}) {
-    const playerId = randomUUID()
-    const session = {
-      playerId,
-      identityKey: '',
-      socketId: null,
-      roomId: null,
-      disconnectTimer: null,
-      lastSeenAt: Date.now(),
-      profile: {
-        nickname: '',
-        avatar: '',
-      },
-    }
-
-    this.sessions.set(playerId, session)
-    this._bindIdentityToSession(session, identityKey)
-    return session
+  cleanupExpiredSessions(now = Date.now()) {
+    return this.sessionRegistry.cleanupExpiredSessions(now)
   }
 
   _buildPlayer({ playerId, nickname, avatar, isHost }) {
@@ -1096,57 +879,6 @@ class RoomManager extends EventEmitter {
     }
   }
 
-  _getGamePlayersForPublicState(room) {
-    const livePlayers = room.players.reduce((result, player) => {
-      result[player.id] = player
-      return result
-    }, {})
-    const eliminatedRoundMap = (room.gameState.roundHistory || []).reduce(
-      (result, item) => {
-        if (item.eliminated && !result[item.eliminated]) {
-          result[item.eliminated] = item.round
-        }
-        return result
-      },
-      {}
-    )
-    const sourcePlayers = room.gameState.playerRoster || room.players
-
-    return sourcePlayers
-      .slice()
-      .sort((left, right) => (left.joinedAt || 0) - (right.joinedAt || 0))
-      .map((player) => {
-        const livePlayer = livePlayers[player.id]
-        return {
-          id: player.id,
-          nickname: livePlayer ? livePlayer.nickname : player.nickname,
-          avatar: livePlayer ? livePlayer.avatar : player.avatar,
-          isHost: Boolean(livePlayer && livePlayer.isHost),
-          disconnected: Boolean(livePlayer && livePlayer.disconnected),
-          hasLeft: Boolean(!livePlayer && player.hasLeft),
-          leftReason: !livePlayer ? player.leftReason || null : null,
-          eliminatedRound: eliminatedRoundMap[player.id] || null,
-        }
-      })
-  }
-
-  _scheduleRoomCleanup(room) {
-    this._clearRoomCleanup(room)
-    room.emptyRoomTimer = setTimeout(() => {
-      const latestRoom = this.rooms.get(room.id)
-      if (latestRoom && latestRoom.players.length === 0) {
-        this.destroyRoom(room.id)
-      }
-    }, this.emptyRoomTtlMs)
-  }
-
-  _clearRoomCleanup(room) {
-    if (room.emptyRoomTimer) {
-      clearTimeout(room.emptyRoomTimer)
-      room.emptyRoomTimer = null
-    }
-  }
-
   _markRoomActive(room, options = {}) {
     if (!room) {
       return
@@ -1239,6 +971,7 @@ class RoomManager extends EventEmitter {
         reason: latestPolicy.reason,
       })
     }, delayMs)
+    room.idleTimer.unref()
 
     if (this.idleWarningMs < policy.ttlMs) {
       const warningDelayMs = deadlineAt - Date.now() - this.idleWarningMs
@@ -1267,6 +1000,7 @@ class RoomManager extends EventEmitter {
             remainingMs: Math.max(remainingMs, 0),
           })
         }, warningDelayMs)
+        room.idleWarningTimer.unref()
       }
     }
   }
@@ -1288,7 +1022,7 @@ class RoomManager extends EventEmitter {
   }
 
   _getRequiredSession(playerId) {
-    const session = this.sessions.get(playerId)
+    const session = this.sessionRegistry.get(playerId)
     if (!session) {
       throw this._createError('SESSION_NOT_FOUND', '会话不存在，请重新连接')
     }
@@ -1402,6 +1136,7 @@ class RoomManager extends EventEmitter {
         latestRoom.hostTransferPlayerId = null
       }
     }, delayMs)
+    room.hostTransferTimer.unref()
   }
 
   _ensureHostTransfer(room) {
@@ -1461,13 +1196,6 @@ class RoomManager extends EventEmitter {
     }
   }
 
-  _normalizeProfile({ nickname, avatar }) {
-    return {
-      nickname: this._normalizeNickname(nickname),
-      avatar: this._normalizeAvatar(avatar),
-    }
-  }
-
   _normalizeNickname(nickname) {
     const value = String(nickname || '').trim()
     if (value) {
@@ -1481,45 +1209,8 @@ class RoomManager extends EventEmitter {
     return String(avatar || '').trim()
   }
 
-  _normalizeIdentityKey(identityKey) {
-    return String(identityKey || '').trim()
-  }
-
-  _bindIdentityToSession(session, identityKey) {
-    if (!session) {
-      return
-    }
-
-    const normalizedIdentityKey = this._normalizeIdentityKey(identityKey)
-    if (!normalizedIdentityKey) {
-      return
-    }
-
-    const existingPlayerId = this.identityToPlayer.get(normalizedIdentityKey)
-    if (existingPlayerId && existingPlayerId !== session.playerId) {
-      const existingSession = this.sessions.get(existingPlayerId)
-      if (existingSession && existingSession.identityKey === normalizedIdentityKey) {
-        return
-      }
-    }
-
-    if (session.identityKey && session.identityKey !== normalizedIdentityKey) {
-      this.identityToPlayer.delete(session.identityKey)
-    }
-
-    session.identityKey = normalizedIdentityKey
-    this.identityToPlayer.set(normalizedIdentityKey, session.playerId)
-  }
-
   _toPublicPlayer(player) {
-    return {
-      id: player.id,
-      nickname: player.nickname,
-      avatar: player.avatar,
-      isReady: player.isReady,
-      isHost: player.isHost,
-      disconnected: player.disconnected,
-    }
+    return stateProjection.toPublicPlayer(player)
   }
 
   _createError(code, message, details = {}) {

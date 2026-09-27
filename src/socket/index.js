@@ -1,6 +1,5 @@
 const EVENTS = require('./events')
-const { emitPlayerLeftSequence } = require('./emitPatterns')
-const { clearVoteTimers, emitGameAction } = require('./helpers')
+const { clearVoteTimers } = require('./helpers')
 const registerRoomHandlers = require('./roomHandler')
 const registerGameHandlers = require('./gameHandler')
 
@@ -64,26 +63,6 @@ function initializeSocketServer(io, roomManager) {
     })
   })
 
-  roomManager.on('player:disconnectTimeout', (payload) => {
-    if (!payload || !payload.roomId) {
-      return
-    }
-
-    const roomChannel = getRoomChannel(payload.roomId)
-    if (payload.roomState) {
-      emitPlayerLeftSequence(io, roomChannel, {
-        removedPlayer: payload.removedPlayer,
-        roomState: payload.roomState,
-        hostChanged: payload.hostChanged,
-        reason: payload.reason,
-      })
-    }
-
-    emitGameAction(io, getRoomChannel, payload.roomId, payload.gameAction, {
-      onTerminalAction: (targetRoomId) => clearVoteTimers(voteTimerStore, targetRoomId),
-    })
-  })
-
   io.on('connection', (socket) => {
     const playerId =
       socket.handshake.auth?.playerId || socket.handshake.query?.playerId || null
@@ -91,6 +70,13 @@ function initializeSocketServer(io, roomManager) {
       playerId,
       socketId: socket.id,
     })
+
+    if (connection.previousSocketId) {
+      const previousSocket = io.sockets.sockets.get(connection.previousSocketId)
+      if (previousSocket) {
+        previousSocket.disconnect(true)
+      }
+    }
 
     socket.data.playerId = connection.playerId
 
@@ -107,7 +93,7 @@ function initializeSocketServer(io, roomManager) {
       socket.emit(connection.reconnectEvent.event, connection.reconnectEvent.payload)
     }
 
-    registerRoomHandlers(io, socket, roomManager, getRoomChannel)
+    registerRoomHandlers(io, socket, roomManager, getRoomChannel, voteTimerStore)
     registerGameHandlers(
       io,
       socket,

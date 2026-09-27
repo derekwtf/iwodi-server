@@ -41,7 +41,6 @@ function createRoomManager() {
         }
       },
     },
-    disconnectGraceMs: 20,
     hostTransferGraceMs: 30,
     allDisconnectedTtlMs: 70,
     waitingIdleMs: 500,

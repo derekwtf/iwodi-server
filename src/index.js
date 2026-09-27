@@ -19,12 +19,10 @@ const allowedOrigins = String(process.env.CLIENT_ORIGIN || '*')
 const wordLibrary = new WordLibrary()
 const roomManager = new RoomManager({
   wordLibrary,
-  disconnectGraceMs: Number(process.env.DISCONNECT_GRACE_MS || 30 * 1000),
   hostTransferGraceMs: Number(process.env.HOST_TRANSFER_GRACE_MS || 30 * 1000),
   allDisconnectedTtlMs: Number(
     process.env.ROOM_ALL_DISCONNECTED_TTL_MS || 10 * 60 * 1000
   ),
-  emptyRoomTtlMs: Number(process.env.ROOM_EMPTY_TTL_MS || 5 * 60 * 1000),
   waitingIdleMs: Number(process.env.ROOM_WAITING_IDLE_MS || 15 * 60 * 1000),
   playingIdleMs: Number(process.env.ROOM_PLAYING_IDLE_MS || 10 * 60 * 1000),
   endedIdleMs: Number(process.env.ROOM_ENDED_IDLE_MS || 5 * 60 * 1000),
@@ -68,10 +66,8 @@ app.get('/health', (req, res) => {
       ),
     },
     socket: {
-      disconnectGraceMs: roomManager.disconnectGraceMs,
       hostTransferGraceMs: roomManager.hostTransferGraceMs,
       allDisconnectedTtlMs: roomManager.allDisconnectedTtlMs,
-      emptyRoomTtlMs: roomManager.emptyRoomTtlMs,
       waitingIdleMs: roomManager.waitingIdleMs,
       playingIdleMs: roomManager.playingIdleMs,
       endedIdleMs: roomManager.endedIdleMs,

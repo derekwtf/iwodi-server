@@ -1,8 +1,8 @@
 const EVENTS = require('./events')
-const { emitPlayerLeftSequence } = require('./emitPatterns')
-const { emitGameAction, handleError, handleSuccess } = require('./helpers')
+const { emitPlayerLeftSequence, publishLeaveResult } = require('./emitPatterns')
+const { handleError, handleSuccess } = require('./helpers')
 
-function registerRoomHandlers(io, socket, roomManager, getRoomChannel) {
+function registerRoomHandlers(io, socket, roomManager, getRoomChannel, voteTimerStore) {
   socket.on(EVENTS.client.ROOM_CREATE, (payload = {}, ack) => {
     try {
       const result = roomManager.createRoom({
@@ -13,25 +13,7 @@ function registerRoomHandlers(io, socket, roomManager, getRoomChannel) {
       })
 
       if (result.previousRoomResult) {
-        const previousRoomId = result.previousRoomResult.roomId
-        const previousRoomChannel = getRoomChannel(previousRoomId)
-        socket.leave(previousRoomChannel)
-
-        if (result.previousRoomResult.roomState) {
-          emitPlayerLeftSequence(io, previousRoomChannel, {
-            removedPlayer: result.previousRoomResult.removedPlayer,
-            roomState: result.previousRoomResult.roomState,
-            hostChanged: result.previousRoomResult.hostChanged,
-            reason: result.previousRoomResult.reason,
-          })
-        }
-
-        emitGameAction(
-          io,
-          getRoomChannel,
-          previousRoomId,
-          result.previousRoomResult.gameAction
-        )
+        publishLeaveResult(io, socket, getRoomChannel, result.previousRoomResult, voteTimerStore)
       }
 
       const roomChannel = getRoomChannel(result.room.id)
@@ -55,20 +37,7 @@ function registerRoomHandlers(io, socket, roomManager, getRoomChannel) {
       })
 
       if (result.previousRoomResult) {
-        const previousRoomId = result.previousRoomResult.roomId
-        const previousRoomChannel = getRoomChannel(previousRoomId)
-        socket.leave(previousRoomChannel)
-
-        if (result.previousRoomResult.roomState) {
-          emitPlayerLeftSequence(io, previousRoomChannel, {
-            removedPlayer: result.previousRoomResult.removedPlayer,
-            roomState: result.previousRoomResult.roomState,
-            hostChanged: result.previousRoomResult.hostChanged,
-            reason: result.previousRoomResult.reason,
-          })
-        }
-
-        emitGameAction(io, getRoomChannel, previousRoomId, result.previousRoomResult.gameAction)
+        publishLeaveResult(io, socket, getRoomChannel, result.previousRoomResult, voteTimerStore)
       }
 
       const roomChannel = getRoomChannel(result.room.id)
@@ -102,20 +71,9 @@ function registerRoomHandlers(io, socket, roomManager, getRoomChannel) {
       const result = roomManager.leaveRoom(roomId, socket.data.playerId, {
         reason: 'leave',
       })
-      socket.leave(getRoomChannel(roomId))
-      socket.emit(EVENTS.server.ROOM_LEFT, { roomId })
-
-      if (result && result.roomState) {
-        const roomChannel = getRoomChannel(roomId)
-        emitPlayerLeftSequence(io, roomChannel, {
-          removedPlayer: result.removedPlayer,
-          roomState: result.roomState,
-          hostChanged: result.hostChanged,
-          reason: result.reason,
-        })
-      }
-
-      emitGameAction(io, getRoomChannel, roomId, result && result.gameAction)
+      publishLeaveResult(io, socket, getRoomChannel, result || { roomId }, voteTimerStore, {
+        notifyLeaver: true,
+      })
 
       handleSuccess(ack, {
         roomId,
@@ -287,20 +245,9 @@ function registerRoomHandlers(io, socket, roomManager, getRoomChannel) {
       }
 
       const result = roomManager.abandonReconnect(socket.data.playerId)
-      socket.leave(getRoomChannel(roomId))
-      socket.emit(EVENTS.server.ROOM_LEFT, { roomId })
-
-      if (result && result.roomState) {
-        const roomChannel = getRoomChannel(roomId)
-        emitPlayerLeftSequence(io, roomChannel, {
-          removedPlayer: result.removedPlayer,
-          roomState: result.roomState,
-          hostChanged: result.hostChanged,
-          reason: result.reason,
-        })
-      }
-
-      emitGameAction(io, getRoomChannel, roomId, result && result.gameAction)
+      publishLeaveResult(io, socket, getRoomChannel, result || { roomId }, voteTimerStore, {
+        notifyLeaver: true,
+      })
 
       handleSuccess(ack, {
         roomId,

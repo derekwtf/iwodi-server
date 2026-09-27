@@ -116,11 +116,7 @@ function finalizeVoting(gameState) {
 
 function advanceToNextRound(gameState) {
   gameState.round += 1
-  gameState.phase = 'speaking'
-  gameState.speakOrder = SpeakOrder.generateOrder(gameState.alivePlayers)
-  gameState.currentVotes = {}
-  gameState.votedPlayers = []
-  gameState.currentResult = null
+  startSpeaking(gameState)
 }
 
 module.exports = {
