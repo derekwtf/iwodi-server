@@ -71,7 +71,6 @@ class SessionRegistry {
 
     session.socketId = socketId || null
     session.disconnectedAt = null
-    session.lastSeenAt = Date.now()
     this._bindIdentity(session, key)
     if (socketId) {
       this.socketToPlayer.set(socketId, session.playerId)
@@ -92,7 +91,6 @@ class SessionRegistry {
     }
     session.socketId = null
     session.disconnectedAt = Date.now()
-    session.lastSeenAt = session.disconnectedAt
     return session
   }
 
@@ -127,7 +125,6 @@ class SessionRegistry {
       socketId: null,
       roomId: null,
       disconnectedAt: Date.now(),
-      lastSeenAt: Date.now(),
     }
     this.sessions.set(session.playerId, session)
     this._bindIdentity(session, identityKey)

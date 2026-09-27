@@ -69,8 +69,8 @@ async function main() {
         candidateWords: ['甲', '乙'], civilian: '甲', spy: '乙',
       }),
     },
-    voteReminderMs: 300,
-    voteTimeoutMs: 600,
+    voteReminderMs: 500,
+    voteTimeoutMs: 1500,
   })
   const server = http.createServer()
   const io = new Server(server)
@@ -179,6 +179,36 @@ async function main() {
     assert.strictEqual((await reconnectedDealPlayer.followup).myWord, dealSnapshot.myWord)
     const restarted = await request(dealHost.socket, EVENTS.client.GAME_RESTART)
     assert.strictEqual(restarted.room.status, 'waiting')
+
+    const timeoutHost = await connect()
+    const timeoutRoom = await request(timeoutHost.socket, EVENTS.client.ROOM_CREATE, {
+      nickname: '超时房主', gameMode: 'full',
+    })
+    const timeoutPlayers = [timeoutHost]
+    for (let i = 1; i < 4; i += 1) {
+      const player = await connect()
+      await request(player.socket, EVENTS.client.ROOM_JOIN, {
+        roomId: timeoutRoom.room.roomId, nickname: `超时玩家${i}`,
+      })
+      timeoutPlayers.push(player)
+    }
+    await request(timeoutHost.socket, EVENTS.client.ROOM_START_GAME)
+    for (const player of timeoutPlayers) {
+      await request(player.socket, EVENTS.client.GAME_CONFIRM_WORD)
+    }
+    const reminderEvent = waitForEvent(timeoutHost.socket, EVENTS.server.GAME_VOTE_REMINDER)
+    const timeoutResultEvent = waitForEvent(timeoutHost.socket, EVENTS.server.GAME_RESULT, 4000)
+    await request(timeoutHost.socket, EVENTS.client.GAME_START_VOTE)
+    const reminder = await reminderEvent
+    assert.strictEqual(reminder.roomId, timeoutRoom.room.roomId)
+    assert.deepStrictEqual(
+      reminder.pendingPlayerIds.slice().sort(),
+      timeoutPlayers.map((player) => player.playerId).sort()
+    )
+    const timeoutResult = await timeoutResultEvent
+    assert.strictEqual(timeoutResult.phase, 'result')
+    assert.strictEqual(timeoutResult.currentResult.eliminated, null)
+    assert.deepStrictEqual(Object.values(timeoutResult.currentResult.votes), [null, null, null, null])
 
     console.log('Socket flow test passed.')
   } finally {

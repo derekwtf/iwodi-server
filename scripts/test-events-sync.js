@@ -5,6 +5,7 @@
  */
 
 const path = require('path')
+const fs = require('fs')
 
 const serverEvents = require(path.resolve(__dirname, '../src/socket/events.js'))
 const clientEvents = require(path.resolve(__dirname, '../../client/utils/events.js'))
@@ -40,6 +41,17 @@ function deepCompare(serverObj, clientObj, path = '') {
 }
 
 deepCompare(serverEvents, clientEvents, 'EVENTS')
+
+for (const fileName of fs.readdirSync(__dirname).filter((name) => name.endsWith('.js'))) {
+  const source = fs.readFileSync(path.join(__dirname, fileName), 'utf8')
+  for (const match of source.matchAll(/\bEVENTS\.(client|server)\.([A-Z_]+)/g)) {
+    const [, namespace, key] = match
+    if (!serverEvents[namespace][key]) {
+      console.error(`✗ ${fileName} 引用了不存在的事件 EVENTS.${namespace}.${key}`)
+      passed = false
+    }
+  }
+}
 
 if (passed) {
   console.log('✓ 前后端事件常量完全一致')

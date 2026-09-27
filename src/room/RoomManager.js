@@ -83,10 +83,6 @@ class RoomManager extends EventEmitter {
     return this.sessionRegistry.resolvePlayerIdByIdentity(identityKey, preferredPlayerId)
   }
 
-  resolvePlayerIdForIdentity(identityKey, preferredPlayerId = null) {
-    return this.resolvePlayerIdByIdentity(identityKey, preferredPlayerId)
-  }
-
   getRoomIdForPlayer(playerId) {
     const session = this.sessionRegistry.get(playerId)
     return session ? session.roomId : null
