@@ -806,6 +806,13 @@ class RoomManager extends EventEmitter {
       return null
     }
 
+    if (isDealOnlyMode(room.gameMode) && room.gameState.phase === 'dealing') {
+      return {
+        type: 'stateSync',
+        payload: this.getGamePublicState(room.id),
+      }
+    }
+
     const judgeResult = Judge.checkGameOver(
       room.gameState.alivePlayers,
       room.gameState.roles
@@ -824,13 +831,6 @@ class RoomManager extends EventEmitter {
     }
 
     if (room.gameState.phase === 'dealing') {
-      if (isDealOnlyMode(room.gameMode)) {
-        return {
-          type: 'stateSync',
-          payload: this.getGamePublicState(room.id),
-        }
-      }
-
       if (
         room.gameState.confirmedPlayers.length === room.gameState.alivePlayers.length &&
         room.gameState.alivePlayers.length > 0

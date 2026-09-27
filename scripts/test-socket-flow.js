@@ -71,6 +71,7 @@ async function main() {
     },
     voteReminderMs: 500,
     voteTimeoutMs: 1500,
+    minStartPlayers: 2,
   })
   const server = http.createServer()
   const io = new Server(server)
@@ -179,6 +180,58 @@ async function main() {
     assert.strictEqual((await reconnectedDealPlayer.followup).myWord, dealSnapshot.myWord)
     const restarted = await request(dealHost.socket, EVENTS.client.GAME_RESTART)
     assert.strictEqual(restarted.room.status, 'waiting')
+
+    const leavingHost = await connect()
+    const leaveRoom = await request(leavingHost.socket, EVENTS.client.ROOM_CREATE, {
+      nickname: '离房房主', gameMode: 'deal-only',
+    })
+    const remainingPlayer = await connect()
+    await request(remainingPlayer.socket, EVENTS.client.ROOM_JOIN, {
+      roomId: leaveRoom.room.roomId, nickname: '接任房主',
+    })
+    const startedRoomState = waitForEvent(remainingPlayer.socket, EVENTS.server.ROOM_STATE)
+    await request(leavingHost.socket, EVENTS.client.ROOM_START_GAME)
+    await startedRoomState
+    const leaveEvents = []
+    for (const event of [
+      EVENTS.server.ROOM_PLAYER_LEFT,
+      EVENTS.server.ROOM_STATE,
+      EVENTS.server.ROOM_HOST_CHANGED,
+      EVENTS.server.GAME_STATE_SYNC,
+    ]) {
+      remainingPlayer.socket.on(event, (payload) => {
+        const roomId = payload.room?.roomId || payload.roomId
+        if (roomId === leaveRoom.room.roomId) leaveEvents.push(event)
+      })
+    }
+    const stateSyncEvent = waitForEvent(remainingPlayer.socket, EVENTS.server.GAME_STATE_SYNC)
+    await request(leavingHost.socket, EVENTS.client.ROOM_LEAVE)
+    const stateSync = await stateSyncEvent
+    assert.deepStrictEqual(leaveEvents, [
+      EVENTS.server.ROOM_PLAYER_LEFT,
+      EVENTS.server.ROOM_STATE,
+      EVENTS.server.ROOM_HOST_CHANGED,
+      EVENTS.server.GAME_STATE_SYNC,
+    ])
+    assert.strictEqual(stateSync.phase, 'dealing')
+    assert.strictEqual(manager.getRoomState(leaveRoom.room.roomId).status, 'playing')
+    assert.strictEqual(manager.getRoomState(leaveRoom.room.roomId).players[0].id, remainingPlayer.playerId)
+    for (const secret of ['roles', 'wordPair', 'playerWords', 'myRole', 'myWord']) {
+      assert.strictEqual(Object.hasOwn(stateSync, secret), false)
+    }
+    const newcomer = await connect()
+    await assert.rejects(
+      request(newcomer.socket, EVENTS.client.ROOM_JOIN, {
+        roomId: leaveRoom.room.roomId, nickname: '新玩家',
+      }),
+      /游戏已开始，无法加入/
+    )
+    const reopened = await request(remainingPlayer.socket, EVENTS.client.GAME_RESTART)
+    assert.strictEqual(reopened.room.status, 'waiting')
+    const joined = await request(newcomer.socket, EVENTS.client.ROOM_JOIN, {
+      roomId: leaveRoom.room.roomId, nickname: '新玩家',
+    })
+    assert.strictEqual(joined.room.status, 'waiting')
 
     const timeoutHost = await connect()
     const timeoutRoom = await request(timeoutHost.socket, EVENTS.client.ROOM_CREATE, {

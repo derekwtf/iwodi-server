@@ -102,6 +102,8 @@ function testConfiguredMinimum() {
   )
   const ended = fullManager.leaveRoom(fullRoom.roomId, leavingCivilian)
   assert.strictEqual(ended.gameAction.type, 'ended')
+  assert.strictEqual(ended.roomState.status, 'ended')
+  assert.strictEqual(fullManager.rooms.get(fullRoom.roomId).gameState.phase, 'ended')
   assert.strictEqual(ended.gameAction.payload.room.minStartPlayers, 3)
   const fullRestarted = fullManager.restartGame(fullRoom.hostId)
   assert.strictEqual(fullRestarted.roomState.status, 'waiting')
@@ -109,6 +111,51 @@ function testConfiguredMinimum() {
   assertTooFewPlayers(fullManager, fullRoom.hostId, 3)
   assert.strictEqual(fullManager.getRoomState(fullRoom.roomId).status, 'waiting')
   fullManager.destroyRoom(fullRoom.roomId)
+}
+
+function testDealOnlyLeaveDuringDealing() {
+  const manager = new RoomManager({ wordLibrary, minStartPlayers: 2 })
+  const { roomId, hostId } = createRoom(manager, 'deal-only', 'leave-host')
+  const guestId = addPlayer(manager, roomId, 'leave-guest')
+  manager.startGame(hostId)
+
+  const guestLeft = manager.leaveRoom(roomId, guestId)
+  assert.strictEqual(guestLeft.roomState.status, 'playing')
+  assert.strictEqual(guestLeft.gameAction.type, 'stateSync')
+  assert.strictEqual(guestLeft.gameAction.payload.phase, 'dealing')
+  assert.strictEqual(manager.rooms.get(roomId).gameState.phase, 'dealing')
+  for (const secret of ['roles', 'wordPair', 'playerWords', 'myRole', 'myWord']) {
+    assert.strictEqual(Object.hasOwn(guestLeft.gameAction.payload, secret), false)
+  }
+
+  const newcomerId = addPlayer(manager, null, 'leave-newcomer')
+  assert.throws(
+    () => manager.joinRoom(roomId, { playerId: newcomerId, nickname: '新玩家' }),
+    (error) => error.code === 'GAME_ALREADY_STARTED'
+  )
+  const restarted = manager.restartGame(hostId)
+  assert.strictEqual(restarted.roomState.status, 'waiting')
+  assert.strictEqual(manager.joinRoom(roomId, {
+    playerId: newcomerId, nickname: '新玩家',
+  }).room.id, roomId)
+  manager.startGame(hostId)
+  manager.leaveRoom(roomId, newcomerId)
+  const lastPlayerLeft = manager.leaveRoom(roomId, hostId)
+  assert.strictEqual(lastPlayerLeft.roomState, null)
+  assert.strictEqual(manager.rooms.has(roomId), false)
+
+  const secondRoom = createRoom(manager, 'deal-only', 'transferred-host')
+  const successorId = addPlayer(manager, secondRoom.roomId, 'successor')
+  manager.startGame(secondRoom.hostId)
+  const hostLeft = manager.leaveRoom(secondRoom.roomId, secondRoom.hostId)
+  assert.strictEqual(hostLeft.hostChanged.id, successorId)
+  assert.strictEqual(hostLeft.roomState.status, 'playing')
+  assert.strictEqual(hostLeft.gameAction.type, 'stateSync')
+  assert.strictEqual(hostLeft.gameAction.payload.phase, 'dealing')
+  assert.strictEqual(manager.restartGame(successorId).roomState.status, 'waiting')
+  const lastLeft = manager.leaveRoom(secondRoom.roomId, successorId)
+  assert.strictEqual(lastLeft.roomState, null)
+  assert.strictEqual(manager.rooms.has(secondRoom.roomId), false)
 }
 
 function testConfiguredThresholds() {
@@ -148,6 +195,7 @@ function testInvalidValues() {
 
 testDefault()
 testConfiguredMinimum()
+testDealOnlyLeaveDuringDealing()
 testConfiguredThresholds()
 testInvalidValues()
 console.log('Minimum start players test passed.')
