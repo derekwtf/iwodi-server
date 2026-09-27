@@ -48,6 +48,11 @@ function testOnlineAndClosedRoomSessions() {
   const { room } = manager.createRoom({ playerId: hostId, nickname: '房主' })
   manager.joinRoom(room.id, { playerId: guestId, nickname: '访客' })
   manager.markDisconnected('guest')
+  manager.on('room:closed', ({ roomId }) => {
+    assert.strictEqual(roomId, room.id)
+    assert.strictEqual(manager.getRoomIdForPlayer(hostId), null)
+    assert.strictEqual(manager.getRoomIdForPlayer(guestId), null)
+  })
   manager.closeRoom(room.id)
   assert.strictEqual(manager.getRoomIdForPlayer(hostId), null)
   assert.strictEqual(manager.getRoomIdForPlayer(guestId), null)
@@ -55,6 +60,40 @@ function testOnlineAndClosedRoomSessions() {
   assert.strictEqual(manager.getActiveSocketId(hostId), 'host')
 }
 
+function testDirectAndEmptyRoomDestruction() {
+  const manager = new RoomManager()
+  const hostId = manager.registerConnection({ socketId: 'host-a' }).playerId
+  const guestId = manager.registerConnection({ socketId: 'guest-a' }).playerId
+  const otherId = manager.registerConnection({ socketId: 'host-b' }).playerId
+  const roomA = manager.createRoom({ playerId: hostId, nickname: '房主甲' }).room
+  manager.joinRoom(roomA.id, { playerId: guestId, nickname: '访客甲' })
+  const roomB = manager.createRoom({ playerId: otherId, nickname: '房主乙' }).room
+
+  assert.strictEqual(manager.destroyRoom(roomA.id), true)
+  assert.strictEqual(manager.getRoomState(roomA.id), null)
+  assert.strictEqual(manager.getRoomIdForPlayer(hostId), null)
+  assert.strictEqual(manager.getRoomIdForPlayer(guestId), null)
+  assert.strictEqual(manager.getRoomIdForPlayer(otherId), roomB.id)
+  assert.strictEqual(manager.destroyRoom(roomA.id), false)
+
+  manager.leaveRoom(roomB.id, otherId)
+  assert.strictEqual(manager.getRoomState(roomB.id), null)
+  assert.strictEqual(manager.getRoomIdForPlayer(otherId), null)
+}
+
+function testDestroyRoomPreservesUpdatedSessionRoom() {
+  const manager = new RoomManager()
+  const playerId = manager.registerConnection({ socketId: 'stale-member' }).playerId
+  const { room } = manager.createRoom({ playerId, nickname: '玩家' })
+
+  // 模拟房间玩家记录尚未移除，但会话已经指向另一间房。
+  manager.sessionRegistry.get(playerId).roomId = 'new-room'
+  manager.destroyRoom(room.id)
+  assert.strictEqual(manager.getRoomIdForPlayer(playerId), 'new-room')
+}
+
 testConnectionReplacementAndExpiry()
 testOnlineAndClosedRoomSessions()
+testDirectAndEmptyRoomDestruction()
+testDestroyRoomPreservesUpdatedSessionRoom()
 console.log('Session lifecycle test passed.')

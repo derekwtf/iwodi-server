@@ -94,14 +94,6 @@ class SessionRegistry {
     return session
   }
 
-  clearRoomReferences(roomId) {
-    for (const session of this.sessions.values()) {
-      if (session.roomId === roomId) {
-        session.roomId = null
-      }
-    }
-  }
-
   cleanupExpiredSessions(now = Date.now()) {
     let removed = 0
     for (const [playerId, session] of this.sessions) {

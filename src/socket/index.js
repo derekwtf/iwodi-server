@@ -64,6 +64,8 @@ function initializeSocketServer(io, roomManager) {
   })
 
   io.on('connection', (socket) => {
+    // 已知产品取舍：房间状态会公开 playerId，这里仍允许用它恢复会话，
+    // 同 ID 的新连接会替换旧连接。当前派对游戏接受这项低优先级冒用风险，后续单独处理（见 BASELINE_ISSUES.md）。
     const playerId =
       socket.handshake.auth?.playerId || socket.handshake.query?.playerId || null
     const connection = roomManager.registerConnection({

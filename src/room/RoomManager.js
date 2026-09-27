@@ -656,7 +656,12 @@ class RoomManager extends EventEmitter {
 
     this._clearRoomIdleTimers(room)
     this._clearHostTransfer(room)
-    this.sessionRegistry.clearRoomReferences(roomId)
+    for (const player of room.players) {
+      const session = this.sessionRegistry.get(player.id)
+      if (session && session.roomId === roomId) {
+        session.roomId = null
+      }
+    }
     this.rooms.delete(roomId)
     this.emit('room:destroyed', { roomId })
     return true
