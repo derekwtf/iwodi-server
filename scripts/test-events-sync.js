@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 前后端事件常量一致性检查
+ * 客户端事件常量与服务端协议兼容性检查（允许服务端保留额外事件）
  * 用法: node server/scripts/test-events-sync.js
  */
 
@@ -12,35 +12,32 @@ const clientEvents = require(path.resolve(__dirname, '../../client/utils/events.
 
 let passed = true
 
-function deepCompare(serverObj, clientObj, path = '') {
-  const serverKeys = Object.keys(serverObj).sort()
-  const clientKeys = Object.keys(clientObj).sort()
-
-  // 检查 server 有但 client 没有的
-  for (const key of serverKeys) {
-    if (!(key in clientObj)) {
-      console.error(`✗ 服务端有 ${path}.${key}，客户端缺失`)
+function checkClientEvents(serverObj, clientObj, eventPath = 'EVENTS') {
+  for (const key of Object.keys(clientObj).sort()) {
+    const currentPath = `${eventPath}.${key}`
+    if (!serverObj || !Object.prototype.hasOwnProperty.call(serverObj, key)) {
+      console.error(`✗ 客户端有 ${currentPath}，服务端缺失`)
       passed = false
       continue
     }
-    if (typeof serverObj[key] === 'object' && serverObj[key] !== null) {
-      deepCompare(serverObj[key], clientObj[key], `${path}.${key}`)
-    } else if (serverObj[key] !== clientObj[key]) {
-      console.error(`✗ ${path}.${key} 值不一致: 服务端="${serverObj[key]}" 客户端="${clientObj[key]}"`)
-      passed = false
-    }
-  }
 
-  // 检查 client 有但 server 没有的
-  for (const key of clientKeys) {
-    if (!(key in serverObj)) {
-      console.error(`✗ 客户端有 ${path}.${key}，服务端缺失`)
+    const clientValue = clientObj[key]
+    const serverValue = serverObj[key]
+    if (clientValue && typeof clientValue === 'object' && !Array.isArray(clientValue)) {
+      if (!serverValue || typeof serverValue !== 'object' || Array.isArray(serverValue)) {
+        console.error(`✗ ${currentPath} 类型不一致`)
+        passed = false
+      } else {
+        checkClientEvents(serverValue, clientValue, currentPath)
+      }
+    } else if (serverValue !== clientValue) {
+      console.error(`✗ ${currentPath} 值不一致: 服务端="${serverValue}" 客户端="${clientValue}"`)
       passed = false
     }
   }
 }
 
-deepCompare(serverEvents, clientEvents, 'EVENTS')
+checkClientEvents(serverEvents, clientEvents)
 
 for (const fileName of fs.readdirSync(__dirname).filter((name) => name.endsWith('.js'))) {
   const source = fs.readFileSync(path.join(__dirname, fileName), 'utf8')
@@ -54,9 +51,9 @@ for (const fileName of fs.readdirSync(__dirname).filter((name) => name.endsWith(
 }
 
 if (passed) {
-  console.log('✓ 前后端事件常量完全一致')
-  console.log(`  client: ${Object.keys(clientEvents.client).length} 个事件`)
-  console.log(`  server: ${Object.keys(clientEvents.server).length} 个事件`)
+  console.log('✓ 客户端声明的事件均与服务端协议一致')
+  console.log(`  客户端请求: ${Object.keys(clientEvents.client).length} 个事件`)
+  console.log(`  客户端监听: ${Object.keys(clientEvents.server).length} 个事件`)
   process.exit(0)
 } else {
   process.exit(1)
