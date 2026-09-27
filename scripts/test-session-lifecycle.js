@@ -18,13 +18,14 @@ function testConnectionReplacementAndExpiry() {
   assert.strictEqual(manager.getRoomState(room.id).players[0].disconnected, false)
 
   manager.markDisconnected('socket-new')
-  assert.strictEqual(manager.cleanupExpiredSessions(Date.now() + DAY_MS + 1), 0)
+  const disconnectedAt = manager.sessionRegistry.get(playerId).disconnectedAt
+  assert.strictEqual(manager.cleanupExpiredSessions(disconnectedAt + DAY_MS), 0)
   assert.strictEqual(manager.getRoomIdForPlayer(playerId), room.id)
 
   manager.destroyRoom(room.id)
   assert.strictEqual(manager.getRoomIdForPlayer(playerId), null)
-  assert.strictEqual(manager.cleanupExpiredSessions(Date.now() + DAY_MS - 1), 0)
-  assert.strictEqual(manager.cleanupExpiredSessions(Date.now() + DAY_MS + 1), 1)
+  assert.strictEqual(manager.cleanupExpiredSessions(disconnectedAt + DAY_MS - 1), 0)
+  assert.strictEqual(manager.cleanupExpiredSessions(disconnectedAt + DAY_MS), 1)
   assert.strictEqual(manager.sessionRegistry.identityToPlayer.has('wx:player'), false)
 
   const reloginId = manager.resolvePlayerIdByIdentity('wx:player')
