@@ -164,3 +164,42 @@ test('database failure at expiry removes cached VIP appearance and reports uncon
     assert.equal((await request(host.socket, 'room:create', { gameMode: 'deal-only' })).ok, true)
   } finally { await f.close() }
 })
+
+for (const event of ['user:updateProfile', 'room:updateProfile']) {
+  test(`${event} returns the private snapshot and broadcasts the saved room and game once`, async () => {
+    const f = await createFixture()
+    try {
+      const account = await f.login('vip-ack')
+      const expiry = Date.now() + 60000
+      setExpiry(f.userStore, account.userId, expiry)
+      const host = await f.connect({ token: account.token })
+      const guestAccount = await f.login('observer')
+      const guest = await f.connect({ token: guestAccount.token })
+      const created = await request(host.socket, 'room:create', { gameMode: 'deal-only' })
+      await request(guest.socket, 'room:join', { roomId: created.room.roomId })
+      await request(host.socket, 'room:startGame')
+      const states = [], rooms = [], games = [], guestStates = []
+      host.socket.on('user:state', (data) => states.push(data))
+      host.socket.on('room:state', (data) => rooms.push(data.room))
+      host.socket.on('game:stateSync', (data) => games.push(data))
+      guest.socket.on('user:state', (data) => guestStates.push(data))
+      const publicUpdate = waitFor(guest.socket, 'room:state', (data) => data.room.players[0].avatar === vip)
+      const before = Date.now()
+      const saved = await request(host.socket, event, { nickname: '  会员  ', avatar: vip })
+      const observed = await publicUpdate
+      assert.equal(saved.ok, true)
+      assert.equal(saved.userId, account.userId)
+      assert.deepEqual(saved.profile, { nickname: '会员', avatar: vip })
+      assert.equal(saved.membership.isVip, true)
+      assert.equal(saved.membership.vipExpiresAt, expiry)
+      assert.equal(saved.membership.availableAvatars.length, 20)
+      assert.ok(saved.membership.serverTime >= before && saved.membership.serverTime <= Date.now())
+      assert.deepEqual(states, [{ userId: saved.userId, profile: saved.profile, membership: saved.membership }])
+      assert.deepEqual(rooms, [saved.room])
+      assert.deepEqual(games, [saved.gameState])
+      assert.equal(observed.room.players[0].avatar, vip)
+      assert.equal(JSON.stringify(observed).includes(account.userId), false)
+      assert.deepEqual(guestStates, [])
+    } finally { await f.close() }
+  })
+}

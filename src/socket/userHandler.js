@@ -58,10 +58,7 @@ function registerUserHandlers(io, socket, roomManager, getRoomChannel, userStore
       const user = userStore.updateProfile(socket.data.userId, {
         nickname: payload.nickname, avatar: payload.avatar,
       })
-      const result = syncUser(user, { markActive: true })
-      handleSuccess(ack, requireRoom
-        ? { room: result.room, gameState: result.gameState, player: result.player }
-        : result)
+      handleSuccess(ack, syncUser(user, { markActive: true }))
     } catch (error) {
       handleError(socket, event, ack, error)
     }
