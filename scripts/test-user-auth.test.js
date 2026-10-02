@@ -172,7 +172,7 @@ test('Service restart restores account and token but no room or old player sessi
   } finally { await f.close(); rmSync(dir, { recursive: true, force: true }) }
 })
 
-test('Startup refuses missing secret or inaccessible database before listening; Node 22 backup command restores data', () => {
+test('Startup refuses missing secret or inaccessible database before listening; backup command restores data', () => {
   const dir = mkdtempSync(join(tmpdir(), 'wodi-startup-'))
   try {
     for (const config of [
@@ -199,7 +199,7 @@ test('Startup refuses missing secret or inaccessible database before listening; 
   } finally { rmSync(dir, { recursive: true, force: true }) }
 })
 
-test('Node 22 entrypoint starts with initialized database and health endpoint', async () => {
+test('Entrypoint starts with initialized database and health endpoint', async () => {
   const { spawn } = require('child_process')
   const dir = mkdtempSync(join(tmpdir(), 'wodi-entry-'))
   const child = spawn(process.execPath, [join(__dirname, '../src/index.js')], {

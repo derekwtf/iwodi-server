@@ -1,13 +1,13 @@
 # 服务端部署
 
-本文适用于当前持久账号版本，覆盖本地联调、Linux 服务器部署、环境变量、配套上线、更新、备份恢复与排障。入口为 `src/index.js`，运行时为 Node.js 22，服务由 Express + Socket.IO 提供。
+本文适用于当前持久账号版本，覆盖本地联调、Linux 服务器部署、环境变量、配套上线、更新、备份恢复与排障。入口为 `src/index.js`，运行时支持 Node.js 22.x 或 24.x，服务由 Express + Socket.IO 提供。
 
 ## 1. 部署约定
 
 - **单进程运行**。SQLite 保存账号、微信身份与个人资料；房间、游戏和在线会话仍在内存中。不要使用 PM2 cluster、多副本或多个进程共用同一套房间入口。
 - **重启会结束所有房间和连接**，账号与已保存资料由原数据库恢复。首次上线及后续更新都需要安排短暂停服。
 - 新版客户端与服务端配套交付。Socket 必须携带登录凭证，旧版无凭证客户端不能进入房间；不迁移旧本地昵称、头像或 `playerId`。
-- 目标机器使用 **Node.js 22.x**，与 [.nvmrc](.nvmrc) 和 [package.json](package.json) 一致。`better-sqlite3@12.4.1` 含原生模块，必须在目标系统安装依赖，不复制 macOS 或其他 Node 版本的 `node_modules`。
+- 目标机器使用 **Node.js 22.x 或 24.x**，与 [package.json](package.json) 的 `engines.node` 一致。[.nvmrc](.nvmrc) 保留 `22` 作为默认开发与部署基线，不代表只能使用 22。`better-sqlite3@12.4.1` 含原生模块，必须在目标系统使用实际运行版本安装依赖，不复制 macOS 或其他 Node 主版本的 `node_modules`。
 - 推荐 Linux 使用 **systemd + Caddy**；本文也提供 Nginx 和既有 PM2 环境的替代步骤。进程管理器、反向代理分别选择一种。
 
 正式环境采用以下目录，代码按发布版本保留，配置与用户库独立保存：
@@ -19,6 +19,21 @@
 /var/lib/qile-wodi/prod/users.sqlite   # 长期用户库，旁边可能有 -wal/-shm 文件
 /var/backups/qile-wodi/prod/           # SQLite 在线备份
 ```
+
+### 1.1 Node.js 版本范围
+
+当前项目支持范围为 **`22.x || 24.x`**，不是连续的 `>=22`：使用所选主版本内的最新安全补丁版本，安装依赖、运行服务和执行备份须使用同一 Node 主版本。
+
+| Node.js 版本 | 当前部署支持 | 说明 |
+|---|---|---|
+| 22.x | 支持，默认基线 | `.nvmrc` 与本文默认安装示例使用此版本。 |
+| 24.x | 支持 | 可用于本地开发和生产部署；切换后须重新安装原生依赖。 |
+| 20.x、23.x | 不支持 | 虽在 SQLite 驱动声明范围内，但分别已于 2026-04-30、2025-06-01 停止官方维护，不纳入当前部署支持范围。 |
+| 其他主版本 | 不支持 | 不在当前锁定 SQLite 驱动的声明范围内；不能据此推断未来版本可用。 |
+
+依据：锁定的 [`better-sqlite3@12.4.1`](https://github.com/WiseLibs/better-sqlite3/blob/v12.4.1/package.json) 声明支持 `20.x || 22.x || 23.x || 24.x`；结合 [Node.js 官方维护计划](https://github.com/nodejs/Release/blob/main/schedule.json)，当前选择仍在维护的 22.x、24.x。不能把驱动支持范围直接当作项目支持范围。
+
+2026-10-02 在 macOS arm64 上分别使用 Node.js **22.23.3、24.21.0** 和 npm **10.9.9**，在隔离目录独立安装锁定依赖，两者均通过完整服务端 `npm test`，覆盖 SQLite 持久化与备份恢复、启动及健康检查、认证和 Socket 连接。此结果不替代目标 Linux 系统验收，部署时仍须执行第 4.2 节的原生驱动加载检查。
 
 ## 2. 环境变量
 
@@ -107,7 +122,7 @@ VOTE_TIMEOUT_MS=180000
 
 ## 3. 本地开发与联调
 
-在已安装 Node.js 22 的终端，从主仓库目录执行：
+在已安装 Node.js 22.x 或 24.x 的终端，从主仓库目录执行；使用 nvm 时，`nvm use` 默认选择 `.nvmrc` 中的 22，也可明确执行 `nvm install 24 && nvm use 24`：
 
 ```bash
 cd server
@@ -153,17 +168,20 @@ npm run dev
 
 ### 4.1 安装运行环境
 
+以下默认安装 22.x；若选择 24.x，将 `QILE_NODE_MAJOR` 改为 `24`。
+
 ```bash
 sudo apt update
 sudo apt install -y ca-certificates curl git openssl python3 build-essential sqlite3
-curl -fsSL https://deb.nodesource.com/setup_22.x -o /tmp/qile-node22-setup.sh
-sudo -E bash /tmp/qile-node22-setup.sh
+QILE_NODE_MAJOR=22
+curl -fsSL "https://deb.nodesource.com/setup_${QILE_NODE_MAJOR}.x" -o /tmp/qile-node-setup.sh
+sudo -E bash /tmp/qile-node-setup.sh
 sudo apt install -y nodejs
 /usr/bin/node --version
 /usr/bin/npm --version
 ```
 
-确认 `/usr/bin/node` 为 `v22.x`。若服务器已使用其他方式安装 Node 22，可跳过安装，但需将 systemd 的执行路径改成实际路径；systemd 不会自动加载交互终端的 nvm 配置。Python 与编译工具用于没有适用预编译包时构建 SQLite 驱动。
+确认 `/usr/bin/node` 为所选的 `v22.x` 或 `v24.x`。若服务器已使用其他方式安装受支持的 Node 版本，可跳过安装，但需将 systemd 的执行路径改成实际路径；systemd 不会自动加载交互终端的 nvm 配置。Python 与编译工具用于没有适用预编译包时构建 SQLite 驱动。
 
 ### 4.2 准备独立的发布目录
 
@@ -377,9 +395,11 @@ curl --fail https://wodi.server.zhibeii.com/health
 
 仅修改 env 或切换代码时，systemd 重启即可；修改 unit 文件时才需先 `sudo systemctl daemon-reload`。PM2 部署按第 7 节替换停启命令，并重新保存进程定义。
 
+如果同时切换 Node 主版本，应先在隔离环境完成回归，在新发布目录使用新主版本重新安装依赖，并核对 systemd/PM2 实际使用的 Node 路径。不要在线复用旧 `node_modules` 或直接替换正在运行的服务所用的 Node；安排停服窗口完成切换。
+
 ### 8.2 回滚
 
-只有旧版本仍兼容当前数据库结构和强制认证协议时才回滚代码。不能回退到仅凭 `playerId` 的匿名版本。确认条件后，使用已记录的旧路径：
+只有旧版本仍兼容当前数据库结构和强制认证协议时才回滚代码。不能回退到仅凭 `playerId` 的匿名版本。若更新时切换过 Node 主版本，回滚也须恢复旧发布目录匹配的运行时，或在停服期间使用当前受支持的主版本为旧目录重新安装依赖并完成加载检查；仅切换代码链接不能解决原生模块 ABI 不匹配。确认条件后，使用已记录的旧路径：
 
 ```bash
 sudo systemctl stop qile-wodi
@@ -447,7 +467,7 @@ curl --fail http://127.0.0.1:3010/health
 |---|---|
 | 提示必须配置 `AUTH_TOKEN_SECRET`、`USER_DB_PATH` 或 `WECHAT_APP_ID` | 检查实际工作目录、systemd `EnvironmentFile` 和 `.env` 链接；已有环境变量优先于 dotenv。确认不是仍使用旧服务定义。 |
 | 数据库无法打开、`SQLITE_CANTOPEN` / `SQLITE_READONLY` | 核对绝对路径、父目录是否存在，以及运行用户对目录、主文件、WAL/SHM 的权限。不要通过删除数据库来“修复”。 |
-| `NODE_MODULE_VERSION`、原生模块加载失败 | 对照服务实际 Node 路径确认 22.x，在对应平台重新 `npm ci --omit=dev`；不能沿用其他系统或 Node 版本的原生产物。 |
+| `NODE_MODULE_VERSION`、原生模块加载失败 | 对照服务实际 Node 路径确认是受支持的 22.x 或 24.x，并与安装依赖时的主版本一致；在对应平台及实际运行版本下重新 `npm ci --omit=dev`，不能沿用其他系统或 Node 主版本的原生产物。 |
 | `EADDRINUSE` | 检查端口是否被旧进程占用，避免同时启动 systemd、PM2 和手动 Node；同机测试与正式实例分配不同端口。 |
 | 本地 `/health` 正常，公网失败或 502 | 检查 DNS、TLS、80/443 放行、代理上游 HOST/PORT 和 Node 服务状态。 |
 | HTTPS 正常，Socket 连接失败 | 检查 `/socket.io/` WebSocket Upgrade、微信 socket 合法域名、EIO=4，以及客户端是否携带有效 `auth.token`。 |
