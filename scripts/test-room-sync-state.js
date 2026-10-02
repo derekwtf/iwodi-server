@@ -20,7 +20,7 @@ function createRoomManager() {
 }
 
 function connectPlayer(roomManager, socketId) {
-  return roomManager.registerConnection({ socketId }).playerId
+  return roomManager.registerConnection({ socketId, identityKey: socketId }).playerId
 }
 
 function createWaitingRoom(roomManager) {

@@ -1,5 +1,11 @@
 const EVENTS = require('./events')
 
+function requireActiveConnection(socket, roomManager) {
+  if (!socket.data.userId || roomManager.getActiveSocketId(socket.data.playerId) !== socket.id) {
+    throw Object.assign(new Error('连接已失效，请重试'), { code: 'SESSION_REPLACED' })
+  }
+}
+
 function clearVoteTimers(voteTimerStore, roomId) {
   const timers = voteTimerStore.get(roomId)
   if (!timers) {
@@ -77,6 +83,7 @@ function handleSuccess(ack, payload) {
 }
 
 module.exports = {
+  requireActiveConnection,
   clearVoteTimers,
   emitGameAction,
   handleError,

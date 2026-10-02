@@ -1,14 +1,13 @@
 const EVENTS = require('./events')
 const { emitPlayerLeftSequence, publishLeaveResult } = require('./emitPatterns')
-const { handleError, handleSuccess } = require('./helpers')
+const { handleError, handleSuccess, requireActiveConnection } = require('./helpers')
 
-function registerRoomHandlers(io, socket, roomManager, getRoomChannel, voteTimerStore) {
+function registerRoomHandlers(io, socket, roomManager, getRoomChannel, voteTimerStore, userStore) {
   socket.on(EVENTS.client.ROOM_CREATE, (payload = {}, ack) => {
     try {
       const result = roomManager.createRoom({
         playerId: socket.data.playerId,
-        nickname: payload.nickname,
-        avatar: payload.avatar,
+        ...socket.data.profile,
         gameMode: payload.gameMode,
       })
 
@@ -32,8 +31,7 @@ function registerRoomHandlers(io, socket, roomManager, getRoomChannel, voteTimer
       const roomId = String(payload.roomId || '')
       const result = roomManager.joinRoom(roomId, {
         playerId: socket.data.playerId,
-        nickname: payload.nickname,
-        avatar: payload.avatar,
+        ...socket.data.profile,
       })
 
       if (result.previousRoomResult) {
@@ -151,10 +149,14 @@ function registerRoomHandlers(io, socket, roomManager, getRoomChannel, voteTimer
 
   socket.on(EVENTS.client.ROOM_UPDATE_PROFILE, (payload = {}, ack) => {
     try {
-      const result = roomManager.updatePlayerProfile(socket.data.playerId, {
+      requireActiveConnection(socket, roomManager)
+      roomManager.requireProfileMember(socket.data.playerId)
+      const profile = userStore.updateProfile(socket.data.userId, {
         nickname: payload.nickname,
         avatar: payload.avatar,
       })
+      socket.data.profile = profile
+      const result = roomManager.updatePlayerProfile(socket.data.playerId, profile)
       const roomChannel = getRoomChannel(result.room.id)
 
       io.to(roomChannel).emit(EVENTS.server.ROOM_STATE, {

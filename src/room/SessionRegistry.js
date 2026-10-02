@@ -42,7 +42,7 @@ class SessionRegistry {
     }
 
     const preferredSession = preferredPlayerId && this.get(preferredPlayerId)
-    if (preferredSession && (!preferredSession.identityKey || preferredSession.identityKey === key)) {
+    if (preferredSession && preferredSession.identityKey === key) {
       this._bindIdentity(preferredSession, key)
       if (!preferredSession.roomId && !preferredSession.socketId) {
         preferredSession.disconnectedAt = Date.now()
@@ -55,18 +55,8 @@ class SessionRegistry {
 
   registerConnection({ playerId, socketId, identityKey }) {
     const key = this._normalizeIdentityKey(identityKey)
-    let session = key
-      ? this.get(this.resolvePlayerIdByIdentity(key, playerId || null))
-      : null
-    if (!session && playerId) {
-      session = this.get(playerId)
-    }
-
-    let sessionNotFound = false
-    if (!session) {
-      session = this._createSession(key)
-      sessionNotFound = Boolean(playerId)
-    }
+    const session = this.get(this.resolvePlayerIdByIdentity(key, playerId || null))
+    const sessionNotFound = Boolean(playerId && playerId !== session.playerId)
 
     const previousSocketId = session.socketId && session.socketId !== socketId
       ? session.socketId

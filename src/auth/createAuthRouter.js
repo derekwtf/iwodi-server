@@ -1,12 +1,9 @@
 const express = require('express')
 const createWechatLoginHandler = require('./createWechatLoginHandler')
 
-function createAuthRouter({ roomManager, fetchWechatSession }) {
+function createAuthRouter(options) {
   const router = express.Router()
-  const handler = createWechatLoginHandler({
-    roomManager,
-    fetchWechatSession,
-  })
+  const handler = createWechatLoginHandler(options)
 
   router.post('/login', handler)
   router.post(

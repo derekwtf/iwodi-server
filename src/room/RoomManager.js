@@ -32,7 +32,7 @@ class RoomManager extends EventEmitter {
     this.voteTimeoutMs = options.voteTimeoutMs || 3 * 60 * 1000
   }
 
-  registerConnection({ playerId, socketId, identityKey }) {
+  registerConnection({ playerId, socketId, identityKey, profile }) {
     const { session, previousSocketId, sessionNotFound } =
       this.sessionRegistry.registerConnection({ playerId, socketId, identityKey })
     let reconnectEvent = sessionNotFound
@@ -48,6 +48,7 @@ class RoomManager extends EventEmitter {
       if (player) {
         player.disconnected = false
         player.disconnectedAt = null
+        if (profile) this.updatePlayerProfile(session.playerId, profile)
       }
       this._clearHostTransfer(room, session.playerId)
       this._refreshPresenceState(room)
@@ -309,8 +310,12 @@ class RoomManager extends EventEmitter {
     }
   }
 
+  requireProfileMember(playerId) {
+    return this._getRoomAndPlayerByPlayerId(playerId)
+  }
+
   updatePlayerProfile(playerId, { nickname, avatar } = {}) {
-    const { room, player } = this._getRoomAndPlayerByPlayerId(playerId)
+    const { room, player } = this.requireProfileMember(playerId)
     const nextNickname = String(nickname || '').trim()
       ? this._normalizeNickname(nickname)
       : player.nickname

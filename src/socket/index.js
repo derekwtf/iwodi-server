@@ -1,5 +1,5 @@
 const EVENTS = require('./events')
-const { clearVoteTimers } = require('./helpers')
+const { clearVoteTimers, handleError, requireActiveConnection } = require('./helpers')
 const registerRoomHandlers = require('./roomHandler')
 const registerGameHandlers = require('./gameHandler')
 
@@ -7,8 +7,22 @@ function getRoomChannel(roomId) {
   return `room:${roomId}`
 }
 
-function initializeSocketServer(io, roomManager) {
+function initializeSocketServer(io, roomManager, { userStore, tokens }) {
   const voteTimerStore = new Map()
+
+  io.use((socket, next) => {
+    try {
+      const { userId } = tokens.verify(socket.handshake.auth?.token)
+      const user = userStore.getUser(userId)
+      if (!user) throw Object.assign(new Error('登录已失效，请重新登录'), { code: 'AUTH_INVALID' })
+      socket.data.userId = userId
+      socket.data.profile = { nickname: user.nickname, avatar: user.avatar }
+      next()
+    } catch (error) {
+      error.data = { code: error.code || 'USER_STORE_UNAVAILABLE' }
+      next(error)
+    }
+  })
 
   roomManager.on('room:destroyed', ({ roomId }) => {
     clearVoteTimers(voteTimerStore, roomId)
@@ -64,13 +78,12 @@ function initializeSocketServer(io, roomManager) {
   })
 
   io.on('connection', (socket) => {
-    // 已知产品取舍：房间状态会公开 playerId，这里仍允许用它恢复会话，
-    // 同 ID 的新连接会替换旧连接。当前派对游戏接受这项低优先级冒用风险，后续单独处理（见 BASELINE_ISSUES.md）。
-    const playerId =
-      socket.handshake.auth?.playerId || socket.handshake.query?.playerId || null
+    const playerId = socket.handshake.auth?.playerId || null
     const connection = roomManager.registerConnection({
       playerId,
       socketId: socket.id,
+      identityKey: socket.data.userId,
+      profile: socket.data.profile,
     })
 
     if (connection.previousSocketId) {
@@ -82,6 +95,16 @@ function initializeSocketServer(io, roomManager) {
 
     socket.data.playerId = connection.playerId
 
+    // 排队中的旧连接事件也不得在连接被替换后继续操作房间。
+    socket.use(([action, ...args], next) => {
+      try {
+        requireActiveConnection(socket, roomManager)
+        next()
+      } catch (error) {
+        handleError(socket, action, args[args.length - 1], error)
+      }
+    })
+
     const roomId = roomManager.getRoomIdForPlayer(connection.playerId)
     if (roomId) {
       socket.join(getRoomChannel(roomId))
@@ -89,13 +112,22 @@ function initializeSocketServer(io, roomManager) {
 
     socket.emit(EVENTS.server.CONNECT_SUCCESS, {
       playerId: connection.playerId,
+      userId: socket.data.userId,
+      profile: socket.data.profile,
     })
 
     if (connection.reconnectEvent) {
       socket.emit(connection.reconnectEvent.event, connection.reconnectEvent.payload)
     }
+    if (roomId) {
+      socket.to(getRoomChannel(roomId)).emit(EVENTS.server.ROOM_STATE, {
+        room: roomManager.getRoomState(roomId),
+      })
+      const game = roomManager.getGamePublicState(roomId)
+      if (game) socket.to(getRoomChannel(roomId)).emit(EVENTS.server.GAME_STATE_SYNC, game)
+    }
 
-    registerRoomHandlers(io, socket, roomManager, getRoomChannel, voteTimerStore)
+    registerRoomHandlers(io, socket, roomManager, getRoomChannel, voteTimerStore, userStore)
     registerGameHandlers(
       io,
       socket,

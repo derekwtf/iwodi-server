@@ -16,9 +16,12 @@
     "test:session-lifecycle": "node scripts/test-session-lifecycle.js",
     "test:socket-flow": "node scripts/test-socket-flow.js",
     "test:wechat-auth-route": "node scripts/test-wechat-auth-route.js",
-    "test:connection": "node scripts/test-connection.js"
+    "test:connection": "node scripts/test-connection.js",
+    "test:auth": "node --test scripts/test-user-auth.test.js",
+    "test": "node scripts/test-regressions.js"
   },
   "dependencies": {
+    "better-sqlite3": "12.4.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
@@ -27,5 +30,8 @@
   "devDependencies": {
     "nodemon": "^3.1.10",
     "socket.io-client": "^4.8.1"
+  },
+  "engines": {
+    "node": "22.x"
   }
 }

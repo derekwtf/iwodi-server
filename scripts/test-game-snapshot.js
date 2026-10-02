@@ -18,7 +18,7 @@ const roomManager = new RoomManager({
 })
 
 function connectPlayer(socketId) {
-  return roomManager.registerConnection({ socketId }).playerId
+  return roomManager.registerConnection({ socketId, identityKey: socketId }).playerId
 }
 
 const hostId = connectPlayer('socket-host')

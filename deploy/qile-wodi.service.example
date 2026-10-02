@@ -10,7 +10,7 @@ Restart=always
 RestartSec=5
 User=www-data
 Environment=NODE_ENV=production
-EnvironmentFile=/opt/qile-wodi/server/.env
+EnvironmentFile=/etc/qile-wodi/prod.env
 
 # 如需明确 npm / node 路径，可改为：
 # ExecStart=/usr/bin/node /opt/qile-wodi/server/src/index.js

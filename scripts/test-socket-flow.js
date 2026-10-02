@@ -3,6 +3,8 @@ const http = require('http')
 const { Server } = require('socket.io')
 const { io: connectClient } = require('socket.io-client')
 const RoomManager = require('../src/room/RoomManager')
+const UserStore = require('../src/user/UserStore')
+const { createTokenService } = require('../src/auth/tokens')
 const EVENTS = require('../src/socket/events')
 const { initializeSocketServer } = require('../src/socket')
 const { publishLeaveResult } = require('../src/socket/emitPatterns')
@@ -75,16 +77,21 @@ async function main() {
   })
   const server = http.createServer()
   const io = new Server(server)
-  initializeSocketServer(io, manager)
+  const userStore = new UserStore(':memory:')
+  const tokens = createTokenService('test-secret-'.repeat(4))
+  initializeSocketServer(io, manager, { userStore, tokens })
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
   const url = `http://127.0.0.1:${server.address().port}`
   const clients = []
 
   async function connect(playerId = null, followupEvent = null) {
+    const userId = playerId
+      ? manager.sessionRegistry.get(playerId).identityKey
+      : userStore.findOrCreate({ provider: 'test', scope: 'flow', subject: `user-${clients.length}` }).userId
     const socket = connectClient(url, {
       autoConnect: false,
       transports: ['websocket'],
-      auth: playerId ? { playerId } : {},
+      auth: { playerId, token: tokens.issue(userId).token },
     })
     clients.push(socket)
     const connected = waitForEvent(socket, EVENTS.server.CONNECT_SUCCESS)
@@ -267,6 +274,7 @@ async function main() {
   } finally {
     clients.forEach((socket) => socket.close())
     await new Promise((resolve) => io.close(resolve))
+    userStore.close()
     await new Promise((resolve) => server.close(resolve))
   }
 }

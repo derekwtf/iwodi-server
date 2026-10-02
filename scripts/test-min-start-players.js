@@ -17,7 +17,7 @@ const wordLibrary = {
 }
 
 function addPlayer(manager, roomId, socketId) {
-  const { playerId } = manager.registerConnection({ socketId })
+  const { playerId } = manager.registerConnection({ socketId, identityKey: socketId })
   if (roomId) {
     manager.joinRoom(roomId, { playerId, nickname: socketId })
   }
@@ -63,6 +63,7 @@ function testConfiguredMinimum() {
   assert.strictEqual(manager.getSyncState(guestId).room.minStartPlayers, 2)
   const reconnect = manager.registerConnection({
     playerId: hostId,
+    identityKey: manager.sessionRegistry.get(hostId).identityKey,
     socketId: 'two-host-reconnected',
   })
   assert.strictEqual(reconnect.reconnectEvent.payload.minStartPlayers, 2)
@@ -85,6 +86,7 @@ function testConfiguredMinimum() {
   assert.strictEqual(fullManager.getSyncState(fullGuestId).room.minStartPlayers, 3)
   const fullReconnect = fullManager.registerConnection({
     playerId: fullRoom.hostId,
+    identityKey: fullManager.sessionRegistry.get(fullRoom.hostId).identityKey,
     socketId: 'full-host-reconnected',
   })
   assert.strictEqual(fullReconnect.reconnectEvent.payload.minStartPlayers, 3)

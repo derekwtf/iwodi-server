@@ -51,7 +51,7 @@ function createRoomManager() {
 }
 
 function connectPlayer(roomManager, socketId) {
-  return roomManager.registerConnection({ socketId }).playerId
+  return roomManager.registerConnection({ socketId, identityKey: socketId }).playerId
 }
 
 function createWaitingRoom(roomManager) {
@@ -127,6 +127,7 @@ async function testReconnectRestoresSameRoom() {
 
   const reconnect = roomManager.registerConnection({
     playerId: guestAId,
+    identityKey: roomManager.sessionRegistry.get(guestAId).identityKey,
     socketId: 'socket-a-reconnected',
   })
 

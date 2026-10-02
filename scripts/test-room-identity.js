@@ -21,7 +21,7 @@ function createRoomManager() {
 
 function connectIdentity(roomManager, identityKey, socketId) {
   const playerId = roomManager.resolvePlayerIdByIdentity(identityKey)
-  roomManager.registerConnection({ playerId, socketId })
+  roomManager.registerConnection({ playerId, socketId, identityKey })
   return playerId
 }
 

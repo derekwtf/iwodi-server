@@ -29,7 +29,7 @@ function waitForEvent(emitter, eventName, matcher, timeoutMs = 1000) {
 }
 
 function registerPlayer(roomManager, socketId) {
-  return roomManager.registerConnection({ socketId }).playerId
+  return roomManager.registerConnection({ socketId, identityKey: socketId }).playerId
 }
 
 function createRoom(roomManager, playerId, nickname) {

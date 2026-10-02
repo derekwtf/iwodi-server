@@ -8,8 +8,13 @@ const WordLibrary = require('./data/WordLibrary')
 const RoomManager = require('./room/RoomManager')
 const createAuthRouter = require('./auth/createAuthRouter')
 const createWechatSessionFetcher = require('./auth/createWechatSessionFetcher')
+const UserStore = require('./user/UserStore')
+const { createTokenService } = require('./auth/tokens')
 const { initializeSocketServer } = require('./socket')
 
+// 认证配置和数据库必须先初始化成功，随后才允许监听。
+const tokens = createTokenService(process.env.AUTH_TOKEN_SECRET)
+const userStore = new UserStore(process.env.USER_DB_PATH)
 const app = express()
 const server = http.createServer(app)
 const allowedOrigins = String(process.env.CLIENT_ORIGIN || '*')
@@ -36,7 +41,7 @@ const io = new Server(server, {
     origin: allowedOrigins.includes('*') ? '*' : allowedOrigins,
     methods: ['GET', 'POST'],
   },
-  allowEIO3: true,  // 兼容 weapp.socket.io v2 (EIO=3)
+  // weapp.socket.io 2.2.1 发布包实际使用 EIO=4 / Socket.IO 协议 5，支持 auth。
 })
 
 app.use(
@@ -49,6 +54,9 @@ app.use(
   '/auth',
   createAuthRouter({
     roomManager,
+    userStore,
+    tokens,
+    appId: process.env.WECHAT_APP_ID,
     fetchWechatSession: createWechatSessionFetcher({
       appId: process.env.WECHAT_APP_ID,
       appSecret: process.env.WECHAT_APP_SECRET,
@@ -80,11 +88,11 @@ app.get('/health', (req, res) => {
   })
 })
 
-initializeSocketServer(io, roomManager)
+initializeSocketServer(io, roomManager, { userStore, tokens })
 
 const host = process.env.HOST || '127.0.0.1'
 const port = Number(process.env.PORT || 3010)
 
 server.listen(port, host, () => {
-  console.log(`QileWodi server listening on http://${host}:${port}`)
+  console.log(`QileWodi server listening on http://${host}:${server.address().port}`)
 })

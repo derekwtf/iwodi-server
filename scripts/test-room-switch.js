@@ -3,7 +3,7 @@ const assert = require('assert')
 const RoomManager = require('../src/room/RoomManager')
 
 function registerPlayer(roomManager, socketId) {
-  const connection = roomManager.registerConnection({ socketId })
+  const connection = roomManager.registerConnection({ socketId, identityKey: socketId })
   return connection.playerId
 }
 
