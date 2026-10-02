@@ -44,13 +44,13 @@ function testSameIdentityRejoinDoesNotCreateDuplicateRoomPlayer() {
   const { room } = roomManager.createRoom({
     playerId: hostId,
     nickname: '房主',
-    avatar: 'host.png',
+    avatar: '/assets/avatars/avatar-1.svg',
   })
 
   roomManager.joinRoom(room.id, {
     playerId: guestId,
     nickname: '玩家甲',
-    avatar: 'guest-a.png',
+    avatar: '/assets/avatars/avatar-2.svg',
   })
 
   roomManager.markDisconnected('socket-guest-1')
@@ -63,7 +63,7 @@ function testSameIdentityRejoinDoesNotCreateDuplicateRoomPlayer() {
   const joinResult = roomManager.joinRoom(room.id, {
     playerId: recoveredGuestId,
     nickname: '玩家甲',
-    avatar: 'guest-a-new.png',
+    avatar: '/assets/avatars/avatar-3.svg',
   })
   const roomState = roomManager.getRoomState(room.id)
   const guestPlayers = roomState.players.filter((player) => player.id === guestId)
@@ -72,7 +72,7 @@ function testSameIdentityRejoinDoesNotCreateDuplicateRoomPlayer() {
   assert.strictEqual(joinResult.alreadyInRoom, true)
   assert.strictEqual(guestPlayers.length, 1)
   assert.strictEqual(guestPlayers[0].disconnected, false)
-  assert.strictEqual(guestPlayers[0].avatar, 'guest-a-new.png')
+  assert.strictEqual(guestPlayers[0].avatar, '/assets/avatars/avatar-3.svg')
 
   roomManager.destroyRoom(room.id)
 }

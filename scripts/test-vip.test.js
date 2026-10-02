@@ -6,6 +6,7 @@ const { join } = require('node:path')
 const Database = require('better-sqlite3')
 const UserStore = require('../src/user/UserStore')
 const { resolveStoredProfile } = require('../src/user/profile')
+const { getRoomState, getGamePublicState } = require('../src/room/stateProjection')
 const { createFixture, request } = require('./auth-fixture')
 
 const normal = '/assets/avatars/avatar-3.svg'
@@ -26,6 +27,97 @@ function waitFor(socket, event, predicate) {
       resolve(data)
     }
     socket.on(event, receive)
+  })
+}
+
+const projectionTime = Date.UTC(2026, 0, 1)
+const defaultAvatar = '/assets/avatars/avatar-1.svg'
+const appearanceCases = [
+  ['normal avatar without VIP', { avatar: normal }, { avatar: normal, isVip: false }],
+  ['normal avatar with active VIP', { avatar: normal, vipExpiresAt: projectionTime + 1 },
+    { avatar: normal, isVip: true }],
+  ['normal avatar with expired VIP', { avatar: normal, vipExpiresAt: projectionTime - 1 },
+    { avatar: normal, isVip: false }],
+  ['VIP avatar just before expiry', { avatar: vip, vipExpiresAt: projectionTime + 1 },
+    { avatar: vip, isVip: true }],
+  ['VIP avatar at expiry', { avatar: vip, vipExpiresAt: projectionTime, lastNormalAvatar: normal },
+    { avatar: normal, isVip: false }],
+  ['VIP avatar after expiry', { avatar: vip, vipExpiresAt: projectionTime - 1, lastNormalAvatar: normal },
+    { avatar: normal, isVip: false }],
+  ['VIP avatar without a fallback', { avatar: vip }, { avatar: defaultAvatar, isVip: false }],
+  ['VIP avatar with a VIP fallback', { avatar: vip, lastNormalAvatar: vip },
+    { avatar: defaultAvatar, isVip: false }],
+  ['VIP avatar with an invalid fallback', { avatar: vip, lastNormalAvatar: 'https://example.com/avatar.png' },
+    { avatar: defaultAvatar, isVip: false }],
+  ['reserved avatar with active VIP', { avatar: '/assets/avatars/avatar-21.svg', vipExpiresAt: projectionTime + 1,
+    lastNormalAvatar: normal }, { avatar: normal, isVip: true }],
+  ['reserved avatar with a reserved fallback', { avatar: '/assets/avatars/avatar-40.svg',
+    lastNormalAvatar: '/assets/avatars/avatar-21.svg' }, { avatar: defaultAvatar, isVip: false }],
+  ['invalid URL with active VIP', { avatar: 'https://example.com/avatar.png', vipExpiresAt: projectionTime + 1,
+    lastNormalAvatar: normal }, { avatar: normal, isVip: true }],
+  ['invalid URL without VIP', { avatar: 'https://example.com/avatar.png' },
+    { avatar: defaultAvatar, isVip: false }],
+  ['missing avatar with a normal fallback', { lastNormalAvatar: normal }, { avatar: normal, isVip: false }],
+]
+
+for (const [name, profile, appearance] of appearanceCases) {
+  test(`public appearance: ${name} in rooms and game rosters`, (t) => {
+    t.mock.method(Date, 'now', () => projectionTime)
+    const players = ['online', 'offline', 'left'].map((id, index) => ({
+      id,
+      userId: `private-${id}`,
+      nickname: id,
+      joinedAt: index + 1,
+      isReady: true,
+      isHost: id === 'online',
+      disconnected: id === 'offline',
+      isVip: !appearance.isVip,
+      ...profile,
+    }))
+    const room = {
+      id: 'appearance-room',
+      status: 'playing',
+      players: [players[1], players[0]],
+      gameState: {
+        phase: 'dealing',
+        round: 1,
+        playerRoster: [...players].reverse().map((player) => player.id === 'left'
+          ? { ...player, hasLeft: true, leftReason: 'leave' }
+          : { ...player, nickname: 'old name', avatar: '/assets/avatars/avatar-8.svg', vipExpiresAt: 0 }),
+        alivePlayers: ['online', 'offline'],
+        eliminatedPlayers: [],
+        speakOrder: [],
+        roundHistory: [],
+        confirmedPlayers: [],
+      },
+    }
+    const before = structuredClone(room)
+    const roomState = getRoomState(room, 12, 2)
+    const gameState = getGamePublicState(room)
+    assert.deepEqual(roomState.players, players.slice(0, 2).map((player) => ({
+      id: player.id,
+      nickname: player.nickname,
+      ...appearance,
+      isReady: true,
+      isHost: player.isHost,
+      disconnected: player.disconnected,
+    })))
+    assert.deepEqual(gameState.players, players.map((player) => ({
+      id: player.id,
+      nickname: player.nickname,
+      ...appearance,
+      isHost: player.isHost,
+      disconnected: player.disconnected,
+      hasLeft: player.id === 'left',
+      leftReason: player.id === 'left' ? 'leave' : null,
+      eliminatedRound: null,
+    })))
+    for (const player of [...roomState.players, ...gameState.players]) {
+      for (const field of ['userId', 'vipExpiresAt', 'lastNormalAvatar']) {
+        assert.equal(Object.hasOwn(player, field), false, `${player.id} must not expose ${field}`)
+      }
+    }
+    assert.deepEqual(room, before, 'public projection must not mutate room members or roster snapshots')
   })
 }
 

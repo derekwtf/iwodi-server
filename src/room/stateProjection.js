@@ -1,10 +1,7 @@
-const { AVATARS, VIP_AVATARS } = require('../user/profile')
+const { resolveStoredProfile } = require('../user/profile')
 
 function publicAppearance(player) {
-  const isVip = Date.now() < (player.vipExpiresAt || 0)
-  const avatar = !isVip && VIP_AVATARS.has(player.avatar)
-    ? (AVATARS.has(player.lastNormalAvatar) ? player.lastNormalAvatar : '/assets/avatars/avatar-1.svg')
-    : player.avatar
+  const { avatar, isVip } = resolveStoredProfile(player)
   return { avatar, isVip }
 }
 
