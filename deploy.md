@@ -2,6 +2,8 @@
 
 本文适用于当前持久账号版本，覆盖本地联调、Linux 服务器部署、环境变量、配套上线、更新、备份恢复与排障。入口为 `src/index.js`，运行时支持 Node.js 22.x 或 24.x，服务由 Express + Socket.IO 提供。
 
+2026-10-02 产品文档已改为语言 / 肢体 PlayMode 和统一线上发牌流程，但玩法切换、肢体词库及旧阶段退役仍待实施；本次没有发布代码。后续按 [新实施计划](../documents/PLAN/manager.md) 配套发布前后端，部署现有版本不会自动开放肢体玩法。
+
 ## 1. 部署约定
 
 - **单进程运行**。SQLite 保存账号、微信身份与个人资料；房间、游戏和在线会话仍在内存中。不要使用 PM2 cluster、多副本或多个进程共用同一套房间入口。
@@ -66,15 +68,12 @@ openssl rand -hex 32
 | `PORT` | `3010` | Node 监听端口，应与代理上游端口一致。部署使用固定可用端口；`0` 仅适合临时测试。 |
 | `CLIENT_ORIGIN` | `*` | CORS 来源列表，逗号分隔，例如 `https://servicewechat.com,https://wodi.server.zhibeii.com`。生产填写实际来源；它不替代微信后台合法域名配置或 Socket 认证。 |
 | `WECHAT_LOGIN_TIMEOUT_MS` | `5000` | 服务端调用微信换码接口的超时时间，单位毫秒。 |
-| `MIN_START_PLAYERS` | `4` | 仅发牌模式最少开局人数，允许整数 `2`～`12`，无效值按 `4` 处理；保留的全流程模式至少为 `3` 人。 |
+| `MIN_START_PLAYERS` | `4` | 当前发牌最少人数配置，允许整数 `2`～`12`，无效值按 `4`；目标语言 4～12 人、肢体 3～5 人的模式化规则尚待实现，不能仅靠此配置开放肢体玩法。 |
 | `HOST_TRANSFER_GRACE_MS` | `30000` | 房主断线后转移房主的等待时间，30 秒；不是断线玩家自动离房时间。 |
 | `ROOM_ALL_DISCONNECTED_TTL_MS` | `600000` | 全员断线后的房间保留时间，10 分钟。 |
 | `ROOM_WAITING_IDLE_MS` | `900000` | 等待房间无人操作时的保留时间，15 分钟。 |
 | `ROOM_PLAYING_IDLE_MS` | `600000` | 游戏中既无操作也无有效心跳时的保留时间，10 分钟。 |
-| `ROOM_ENDED_IDLE_MS` | `300000` | 结算房间无操作时的保留时间，5 分钟。 |
 | `ROOM_IDLE_WARNING_MS` | `60000` | 房间关闭前的提醒时间，提前 1 分钟。 |
-| `VOTE_REMINDER_MS` | `120000` | 全流程投票提醒时间，2 分钟；仅发牌模式不进入投票。 |
-| `VOTE_TIMEOUT_MS` | `180000` | 全流程投票超时时间，3 分钟；仅发牌模式不进入投票。 |
 | `NODE_ENV` | 本项目未设置默认值 | 正式运行设为 `production`；systemd 示例已设置。不会选择客户端的 test/prod 环境。 |
 
 时间参数统一使用正整数毫秒，提醒时间应小于对应超时。不要用 `0` 或负数尝试关闭计时器，当前代码不提供统一的禁用语义。修改配置后重启服务生效。
@@ -101,10 +100,7 @@ HOST_TRANSFER_GRACE_MS=30000
 ROOM_ALL_DISCONNECTED_TTL_MS=600000
 ROOM_WAITING_IDLE_MS=900000
 ROOM_PLAYING_IDLE_MS=600000
-ROOM_ENDED_IDLE_MS=300000
 ROOM_IDLE_WARNING_MS=60000
-VOTE_REMINDER_MS=120000
-VOTE_TIMEOUT_MS=180000
 ```
 
 测试与正式环境至少隔离以下内容；同机部署还要使用不同的代码入口、服务名和监听端口：
