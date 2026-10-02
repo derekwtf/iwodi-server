@@ -170,23 +170,109 @@ async function main() {
       })
       dealPlayers.push(player)
     }
+    const dealStartedEvent = waitForEvent(dealPlayers[1].socket, EVENTS.server.GAME_STARTED)
     await request(dealHost.socket, EVENTS.client.ROOM_START_GAME)
-    const dealSnapshot = manager.getReconnectGameSnapshot(dealRoom.room.roomId, dealPlayers[1].playerId)
+    const dealSnapshot = await dealStartedEvent
     assert.strictEqual(dealSnapshot.gameMode, 'deal-only')
     assert.strictEqual(dealSnapshot.phase, 'dealing')
     assert.ok(dealSnapshot.myWord)
+    assert.ok(dealSnapshot.myRole)
     assert.throws(
       () => manager.confirmWord(dealPlayers[1].playerId),
       (error) => error.code === 'GAME_CONFIRM_DISABLED'
     )
+    const dealDisconnectedEvent = waitForEvent(dealHost.socket, EVENTS.server.ROOM_PLAYER_DISCONNECTED)
     dealPlayers[1].socket.close()
+    await dealDisconnectedEvent
+    const dealSyncEvent = waitForEvent(dealHost.socket, EVENTS.server.GAME_STATE_SYNC)
     const reconnectedDealPlayer = await connect(
       dealPlayers[1].playerId, EVENTS.server.RECONNECT_GAME_SNAPSHOT
     )
     assert.strictEqual(reconnectedDealPlayer.playerId, dealPlayers[1].playerId)
-    assert.strictEqual((await reconnectedDealPlayer.followup).myWord, dealSnapshot.myWord)
+    const reconnectedDealSnapshot = await reconnectedDealPlayer.followup
+    assert.strictEqual(reconnectedDealSnapshot.myWord, dealSnapshot.myWord)
+    assert.strictEqual(reconnectedDealSnapshot.myRole, dealSnapshot.myRole)
+    const dealSync = await dealSyncEvent
+    assert.strictEqual(dealSync.roomId, dealRoom.room.roomId)
+    assert.strictEqual(dealSync.gameMode, 'deal-only')
+    assert.strictEqual(dealSync.phase, 'dealing')
+    for (const secret of ['roles', 'wordPair', 'playerWords', 'myRole', 'myWord']) {
+      assert.strictEqual(Object.hasOwn(dealSync, secret), false, `deal-only reconnect leaked ${secret}`)
+    }
     const restarted = await request(dealHost.socket, EVENTS.client.GAME_RESTART)
     assert.strictEqual(restarted.room.status, 'waiting')
+
+    const fullHost = await connect()
+    const fullRoom = await request(fullHost.socket, EVENTS.client.ROOM_CREATE, {
+      nickname: '全流程重连房主', gameMode: 'full',
+    })
+    const fullPlayers = [fullHost]
+    for (let i = 1; i < 4; i += 1) {
+      const player = await connect()
+      await request(player.socket, EVENTS.client.ROOM_JOIN, {
+        roomId: fullRoom.room.roomId, nickname: `全流程玩家${i}`,
+      })
+      fullPlayers.push(player)
+    }
+    const fullStartedEvents = fullPlayers.map((player) => waitForEvent(player.socket, EVENTS.server.GAME_STARTED))
+    await request(fullHost.socket, EVENTS.client.ROOM_START_GAME)
+    const fullSnapshots = await Promise.all(fullStartedEvents)
+    assert.ok(fullSnapshots[1].myWord)
+    assert.ok(fullSnapshots[1].myRole)
+    const fullDisconnectedEvent = waitForEvent(fullHost.socket, EVENTS.server.ROOM_PLAYER_DISCONNECTED)
+    fullPlayers[1].socket.close()
+    await fullDisconnectedEvent
+    const fullSyncEvent = waitForEvent(fullHost.socket, EVENTS.server.GAME_STATE_SYNC)
+    fullPlayers[1] = await connect(fullPlayers[1].playerId, EVENTS.server.RECONNECT_GAME_SNAPSHOT)
+    const fullReconnectSnapshot = await fullPlayers[1].followup
+    assert.strictEqual(fullReconnectSnapshot.myWord, fullSnapshots[1].myWord)
+    assert.strictEqual(fullReconnectSnapshot.myRole, fullSnapshots[1].myRole)
+    const fullSync = await fullSyncEvent
+    assert.strictEqual(fullSync.roomId, fullRoom.room.roomId)
+    assert.strictEqual(fullSync.gameMode, 'full')
+    assert.strictEqual(fullSync.phase, 'dealing')
+    for (const secret of ['roles', 'wordPair', 'playerWords', 'myRole', 'myWord']) {
+      assert.strictEqual(Object.hasOwn(fullSync, secret), false, `full reconnect leaked ${secret}`)
+    }
+
+    for (const player of fullPlayers) {
+      await request(player.socket, EVENTS.client.GAME_CONFIRM_WORD)
+    }
+    const spy = fullPlayers[fullSnapshots.findIndex((snapshot) => snapshot.myRole === 'spy')]
+    assert.ok(spy)
+    await request(fullHost.socket, EVENTS.client.GAME_START_VOTE)
+    const fullResultEvent = waitForEvent(fullHost.socket, EVENTS.server.GAME_RESULT)
+    for (const player of fullPlayers) {
+      await request(player.socket, EVENTS.client.GAME_VOTE, {
+        targetId: player === spy ? null : spy.playerId,
+      })
+    }
+    assert.strictEqual((await fullResultEvent).phase, 'ended')
+    const endedEvent = waitForEvent(fullHost.socket, EVENTS.server.GAME_ENDED)
+    await request(fullHost.socket, EVENTS.client.GAME_CONTINUE)
+    const ended = await endedEvent
+    assert.strictEqual(ended.finalResult.winner, 'civilian')
+    assert.strictEqual(Object.keys(ended.roles).length, 4)
+    assert.ok(ended.wordPair.civilian)
+    assert.ok(ended.wordPair.spy)
+
+    const endedDisconnectedEvent = waitForEvent(fullHost.socket, EVENTS.server.ROOM_PLAYER_DISCONNECTED)
+    fullPlayers[1].socket.close()
+    await endedDisconnectedEvent
+    const endedSyncEvent = waitForEvent(fullHost.socket, EVENTS.server.GAME_STATE_SYNC)
+    const endedPlayer = await connect(fullPlayers[1].playerId, EVENTS.server.RECONNECT_GAME_SNAPSHOT)
+    const endedSnapshot = await endedPlayer.followup
+    assert.strictEqual(endedSnapshot.myWord, fullSnapshots[1].myWord)
+    assert.strictEqual(endedSnapshot.myRole, fullSnapshots[1].myRole)
+    const endedSync = await endedSyncEvent
+    assert.strictEqual(endedSync.roomId, fullRoom.room.roomId)
+    assert.strictEqual(endedSync.phase, 'ended')
+    assert.deepStrictEqual(endedSync.roles, ended.roles, 'ended reconnect must retain revealed roles')
+    assert.deepStrictEqual(endedSync.wordPair, ended.wordPair, 'ended reconnect must retain revealed words')
+    assert.deepStrictEqual(endedSync.finalResult, ended.finalResult)
+    for (const secret of ['playerWords', 'myRole', 'myWord']) {
+      assert.strictEqual(Object.hasOwn(endedSync, secret), false, `ended reconnect leaked ${secret}`)
+    }
 
     const leavingHost = await connect()
     const leaveRoom = await request(leavingHost.socket, EVENTS.client.ROOM_CREATE, {

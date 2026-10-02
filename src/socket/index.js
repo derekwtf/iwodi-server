@@ -123,7 +123,9 @@ function initializeSocketServer(io, roomManager, { userStore, tokens }) {
       socket.to(getRoomChannel(roomId)).emit(EVENTS.server.ROOM_STATE, {
         room: roomManager.getRoomState(roomId),
       })
-      const game = roomManager.getGamePublicState(roomId)
+      const game = roomManager.getGamePublicState(roomId, {
+        includeEndedSecrets: true,
+      })
       if (game) socket.to(getRoomChannel(roomId)).emit(EVENTS.server.GAME_STATE_SYNC, game)
     }
 
