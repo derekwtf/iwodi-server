@@ -2,6 +2,8 @@ const EVENTS = require('./events')
 const { clearVoteTimers, handleError, requireActiveConnection } = require('./helpers')
 const registerRoomHandlers = require('./roomHandler')
 const registerGameHandlers = require('./gameHandler')
+const registerUserHandlers = require('./userHandler')
+const { getUserState } = require('../user/profile')
 
 function getRoomChannel(roomId) {
   return `room:${roomId}`
@@ -16,7 +18,7 @@ function initializeSocketServer(io, roomManager, { userStore, tokens }) {
       const user = userStore.getUser(userId)
       if (!user) throw Object.assign(new Error('登录已失效，请重新登录'), { code: 'AUTH_INVALID' })
       socket.data.userId = userId
-      socket.data.profile = { nickname: user.nickname, avatar: user.avatar }
+      socket.data.profile = user
       next()
     } catch (error) {
       error.data = { code: error.code || 'USER_STORE_UNAVAILABLE' }
@@ -112,8 +114,7 @@ function initializeSocketServer(io, roomManager, { userStore, tokens }) {
 
     socket.emit(EVENTS.server.CONNECT_SUCCESS, {
       playerId: connection.playerId,
-      userId: socket.data.userId,
-      profile: socket.data.profile,
+      ...getUserState(socket.data.profile),
     })
 
     if (connection.reconnectEvent) {
@@ -129,7 +130,8 @@ function initializeSocketServer(io, roomManager, { userStore, tokens }) {
       if (game) socket.to(getRoomChannel(roomId)).emit(EVENTS.server.GAME_STATE_SYNC, game)
     }
 
-    registerRoomHandlers(io, socket, roomManager, getRoomChannel, voteTimerStore, userStore)
+    registerRoomHandlers(io, socket, roomManager, getRoomChannel, voteTimerStore)
+    registerUserHandlers(io, socket, roomManager, getRoomChannel, userStore)
     registerGameHandlers(
       io,
       socket,

@@ -99,7 +99,7 @@ class RoomManager extends EventEmitter {
     return session ? session.socketId : null
   }
 
-  createRoom({ playerId, nickname, avatar, gameMode }) {
+  createRoom({ playerId, nickname, avatar, vipExpiresAt = 0, lastNormalAvatar, gameMode }) {
     const session = this._getRequiredSession(playerId)
 
     let previousRoomResult = null
@@ -117,7 +117,7 @@ class RoomManager extends EventEmitter {
         this._buildPlayer({
           playerId,
           nickname,
-          avatar,
+          avatar, vipExpiresAt, lastNormalAvatar,
           isHost: true,
         }),
       ],
@@ -150,7 +150,7 @@ class RoomManager extends EventEmitter {
     }
   }
 
-  joinRoom(roomId, { playerId, nickname, avatar }) {
+  joinRoom(roomId, { playerId, nickname, avatar, vipExpiresAt = 0, lastNormalAvatar }) {
     const room = this.rooms.get(String(roomId || ''))
     if (!room) {
       throw this._createError('ROOM_NOT_FOUND', '房间不存在')
@@ -166,6 +166,8 @@ class RoomManager extends EventEmitter {
     if (existingPlayer) {
       existingPlayer.nickname = this._normalizeNickname(nickname)
       existingPlayer.avatar = this._normalizeAvatar(avatar)
+      existingPlayer.vipExpiresAt = vipExpiresAt
+      existingPlayer.lastNormalAvatar = lastNormalAvatar
       existingPlayer.disconnected = false
       existingPlayer.disconnectedAt = null
       session.roomId = room.id
@@ -192,7 +194,7 @@ class RoomManager extends EventEmitter {
     const player = this._buildPlayer({
       playerId,
       nickname,
-      avatar,
+      avatar, vipExpiresAt, lastNormalAvatar,
       isHost: room.players.length === 0,
     })
 
@@ -314,7 +316,7 @@ class RoomManager extends EventEmitter {
     return this._getRoomAndPlayerByPlayerId(playerId)
   }
 
-  updatePlayerProfile(playerId, { nickname, avatar } = {}) {
+  updatePlayerProfile(playerId, { nickname, avatar, vipExpiresAt, lastNormalAvatar } = {}, { markActive = true } = {}) {
     const { room, player } = this.requireProfileMember(playerId)
     const nextNickname = String(nickname || '').trim()
       ? this._normalizeNickname(nickname)
@@ -325,15 +327,19 @@ class RoomManager extends EventEmitter {
 
     player.nickname = nextNickname
     player.avatar = nextAvatar
+    if (vipExpiresAt !== undefined) player.vipExpiresAt = vipExpiresAt
+    if (lastNormalAvatar !== undefined) player.lastNormalAvatar = lastNormalAvatar
     if (room.gameState && Array.isArray(room.gameState.playerRoster)) {
       const rosterPlayer = room.gameState.playerRoster.find((item) => item.id === playerId)
       if (rosterPlayer) {
         rosterPlayer.nickname = nextNickname
         rosterPlayer.avatar = nextAvatar
+        rosterPlayer.vipExpiresAt = player.vipExpiresAt
+        rosterPlayer.lastNormalAvatar = player.lastNormalAvatar
       }
     }
 
-    this._markRoomActive(room)
+    if (markActive) this._markRoomActive(room)
 
     return {
       room,
@@ -721,11 +727,13 @@ class RoomManager extends EventEmitter {
     return this.sessionRegistry.cleanupExpiredSessions(now)
   }
 
-  _buildPlayer({ playerId, nickname, avatar, isHost }) {
+  _buildPlayer({ playerId, nickname, avatar, vipExpiresAt = 0, lastNormalAvatar, isHost }) {
     return {
       id: playerId,
       nickname: this._normalizeNickname(nickname),
       avatar: this._normalizeAvatar(avatar),
+      vipExpiresAt,
+      lastNormalAvatar,
       isReady: true,
       isHost: Boolean(isHost),
       disconnected: false,

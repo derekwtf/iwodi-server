@@ -1,10 +1,20 @@
+const { AVATARS, VIP_AVATARS } = require('../user/profile')
+
+function publicAppearance(player) {
+  const isVip = Date.now() < (player.vipExpiresAt || 0)
+  const avatar = !isVip && VIP_AVATARS.has(player.avatar)
+    ? (AVATARS.has(player.lastNormalAvatar) ? player.lastNormalAvatar : '/assets/avatars/avatar-1.svg')
+    : player.avatar
+  return { avatar, isVip }
+}
+
 const { GAME_MODE_FULL, getMinStartPlayers } = require('./gameMode')
 
 function toPublicPlayer(player) {
   return {
     id: player.id,
     nickname: player.nickname,
-    avatar: player.avatar,
+    ...publicAppearance(player),
     isReady: player.isReady,
     isHost: player.isHost,
     disconnected: player.disconnected,
@@ -51,7 +61,7 @@ function getGamePlayers(room) {
       return {
         id: player.id,
         nickname: livePlayer ? livePlayer.nickname : player.nickname,
-        avatar: livePlayer ? livePlayer.avatar : player.avatar,
+        ...publicAppearance(livePlayer || player),
         isHost: Boolean(livePlayer && livePlayer.isHost),
         disconnected: Boolean(livePlayer && livePlayer.disconnected),
         hasLeft: Boolean(!livePlayer && player.hasLeft),

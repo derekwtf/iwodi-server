@@ -1,5 +1,7 @@
 const EVENTS = {
   client: {
+    USER_SYNC_STATE: 'user:syncState',
+    USER_UPDATE_PROFILE: 'user:updateProfile',
     ROOM_CREATE: 'room:create',
     ROOM_JOIN: 'room:join',
     ROOM_LEAVE: 'room:leave',
@@ -18,6 +20,7 @@ const EVENTS = {
     RECONNECT_ABANDON: 'reconnect:abandon',
   },
   server: {
+    USER_STATE: 'user:state',
     CONNECT_SUCCESS: 'connect:success',
     REQUEST_ERROR: 'request:error',
     ROOM_CREATED: 'room:created',

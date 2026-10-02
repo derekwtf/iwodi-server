@@ -1,8 +1,8 @@
 const EVENTS = require('./events')
 const { emitPlayerLeftSequence, publishLeaveResult } = require('./emitPatterns')
-const { handleError, handleSuccess, requireActiveConnection } = require('./helpers')
+const { handleError, handleSuccess } = require('./helpers')
 
-function registerRoomHandlers(io, socket, roomManager, getRoomChannel, voteTimerStore, userStore) {
+function registerRoomHandlers(io, socket, roomManager, getRoomChannel, voteTimerStore) {
   socket.on(EVENTS.client.ROOM_CREATE, (payload = {}, ack) => {
     try {
       const result = roomManager.createRoom({
@@ -144,36 +144,6 @@ function registerRoomHandlers(io, socket, roomManager, getRoomChannel, voteTimer
       })
     } catch (error) {
       handleError(socket, EVENTS.client.ROOM_SET_SPY_COUNT, ack, error)
-    }
-  })
-
-  socket.on(EVENTS.client.ROOM_UPDATE_PROFILE, (payload = {}, ack) => {
-    try {
-      requireActiveConnection(socket, roomManager)
-      roomManager.requireProfileMember(socket.data.playerId)
-      const profile = userStore.updateProfile(socket.data.userId, {
-        nickname: payload.nickname,
-        avatar: payload.avatar,
-      })
-      socket.data.profile = profile
-      const result = roomManager.updatePlayerProfile(socket.data.playerId, profile)
-      const roomChannel = getRoomChannel(result.room.id)
-
-      io.to(roomChannel).emit(EVENTS.server.ROOM_STATE, {
-        room: result.roomState,
-      })
-
-      if (result.gameState) {
-        io.to(roomChannel).emit(EVENTS.server.GAME_STATE_SYNC, result.gameState)
-      }
-
-      handleSuccess(ack, {
-        room: result.roomState,
-        gameState: result.gameState,
-        player: result.player,
-      })
-    } catch (error) {
-      handleError(socket, EVENTS.client.ROOM_UPDATE_PROFILE, ack, error)
     }
   })
 

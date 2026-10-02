@@ -10,21 +10,23 @@ const { normalizeProfile } = require('../src/user/profile')
 const SessionRegistry = require('../src/room/SessionRegistry')
 const { createTokenService, TOKEN_TTL_MS } = require('../src/auth/tokens')
 const { createFixture, request } = require('./auth-fixture')
-const profile = { nickname: '新昵称', avatar: '/assets/avatars/avatar-20.svg' }
+const profile = { nickname: '新昵称', avatar: '/assets/avatars/avatar-8.svg' }
 
 function identity(subject, scope = 'app', provider = 'wechat_mini_program') {
   return { provider, scope, subject }
 }
 
-test('all first twenty avatars are available and reserve avatars cannot be saved', () => {
+test('ordinary avatars are 1–8; VIP avatars are 9–20; reserves cannot be saved', () => {
   for (let avatarId = 1; avatarId <= 40; avatarId += 1) {
     const candidate = { ...profile, avatar: `/assets/avatars/avatar-${avatarId}.svg` }
-    if (avatarId <= 20) assert.deepEqual(normalizeProfile(candidate), candidate)
+    if (avatarId <= 8) assert.deepEqual(normalizeProfile(candidate), candidate)
     else assert.throws(() => normalizeProfile(candidate), { code: 'INVALID_AVATAR' })
+    if (avatarId <= 20) assert.deepEqual(normalizeProfile(candidate, true), candidate)
+    else assert.throws(() => normalizeProfile(candidate, true), { code: 'INVALID_AVATAR' })
   }
 })
 
-test('reserved stored avatars fall back on login and lookup without rewriting persisted choices', () => {
+test('reserved stored avatars fall back on login and repair persisted choices', () => {
   const store = new UserStore(':memory:')
   try {
     const verifiedIdentity = identity('reserved-avatar')
@@ -33,14 +35,13 @@ test('reserved stored avatars fall back on login and lookup without rewriting pe
       const avatar = `/assets/avatars/avatar-${avatarId}.svg`
       store.db.prepare('UPDATE users SET avatar = ?, last_normal_avatar = ? WHERE user_id = ?')
         .run(avatar, avatar, user.userId)
-      const before = store.db.prepare('SELECT avatar, last_normal_avatar, updated_at FROM users WHERE user_id = ?').get(user.userId)
-      assert.deepEqual(store.getUser(user.userId), { ...user, avatar: '/assets/avatars/avatar-1.svg' })
-      assert.deepEqual(store.findOrCreate(verifiedIdentity), { ...user, avatar: '/assets/avatars/avatar-1.svg' })
-      assert.deepEqual(store.db.prepare('SELECT avatar, last_normal_avatar, updated_at FROM users WHERE user_id = ?').get(user.userId), before)
+      assert.deepEqual(store.getUser(user.userId), { ...user, avatar: '/assets/avatars/avatar-1.svg', lastNormalAvatar: '/assets/avatars/avatar-1.svg' })
+      assert.deepEqual(store.findOrCreate(verifiedIdentity), { ...user, avatar: '/assets/avatars/avatar-1.svg', lastNormalAvatar: '/assets/avatars/avatar-1.svg' })
+      assert.equal(store.db.prepare('SELECT avatar FROM users WHERE user_id = ?').get(user.userId).avatar, '/assets/avatars/avatar-1.svg')
       assert.throws(() => store.updateProfile(user.userId, { ...profile, avatar }), { code: 'INVALID_AVATAR' })
     }
-    assert.deepEqual(store.updateProfile(user.userId, profile), profile)
-    assert.deepEqual(store.getUser(user.userId), { userId: user.userId, ...profile })
+    assert.equal(store.updateProfile(user.userId, profile).avatar, profile.avatar)
+    assert.deepEqual(store.getUser(user.userId), { ...user, ...profile, lastNormalAvatar: profile.avatar })
   } finally { store.close() }
 })
 
@@ -122,7 +123,7 @@ test('Socket authentication, private identity, profile persistence, membership a
     assert.equal(f.manager.getRoomIdForPlayer(attacker.playerId), null)
     assert.equal(host.socket.connected, true)
     assert.equal((await request(attacker.socket, 'room:updateProfile', profile)).ok, false)
-    assert.deepEqual(f.userStore.getUser(b.userId), { userId: b.userId, ...b.profile })
+    assert.deepEqual(f.userStore.getUser(b.userId), { userId: b.userId, ...b.profile, lastNormalAvatar: b.profile.avatar, isVip: false, vipExpiresAt: 0 })
     await request(attacker.socket, 'room:join', { roomId: initial.room.roomId, nickname: 'fake', avatar: 'fake' })
     const start = await request(host.socket, 'room:startGame')
     assert.equal(start.ok, true)

@@ -19,6 +19,8 @@ function createGameState({ players, spyCount, gameMode, wordLibrary, usedWordGro
       id: player.id,
       nickname: player.nickname,
       avatar: player.avatar,
+      vipExpiresAt: player.vipExpiresAt,
+      lastNormalAvatar: player.lastNormalAvatar,
       joinedAt: player.joinedAt,
       hasLeft: false,
       leftReason: null,

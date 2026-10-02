@@ -1,3 +1,5 @@
+const { getUserState } = require('../user/profile')
+
 function createWechatLoginHandler({ roomManager, fetchWechatSession, userStore, tokens, appId }) {
   if (!appId) throw new Error('必须配置 WECHAT_APP_ID')
   return async function handleWechatLogin(req, res) {
@@ -29,8 +31,7 @@ function createWechatLoginHandler({ roomManager, fetchWechatSession, userStore, 
       )
       res.json({
         playerId,
-        userId: user.userId,
-        profile: { nickname: user.nickname, avatar: user.avatar },
+        ...getUserState(user),
         ...tokens.issue(user.userId),
       })
     } catch (error) {
