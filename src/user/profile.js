@@ -1,6 +1,7 @@
 const { randomInt } = require('crypto')
 
-const AVATARS = new Set(Array.from({ length: 32 }, (_, index) =>
+const AVATAR_COUNT = 20
+const AVATARS = new Set(Array.from({ length: AVATAR_COUNT }, (_, index) =>
   `/assets/avatars/avatar-${index + 1}.svg`))
 
 function normalizeProfile({ nickname, avatar } = {}) {
@@ -14,11 +15,16 @@ function normalizeProfile({ nickname, avatar } = {}) {
   return { nickname: normalized, avatar }
 }
 
+function resolveStoredProfile(profile) {
+  if (!profile || AVATARS.has(profile.avatar)) return profile
+  return { ...profile, avatar: '/assets/avatars/avatar-1.svg' }
+}
+
 function createDefaultProfile() {
   return normalizeProfile({
     nickname: `玩家${randomInt(1000, 10000)}`,
-    avatar: `/assets/avatars/avatar-${randomInt(1, 33)}.svg`,
+    avatar: `/assets/avatars/avatar-${randomInt(1, AVATAR_COUNT + 1)}.svg`,
   })
 }
 
-module.exports = { normalizeProfile, createDefaultProfile }
+module.exports = { normalizeProfile, resolveStoredProfile, createDefaultProfile }

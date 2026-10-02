@@ -1,6 +1,6 @@
 const Database = require('better-sqlite3')
 const { randomUUID } = require('crypto')
-const { createDefaultProfile, normalizeProfile } = require('./profile')
+const { createDefaultProfile, normalizeProfile, resolveStoredProfile } = require('./profile')
 
 function storageError() {
   return Object.assign(new Error('用户服务暂时不可用，请稍后重试'), {
@@ -46,7 +46,7 @@ class UserStore {
         const existing = this.find.get(provider, scope, subject)
         if (existing) {
           this.touchLogin.run(now, provider, scope, subject)
-          return this.read.get(existing.user_id)
+          return resolveStoredProfile(this.read.get(existing.user_id))
         }
         const userId = randomUUID()
         const profile = createDefaultProfile()
@@ -73,7 +73,7 @@ class UserStore {
 
   getUser(userId) {
     try {
-      return this.read.get(userId) || null
+      return resolveStoredProfile(this.read.get(userId)) || null
     } catch (_) {
       throw storageError()
     }

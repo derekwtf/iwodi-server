@@ -6,14 +6,43 @@ const { join } = require('path')
 const { spawnSync } = require('child_process')
 const { createHmac } = require('crypto')
 const UserStore = require('../src/user/UserStore')
+const { normalizeProfile } = require('../src/user/profile')
 const SessionRegistry = require('../src/room/SessionRegistry')
 const { createTokenService, TOKEN_TTL_MS } = require('../src/auth/tokens')
 const { createFixture, request } = require('./auth-fixture')
-const profile = { nickname: '新昵称', avatar: '/assets/avatars/avatar-32.svg' }
+const profile = { nickname: '新昵称', avatar: '/assets/avatars/avatar-20.svg' }
 
 function identity(subject, scope = 'app', provider = 'wechat_mini_program') {
   return { provider, scope, subject }
 }
+
+test('all first twenty avatars are available and reserve avatars cannot be saved', () => {
+  for (let avatarId = 1; avatarId <= 40; avatarId += 1) {
+    const candidate = { ...profile, avatar: `/assets/avatars/avatar-${avatarId}.svg` }
+    if (avatarId <= 20) assert.deepEqual(normalizeProfile(candidate), candidate)
+    else assert.throws(() => normalizeProfile(candidate), { code: 'INVALID_AVATAR' })
+  }
+})
+
+test('reserved stored avatars fall back on login and lookup without rewriting persisted choices', () => {
+  const store = new UserStore(':memory:')
+  try {
+    const verifiedIdentity = identity('reserved-avatar')
+    const user = store.findOrCreate(verifiedIdentity)
+    for (const avatarId of [21, 32, 40]) {
+      const avatar = `/assets/avatars/avatar-${avatarId}.svg`
+      store.db.prepare('UPDATE users SET avatar = ?, last_normal_avatar = ? WHERE user_id = ?')
+        .run(avatar, avatar, user.userId)
+      const before = store.db.prepare('SELECT avatar, last_normal_avatar, updated_at FROM users WHERE user_id = ?').get(user.userId)
+      assert.deepEqual(store.getUser(user.userId), { ...user, avatar: '/assets/avatars/avatar-1.svg' })
+      assert.deepEqual(store.findOrCreate(verifiedIdentity), { ...user, avatar: '/assets/avatars/avatar-1.svg' })
+      assert.deepEqual(store.db.prepare('SELECT avatar, last_normal_avatar, updated_at FROM users WHERE user_id = ?').get(user.userId), before)
+      assert.throws(() => store.updateProfile(user.userId, { ...profile, avatar }), { code: 'INVALID_AVATAR' })
+    }
+    assert.deepEqual(store.updateProfile(user.userId, profile), profile)
+    assert.deepEqual(store.getUser(user.userId), { userId: user.userId, ...profile })
+  } finally { store.close() }
+})
 
 test('SQLite: identity isolation, rollback, normalized profile, reopen and online backup restore', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'wodi-users-'))
@@ -35,7 +64,7 @@ test('SQLite: identity isolation, rollback, normalized profile, reopen and onlin
     assert.equal(normalized.nickname, '名'.repeat(20))
     assert.equal(store.db.prepare('SELECT last_normal_avatar FROM users WHERE user_id = ?').get(first.userId).last_normal_avatar, profile.avatar)
     assert.throws(() => store.updateProfile(first.userId, { ...profile, nickname: '   ' }), { code: 'INVALID_NICKNAME' })
-    for (const avatar of ['https://example.com/a.png', '/assets/avatars/avatar-33.svg', '/assets/avatars/avatar-01.svg', '/assets/avatars/agent-vip.svg', '']) {
+    for (const avatar of ['https://example.com/a.png', '/assets/avatars/avatar-21.svg', '/assets/avatars/avatar-40.svg', '/assets/avatars/avatar-41.svg', '/assets/avatars/avatar-01.svg', '/assets/avatars/agent-vip.svg', '']) {
       assert.throws(() => store.updateProfile(first.userId, { ...profile, avatar }), { code: 'INVALID_AVATAR' })
     }
     const before = store.db.prepare('SELECT updated_at FROM users WHERE user_id = ?').get(first.userId)
@@ -104,7 +133,7 @@ test('Socket authentication, private identity, profile persistence, membership a
     assert.equal(JSON.stringify(saved).includes(a.userId), false)
     assert.equal(JSON.stringify(saved).includes(a.token), false)
     assert.equal(JSON.stringify(saved).includes('verified-a'), false)
-    for (const invalid of [{ ...profile, nickname: ' ' }, { ...profile, avatar: 'https://bad' }]) {
+    for (const invalid of [{ ...profile, nickname: ' ' }, { ...profile, avatar: 'https://bad' }, { ...profile, avatar: '/assets/avatars/avatar-21.svg' }, { ...profile, avatar: '/assets/avatars/avatar-40.svg' }]) {
       assert.equal((await request(host.socket, 'room:updateProfile', invalid)).ok, false)
     }
     f.userStore.db.exec("CREATE TRIGGER fail_profile BEFORE UPDATE ON users BEGIN SELECT RAISE(ABORT, 'test'); END")
