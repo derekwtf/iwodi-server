@@ -123,7 +123,8 @@ class PaymentService extends EventEmitter {
       // Never infer a full refund from status alone when the amount is contradictory.
       this.ledger.review.run('REFUND_AMOUNT_UNCONFIRMED', order.out_trade_no)
       this.warn(order.out_trade_no, 'REFUND_AMOUNT_UNCONFIRMED')
-    } else if ([2, 3, 4].includes(info.status)) {
+    } else if ([2, 3, 4, 7].includes(info.status)) {
+      // Refund failure (status 7) still permits delivery after the amount/refund checks above.
       changed = this.ledger.grant(order.out_trade_no, this.now())
     } else if (info.status === 6) this.ledger.closeOrder.run(order.out_trade_no)
     if (changed) this.emit('changed', order.user_id)

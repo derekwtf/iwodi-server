@@ -16,12 +16,12 @@ const config = readPaymentConfig({ VIP_PAYMENT_ENABLED: 'true', WECHAT_APP_ID: '
 const start = Date.UTC(2026, 0, 1)
 const paid = (order, extra = {}) => ({ order: { order_id: order.out_trade_no, wx_order_id: `wx-${order.out_trade_no}`,
   env_type: 1, order_type: 0, status: 2, order_fee: 1000, paid_fee: 1000, left_fee: 1000, paid_time: start / 1000, ...extra } })
-function fixture(t, filename = ':memory:') {
+function fixture(t, { filename = ':memory:', platform = {} } = {}) {
   const store = new UserStore(filename)
   t.after(() => { if (store.db.open) store.close() })
   const user = store.findOrCreate({ provider: 'wechat_mini_program', scope: 'test-app', subject: 'openid' })
   let now = start, queries = 0, provides = 0
-  const client = { query: async (o) => { queries++; return paid(o) }, provide: async () => { provides++ },
+  const client = { query: async (o) => { queries++; return paid(o, platform) }, provide: async () => { provides++ },
     sign: (o, key) => new WechatPaymentClient(config).sign(o, key) }
   const service = new PaymentService({ userStore: store, config: { ...config }, now: () => now,
     fetchWechatSession: async () => ({ openid: 'openid', sessionKey: 'session-secret' }), client,
@@ -37,6 +37,101 @@ const refund = (o, id, amount = 1000) => ({ Event: 'xpay_refund_notify', MchOrde
 const delivery = (o) => ({ Event: 'xpay_goods_deliver_notify', OpenId: o.openid,
   OutTradeNo: o.out_trade_no, Env: 0, GoodsInfo: { ProductId: o.product_id, Quantity: 1,
     OrigPrice: 1000, ActualPrice: 1000, Attach: o.attach } })
+
+for (const orderType of [0, 7]) {
+  const expectedStatuses = ['pending', 'pending', 'granted', 'granted', 'granted', 'review',
+    'closed', 'granted', 'review', 'review', 'review']
+  for (const [status, expected] of expectedStatuses.entries()) {
+    test(`first query with order_type=${orderType}, status=${status} returns ${expected}`, async (t) => {
+      const unpaid = [0, 1, 6].includes(status)
+      const f = fixture(t, { platform: { order_type: orderType, status,
+        paid_fee: unpaid ? 0 : 1000, left_fee: unpaid ? 0 : 1000 } }), order = await f.create()
+      let changes = 0
+      f.service.on('changed', () => { changes++ })
+      const result = await f.service.queryOwn(f.user.userId, { outTradeNo: order.out_trade_no })
+      assert.equal(result.order.status, expected)
+      assert.equal(result.order.platformStatus, status)
+      assert.equal(result.order.priceFen, 1000)
+      assert.equal(result.order.durationDays, 30)
+      const granted = expected === 'granted'
+      assert.equal(result.order.grantedAt, granted ? start : null)
+      assert.equal(result.order.startsAt, granted ? start : null)
+      assert.equal(result.order.endsAt, granted ? start + 30 * DAY_MS : null)
+      assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, granted ? start + 30 * DAY_MS : 0)
+      assert.equal(f.store.payments.require(order.out_trade_no).review_reason,
+        expected === 'review' ? 'REFUND_AMOUNT_UNCONFIRMED' : null)
+      await f.service.reconcile(order.out_trade_no, { force: true })
+      assert.equal(changes, granted ? 1 : 0)
+      assert.equal(f.counts().provides, granted && status !== 4 ? 1 : 0)
+    })
+  }
+
+  for (const leftFee of [0, 500]) {
+    for (const alreadyGranted of [false, true]) {
+      test(`status=7 prioritizes left_fee=${leftFee}, order_type=${orderType}, granted=${alreadyGranted}`, async (t) => {
+        const platform = { order_type: orderType, status: 7 }
+        const f = fixture(t, { platform }), order = await f.create()
+        if (alreadyGranted) await f.service.reconcile(order.out_trade_no)
+        let changes = 0
+        f.service.on('changed', () => { changes++ })
+        platform.left_fee = leftFee
+        f.setNow(start + DAY_MS)
+        const result = await f.service.queryOwn(f.user.userId, { outTradeNo: order.out_trade_no })
+        assert.equal(result.order.status, leftFee === 0 ? 'refunded' : 'review')
+        await f.service.reconcile(order.out_trade_no, { force: true })
+        const latest = f.store.payments.require(order.out_trade_no)
+        assert.equal(latest.granted_at, alreadyGranted ? start : null)
+        assert.equal(latest.review_reason, leftFee === 0 ? null : 'PARTIAL_REFUND')
+        assert.equal(f.store.getUser(f.user.userId).vipExpiresAt,
+          alreadyGranted ? start + (leftFee === 0 ? 1 : 30) * DAY_MS : 0)
+        const recorded = f.store.payments.refundById.get(`query:wx-${order.out_trade_no}:${leftFee}`)
+        assert.equal(recorded.amount_fen, 1000 - leftFee)
+        assert.equal(recorded.result_code, 0)
+        assert.equal(changes, leftFee === 0 ? 1 : 0)
+        assert.equal(f.counts().provides, alreadyGranted ? 1 : 0)
+      })
+    }
+  }
+
+  for (const prior of ['refunded', 'partial refund', 'manual review']) {
+    test(`status=7 cannot grant after ${prior}, order_type=${orderType}`, async (t) => {
+      const f = fixture(t, { platform: { status: 7, order_type: orderType } }), order = await f.create()
+      if (prior === 'manual review') f.store.payments.review.run('REFUND_AMOUNT_UNCONFIRMED', order.out_trade_no)
+      else await f.service.event(refund(order, 'prior-refund', prior === 'refunded' ? 1000 : 500))
+      let changes = 0
+      f.service.on('changed', () => { changes++ })
+      const result = await f.service.queryOwn(f.user.userId, { outTradeNo: order.out_trade_no })
+      await f.service.reconcile(order.out_trade_no, { force: true })
+      assert.equal(result.order.status, prior === 'refunded' ? 'refunded' : 'review')
+      assert.equal(f.store.payments.require(order.out_trade_no).granted_at, null)
+      assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, 0)
+      assert.equal(f.counts().provides, 0)
+      assert.equal(changes, 0)
+    })
+  }
+}
+
+test('failed refund notification only records its result; a validated query must confirm payment before granting', async (t) => {
+  const platform = { status: 1, paid_fee: 0, left_fee: 0 }
+  const f = fixture(t, { platform }), order = await f.create()
+  let changes = 0
+  f.service.on('changed', () => { changes++ })
+  const message = { ...refund(order, 'failed-refund'), RetCode: 1 }
+  assert.equal((await f.service.event(message)).ErrCode, 0)
+  assert.equal(f.store.payments.refundById.get(message.WxRefundId).result_code, 1)
+  assert.deepEqual(f.counts(), { queries: 0, provides: 0 })
+  assert.equal((await f.service.queryOwn(f.user.userId, { outTradeNo: order.out_trade_no })).order.status, 'pending')
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, 0)
+  assert.equal(changes, 0)
+  Object.assign(platform, { status: 7, paid_fee: 1000, left_fee: 1000 })
+  f.setNow(start + 2000)
+  await f.service.reconcile(order.out_trade_no, { force: true })
+  await f.service.event(message)
+  assert.equal(f.store.payments.require(order.out_trade_no).status, 'granted')
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, start + 2000 + 30 * DAY_MS)
+  assert.equal(changes, 1)
+  assert.equal(f.counts().provides, 1)
+})
 
 test('default disabled, exact vip_month/1000 configuration and official HMAC vectors', () => {
   assert.equal(readPaymentConfig({}).enabled, false)
@@ -149,47 +244,49 @@ for (const status of ['granted', 'refunded', 'closed', 'review']) {
   })
 }
 
-test('own query returns a grant committed before failed acknowledgement; scheduled retry never grants twice', async (t) => {
-  const f = fixture(t), order = await f.create(), logs = []
-  let provides = 0, changes = 0
-  f.service.logger.warn = (...args) => logs.push(args)
-  f.service.on('changed', () => { changes++ })
-  f.client.provide = async () => { provides++; throw new Error('ack offline') }
-  const result = await f.service.queryOwn(f.user.userId, { outTradeNo: order.out_trade_no })
-  assert.equal(result.order.status, 'granted')
-  assert.equal(result.order.endsAt, start + 30 * DAY_MS)
-  let latest = f.store.payments.require(order.out_trade_no)
-  assert.equal(latest.delivery_ack_at, null)
-  assert.equal(latest.next_check_at, start + RETRY_MS)
-  assert.deepEqual(logs, [['[vip-payment]', { order: order.out_trade_no, code: 'PAYMENT_ERROR' }]])
-  await f.service.queryOwn(f.user.userId, { outTradeNo: order.out_trade_no })
-  await f.service.sweep()
-  assert.equal(provides, 2, 'background must wait for the scheduled retry')
-  f.setNow(start + RETRY_MS)
-  await f.service.sweep()
-  assert.equal(provides, 3)
-  latest = f.store.payments.require(order.out_trade_no)
-  assert.equal(latest.last_error, 'PAYMENT_ERROR')
-  assert.equal(latest.next_check_at, start + 2 * RETRY_MS)
-  f.client.provide = async () => { provides++ }
-  f.setNow(start + 2 * RETRY_MS)
-  await f.service.sweep()
-  await f.service.reconcile(order.out_trade_no, { force: true })
-  latest = f.store.payments.require(order.out_trade_no)
-  assert.equal(latest.delivery_ack_at, start + 2 * RETRY_MS)
-  assert.equal(latest.next_check_at, start + 2 * RETRY_MS + DAY_MS)
-  assert.equal(latest.last_error, null)
-  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, start + 30 * DAY_MS)
-  assert.equal(provides, 4)
-  assert.equal(changes, 1)
-})
+for (const status of [2, 7]) {
+  test(`status=${status}: own query returns a grant committed before failed acknowledgement; scheduled retry never grants twice`, async (t) => {
+    const f = fixture(t, { platform: { status } }), order = await f.create(), logs = []
+    let provides = 0, changes = 0
+    f.service.logger.warn = (...args) => logs.push(args)
+    f.service.on('changed', () => { changes++ })
+    f.client.provide = async () => { provides++; throw new Error('ack offline') }
+    const result = await f.service.queryOwn(f.user.userId, { outTradeNo: order.out_trade_no })
+    assert.equal(result.order.status, 'granted')
+    assert.equal(result.order.endsAt, start + 30 * DAY_MS)
+    let latest = f.store.payments.require(order.out_trade_no)
+    assert.equal(latest.delivery_ack_at, null)
+    assert.equal(latest.next_check_at, start + RETRY_MS)
+    assert.deepEqual(logs, [['[vip-payment]', { order: order.out_trade_no, code: 'PAYMENT_ERROR' }]])
+    await f.service.queryOwn(f.user.userId, { outTradeNo: order.out_trade_no })
+    await f.service.sweep()
+    assert.equal(provides, 2, 'background must wait for the scheduled retry')
+    f.setNow(start + RETRY_MS)
+    await f.service.sweep()
+    assert.equal(provides, 3)
+    latest = f.store.payments.require(order.out_trade_no)
+    assert.equal(latest.last_error, 'PAYMENT_ERROR')
+    assert.equal(latest.next_check_at, start + 2 * RETRY_MS)
+    f.client.provide = async () => { provides++ }
+    f.setNow(start + 2 * RETRY_MS)
+    await f.service.sweep()
+    await f.service.reconcile(order.out_trade_no, { force: true })
+    latest = f.store.payments.require(order.out_trade_no)
+    assert.equal(latest.delivery_ack_at, start + 2 * RETRY_MS)
+    assert.equal(latest.next_check_at, start + 2 * RETRY_MS + DAY_MS)
+    assert.equal(latest.last_error, null)
+    assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, start + 30 * DAY_MS)
+    assert.equal(provides, 4)
+    assert.equal(changes, 1)
+  })
+}
 
 test('failed query rereads a refund committed by another service while its platform request was in flight', async (t) => {
   const dir = mkdtempSync(join(tmpdir(), 'wodi-payment-query-'))
   t.after(() => rmSync(dir, { force: true, recursive: true }))
-  const filename = join(dir, 'users.sqlite'), f = fixture(t, filename), order = await f.create()
+  const filename = join(dir, 'users.sqlite'), f = fixture(t, { filename }), order = await f.create()
   await f.service.reconcile(order.out_trade_no)
-  const other = fixture(t, filename)
+  const other = fixture(t, { filename })
   f.setNow(start + DAY_MS); other.setNow(start + DAY_MS)
   let rejectQuery, entered
   const querying = new Promise((resolve) => { entered = resolve })
@@ -235,55 +332,84 @@ test('database failures during grant, initial read and fallback read remain erro
   assert.equal(queries, 1)
 })
 
-test('duplicate push and concurrent query grant once, iOS lacks WeChatPayInfo, off-sale still processes', async (t) => {
-  const f = fixture(t), order = await f.create()
-  f.service.config.enabled = false
-  f.client.query = async (o) => paid(o, { order_type: 7 })
-  await Promise.all([f.service.reconcile(order.out_trade_no), f.service.event(delivery(order)), f.service.reconcile(order.out_trade_no)])
-  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, start + 30 * DAY_MS)
-  assert.equal(f.counts().provides, 1)
-  assert.equal(f.store.payments.require(order.out_trade_no).delivery_ack_at, start)
-  const second = f.store.payments.create(f.user.userId, 'request-number-0002', 'openid', config, start)
-  await f.service.reconcile(second.out_trade_no)
-  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, start + 60 * DAY_MS)
-})
-
-test('invalid amount, ownership, product, quantity and env never grant; platform ids unique', async (t) => {
-  const f = fixture(t), order = await f.create()
-  for (const patch of [{ OpenId: 'wrong' }, { Env: 1 }, { GoodsInfo: { ...delivery(order).GoodsInfo, Quantity: 2 } },
-    { GoodsInfo: { ...delivery(order).GoodsInfo, ProductId: 'wrong' } }, { GoodsInfo: { ...delivery(order).GoodsInfo, ActualPrice: 1 } }]) {
-    await assert.rejects(f.service.event({ ...delivery(order), ...patch }), { code: 'DELIVERY_MISMATCH' })
+for (const status of [2, 7]) {
+  for (const first of ['own', 'notification', 'sweep', 'manual']) {
+    test(`status=${status}: ${first} first, then concurrent entries grant once for iOS while off-sale`, async (t) => {
+      const f = fixture(t, { platform: { status, order_type: 7 } }), order = await f.create()
+      let changes = 0
+      f.service.on('changed', () => { changes++ })
+      f.service.config.enabled = false
+      const entries = {
+        own: () => f.service.queryOwn(f.user.userId, { outTradeNo: order.out_trade_no }),
+        notification: () => f.service.event(delivery(order)),
+        sweep: () => f.service.sweep(),
+        manual: () => f.service.reconcile(order.out_trade_no, { force: true }),
+      }
+      // Queue all entry points before the first platform response completes.
+      await Promise.all([entries[first](), ...Object.values(entries).map((run) => run())])
+      assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, start + 30 * DAY_MS)
+      assert.equal(f.counts().provides, 1)
+      assert.equal(changes, 1)
+      assert.equal(f.store.payments.require(order.out_trade_no).delivery_ack_at, start)
+      const second = f.store.payments.create(f.user.userId, 'request-number-0002', 'openid', config, start)
+      await f.service.reconcile(second.out_trade_no)
+      assert.equal(f.store.payments.require(second.out_trade_no).starts_at, start + 30 * DAY_MS)
+      assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, start + 60 * DAY_MS)
+      assert.equal(changes, 2)
+    })
   }
-  for (const patch of [{ paid_fee: 1 }, { order_fee: 1 }, { env_type: 2 }, { order_id: 'wrong' }, { order_type: 8 }]) {
-    f.client.query = async (o) => paid(o, patch)
-    await assert.rejects(f.service.reconcile(order.out_trade_no, { force: true }))
-  }
-  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, 0)
-  f.client.query = async (o) => paid(o, { wx_order_id: 'same-platform-order' })
-  await f.service.reconcile(order.out_trade_no, { force: true })
-  const second = await f.create('request-number-0002')
-  await assert.rejects(f.service.reconcile(second.out_trade_no))
-  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, start + 30 * DAY_MS)
-})
+}
 
-test('grant failure rolls back entitlement and ledger, restart retries only failed delivery acknowledgement', async (t) => {
-  const dir = mkdtempSync(join(tmpdir(), 'wodi-payment-'))
-  t.after(() => rmSync(dir, { force: true, recursive: true }))
-  const filename = join(dir, 'users.sqlite'), f = fixture(t, filename), order = await f.create()
-  f.store.db.exec("CREATE TRIGGER fail_vip BEFORE UPDATE OF vip_expires_at ON users BEGIN SELECT RAISE(ABORT, 'test'); END")
-  await assert.rejects(f.service.reconcile(order.out_trade_no))
-  assert.equal(f.store.payments.require(order.out_trade_no).granted_at, null)
-  f.store.db.exec('DROP TRIGGER fail_vip')
-  f.client.provide = async () => { throw new Error('offline') }
-  await assert.rejects(f.service.reconcile(order.out_trade_no))
-  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, start + 30 * DAY_MS)
-  f.store.close()
-  const restored = fixture(t, filename)
-  restored.setNow(start + 6 * 60000)
-  await restored.service.sweep()
-  assert.equal(restored.store.getUser(f.user.userId).vipExpiresAt, start + 30 * DAY_MS)
-  assert.ok(restored.store.payments.require(order.out_trade_no).delivery_ack_at)
-})
+for (const status of [2, 7]) {
+  test(`status=${status}: invalid amount, ownership, product, quantity and env never grant; platform ids unique`, async (t) => {
+    const f = fixture(t, { platform: { status } }), order = await f.create()
+    for (const patch of [{ OpenId: 'wrong' }, { Env: 1 }, { GoodsInfo: { ...delivery(order).GoodsInfo, Quantity: 2 } },
+      { GoodsInfo: { ...delivery(order).GoodsInfo, ProductId: 'wrong' } }, { GoodsInfo: { ...delivery(order).GoodsInfo, ActualPrice: 1 } },
+      { GoodsInfo: { ...delivery(order).GoodsInfo, OrigPrice: 1 } }, { GoodsInfo: { ...delivery(order).GoodsInfo, Attach: 'wrong' } }]) {
+      await assert.rejects(f.service.event({ ...delivery(order), ...patch }), { code: 'DELIVERY_MISMATCH' })
+    }
+    for (const patch of [{ paid_fee: 1 }, { order_fee: 1 }, { env_type: 2 }, { order_id: 'wrong' }, { order_type: 8 },
+      { wx_order_id: '' }, { left_fee: -1 }, { left_fee: 1001 }, { left_fee: 1.5 }, { left_fee: '1000' },
+      { paid_fee: 0 }, { paid_fee: '1000' }, { status: -1 }, { status: 11 }, { status: '7' }]) {
+      f.client.query = async (o) => paid(o, { status, ...patch })
+      await assert.rejects(f.service.reconcile(order.out_trade_no, { force: true }))
+      assert.equal(f.store.payments.require(order.out_trade_no).granted_at, null)
+      assert.equal(f.counts().provides, 0)
+    }
+    assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, 0)
+    f.client.query = async (o) => paid(o, { status, wx_order_id: 'same-platform-order' })
+    await f.service.reconcile(order.out_trade_no, { force: true })
+    const second = await f.create('request-number-0002')
+    await assert.rejects(f.service.reconcile(second.out_trade_no))
+    assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, start + 30 * DAY_MS)
+  })
+}
+
+for (const status of [2, 7]) {
+  test(`status=${status}: grant failure rolls back entitlement and ledger, restart retries only failed delivery acknowledgement`, async (t) => {
+    const dir = mkdtempSync(join(tmpdir(), 'wodi-payment-'))
+    t.after(() => rmSync(dir, { force: true, recursive: true }))
+    const filename = join(dir, 'users.sqlite'), f = fixture(t, { filename, platform: { status } }), order = await f.create()
+    f.store.db.exec("CREATE TRIGGER fail_vip BEFORE UPDATE OF vip_expires_at ON users BEGIN SELECT RAISE(ABORT, 'test'); END")
+    await assert.rejects(f.service.reconcile(order.out_trade_no))
+    assert.equal(f.store.payments.require(order.out_trade_no).granted_at, null)
+    assert.equal(f.store.payments.require(order.out_trade_no).status, 'pending')
+    assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, 0)
+    assert.equal(f.counts().provides, 0)
+    f.store.db.exec('DROP TRIGGER fail_vip')
+    f.client.provide = async () => { throw new Error('offline') }
+    await assert.rejects(f.service.reconcile(order.out_trade_no))
+    assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, start + 30 * DAY_MS)
+    f.store.close()
+    const restored = fixture(t, { filename, platform: { status } })
+    restored.setNow(start + 6 * 60000)
+    await restored.service.sweep()
+    await restored.service.reconcile(order.out_trade_no, { force: true })
+    assert.equal(restored.counts().provides, 1)
+    assert.equal(restored.store.getUser(f.user.userId).vipExpiresAt, start + 30 * DAY_MS)
+    assert.ok(restored.store.payments.require(order.out_trade_no).delivery_ack_at)
+  })
+}
 
 const HOUR_MS = 60 * 60 * 1000
 const RETRY_MS = 5 * 60 * 1000
@@ -333,26 +459,28 @@ test('pending scheduling uses completion time across age boundaries', async (t) 
   assert.equal(f.store.payments.require(order.out_trade_no).next_check_at, start + 2 * DAY_MS)
 })
 
-test('old pending failure keeps daily due date across restart and grants a late payment once', async (t) => {
-  const dir = mkdtempSync(join(tmpdir(), 'wodi-payment-backoff-'))
-  t.after(() => rmSync(dir, { force: true, recursive: true }))
-  const filename = join(dir, 'users.sqlite'), f = fixture(t, filename), order = await f.create()
-  const now = start + 365 * DAY_MS
-  f.setNow(now)
-  f.client.query = async () => { throw new Error('not submitted') }
-  await f.service.sweep()
-  f.store.close()
-  const restored = fixture(t, filename)
-  restored.setNow(now + DAY_MS - 1)
-  await restored.service.sweep()
-  assert.equal(restored.counts().queries, 0)
-  restored.setNow(now + DAY_MS)
-  await restored.service.sweep()
-  await restored.service.event(delivery(order))
-  await restored.service.reconcile(order.out_trade_no, { force: true })
-  assert.equal(restored.store.getUser(f.user.userId).vipExpiresAt, now + 31 * DAY_MS)
-  assert.equal(restored.counts().provides, 1)
-})
+for (const status of [2, 7]) {
+  test(`status=${status}: old pending failure keeps daily due date across restart and grants a late payment once`, async (t) => {
+    const dir = mkdtempSync(join(tmpdir(), 'wodi-payment-backoff-'))
+    t.after(() => rmSync(dir, { force: true, recursive: true }))
+    const filename = join(dir, 'users.sqlite'), f = fixture(t, { filename, platform: { status } }), order = await f.create()
+    const now = start + 365 * DAY_MS
+    f.setNow(now)
+    f.client.query = async () => { throw new Error('not submitted') }
+    await f.service.sweep()
+    f.store.close()
+    const restored = fixture(t, { filename, platform: { status } })
+    restored.setNow(now + DAY_MS - 1)
+    await restored.service.sweep()
+    assert.equal(restored.counts().queries, 0)
+    restored.setNow(now + DAY_MS)
+    await restored.service.sweep()
+    await restored.service.event(delivery(order))
+    await restored.service.reconcile(order.out_trade_no, { force: true })
+    assert.equal(restored.store.getUser(f.user.userId).vipExpiresAt, now + 31 * DAY_MS)
+    assert.equal(restored.counts().provides, 1)
+  })
+}
 
 test('active query, notification and manual reconciliation bypass backoff; page queries still coalesce for two seconds', async (t) => {
   const f = fixture(t), order = await f.create(), now = start + 2 * DAY_MS
@@ -447,7 +575,7 @@ test('refund transaction rollback, retained legacy VIP and future renewal refund
   assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, start + 10 * DAY_MS)
 })
 
-test('daily reconciliation catches full refund and partial refund is flagged; iOS inquiry uses actual usage', async (t) => {
+test('daily reconciliation catches full refund; iOS inquiry uses actual usage', async (t) => {
   const f = fixture(t), a = await f.create()
   await f.service.reconcile(a.out_trade_no)
   const inquiry = { Event: 'xpay_subscribe_ios_refund_query_notify', pay_order_id: a.out_trade_no, product_id: 'vip_month', p_count: '1' }
