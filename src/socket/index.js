@@ -1,5 +1,5 @@
 const EVENTS = require('./events')
-const { clearVoteTimers, handleError, requireActiveConnection } = require('./helpers')
+const { clearVoteTimers, handleError, requireActiveConnection, createUserSync } = require('./helpers')
 const registerRoomHandlers = require('./roomHandler')
 const registerGameHandlers = require('./gameHandler')
 const registerUserHandlers = require('./userHandler')
@@ -11,6 +11,22 @@ function getRoomChannel(roomId) {
 
 function initializeSocketServer(io, roomManager, { userStore, tokens, paymentService }) {
   const voteTimerStore = new Map()
+  const { syncUser, clearExpiryTimer } = createUserSync(io, roomManager, getRoomChannel, { userStore, paymentService })
+  if (paymentService) {
+    const changed = (userId) => {
+      // Identity lookup must not create or refresh a session for an offline account.
+      const registry = roomManager.sessionRegistry
+      const playerId = registry.identityToPlayer.get(userId)
+      const session = registry.get(playerId)
+      if (!session || (!session.socketId && !session.roomId)) return
+      try {
+        const user = userStore.getUser(userId)
+        if (user) syncUser(playerId, user, { markActive: false })
+      } catch (_) { /* The next authenticated state refresh retries synchronization. */ }
+    }
+    paymentService.on('changed', changed)
+    io.httpServer.once('close', () => paymentService.off('changed', changed))
+  }
 
   io.use((socket, next) => {
     try {
@@ -131,7 +147,7 @@ function initializeSocketServer(io, roomManager, { userStore, tokens, paymentSer
     }
 
     registerRoomHandlers(io, socket, roomManager, getRoomChannel, voteTimerStore)
-    registerUserHandlers(io, socket, roomManager, getRoomChannel, userStore, paymentService)
+    registerUserHandlers(socket, roomManager, userStore, paymentService, syncUser)
     registerGameHandlers(
       io,
       socket,
@@ -141,6 +157,7 @@ function initializeSocketServer(io, roomManager, { userStore, tokens, paymentSer
     )
 
     socket.on('disconnect', () => {
+      clearExpiryTimer(socket.id)
       const result = roomManager.markDisconnected(socket.id)
       if (!result || !result.roomId || !result.roomState) {
         return

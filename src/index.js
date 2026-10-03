@@ -23,8 +23,6 @@ const fetchWechatSession = createWechatSessionFetcher({
   timeoutMs: Number(process.env.WECHAT_LOGIN_TIMEOUT_MS || 5000),
 })
 const paymentService = new PaymentService({ userStore, config: readPaymentConfig(), fetchWechatSession })
-// Each active socket registers one private state listener.
-paymentService.setMaxListeners(0)
 const app = express()
 const server = http.createServer(app)
 const allowedOrigins = String(process.env.CLIENT_ORIGIN || '*')

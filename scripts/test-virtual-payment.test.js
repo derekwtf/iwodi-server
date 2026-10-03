@@ -385,3 +385,172 @@ test('authenticated socket + encrypted HTTP delivery/refund update membership an
     assert.equal(await (await fetch(`${f.url}/wechat/events?${echoQuery}`)).text(), 'echo')
   } finally { await f.close() }
 })
+
+async function paymentSocketFixture() {
+  return createFixture(':memory:', { payment: { config,
+    fetchWechatSession: async (code) => ({ openid: `verified-${code}`, sessionKey: 'key' }),
+    client: { query: async (o) => paid(o), provide: async () => {},
+      sign: (o, key) => new WechatPaymentClient(config).sign(o, key) } } })
+}
+
+async function purchase(f, socket, id) {
+  const created = await request(socket, 'user:createVipOrder', {
+    code: 'buyer', requestId: id, productId: 'vip_month', priceFen: 1000,
+  })
+  assert.equal(created.ok, true)
+  const result = await request(socket, 'user:queryVipOrder', { outTradeNo: created.order.outTradeNo })
+  assert.equal(result.ok, true)
+  assert.equal(result.membership.isVip, true)
+  return f.userStore.payments.require(created.order.outTradeNo)
+}
+
+for (const phase of ['waiting', 'dealing']) {
+  for (const renewal of [false, true]) {
+    test(`offline refund synchronizes ${phase} broadcasts, snapshots and reconnect with renewal=${renewal}`, async () => {
+      const f = await paymentSocketFixture()
+      try {
+        const account = await f.login('buyer'), observerAccount = await f.login('observer')
+        const buyer = await f.connect({ token: account.token }), observer = await f.connect({ token: observerAccount.token })
+        const normal = '/assets/avatars/avatar-3.svg', vip = '/assets/avatars/avatar-9.svg'
+        await request(buyer.socket, 'user:updateProfile', { nickname: '会员', avatar: normal })
+        const first = await purchase(f, buyer.socket, 'offline-first-order')
+        const second = renewal ? await purchase(f, buyer.socket, 'offline-renewal-order') : null
+        await request(buyer.socket, 'user:updateProfile', { nickname: '会员', avatar: vip })
+        const created = await request(buyer.socket, 'room:create', { gameMode: 'deal-only' })
+        const roomId = created.room.roomId
+        await request(observer.socket, 'room:join', { roomId })
+        if (phase === 'dealing') assert.equal((await request(buyer.socket, 'room:startGame')).ok, true)
+        const serverSocket = f.io.sockets.sockets.get(buyer.socket.id)
+        const disconnected = new Promise((resolve) => serverSocket.once('disconnect', resolve))
+        buyer.socket.disconnect()
+        await disconnected
+        await request(observer.socket, 'user:syncState')
+        const room = f.manager.rooms.get(roomId), registry = f.manager.sessionRegistry
+        const session = registry.get(buyer.playerId), originalSession = { ...session }
+        const retained = { lastActivityAt: room.lastActivityAt, idleTimer: room.idleTimer,
+          idleWarningTimer: room.idleWarningTimer, hostTransferTimer: room.hostTransferTimer,
+          hostTransferPlayerId: room.hostTransferPlayerId }
+        const rooms = [], games = [], privateStates = []
+        observer.socket.on('room:state', (data) => rooms.push(data.room))
+        observer.socket.on('game:stateSync', (data) => games.push(data))
+        // Barrier ACKs use user:syncState; record only the refunded user's private state.
+        observer.socket.on('user:state', (data) => { if (data.userId === account.userId) privateStates.push(data) })
+        await f.paymentService.event(refund(first, 'offline-refund-first'))
+        await request(observer.socket, 'user:syncState')
+        assert.equal(rooms.length, 1)
+        assert.equal(games.length, phase === 'dealing' ? 1 : 0)
+        const expectedAvatar = renewal ? vip : normal
+        const checkPlayer = (snapshot) => {
+          const player = snapshot.players.find((p) => p.id === buyer.playerId)
+          assert.equal(player.avatar, expectedAvatar)
+          assert.equal(player.isVip, renewal)
+          assert.equal(player.disconnected, true)
+          assert.equal(player.isHost, true)
+        }
+        checkPlayer(rooms[0])
+        checkPlayer(f.manager.getRoomState(roomId))
+        if (phase === 'dealing') {
+          checkPlayer(games[0]); checkPlayer(f.manager.getGamePublicState(roomId))
+          assert.equal(room.gameState.playerRoster.find((p) => p.id === buyer.playerId).avatar, expectedAvatar)
+        }
+        assert.deepEqual(session, originalSession)
+        for (const [key, value] of Object.entries(retained)) assert.equal(room[key], value, key)
+        assert.equal(privateStates.length, 0)
+        const user = f.userStore.getUser(account.userId)
+        assert.equal(user.isVip, renewal)
+        assert.equal(user.avatar, expectedAvatar)
+        assert.equal(f.userStore.db.prepare('SELECT avatar FROM users WHERE user_id = ?').get(account.userId).avatar, expectedAvatar)
+        if (renewal) {
+          const remaining = f.userStore.payments.require(second.out_trade_no)
+          assert.equal(remaining.ends_at, user.vipExpiresAt)
+          assert.equal(remaining.ends_at - remaining.starts_at, 30 * DAY_MS)
+          assert.ok(remaining.ends_at < second.ends_at)
+        }
+        await f.paymentService.event(refund(first, 'offline-refund-first'))
+        await request(observer.socket, 'user:syncState')
+        assert.equal(rooms.length, 1, 'duplicate refund must not broadcast again')
+        assert.equal(games.length, phase === 'dealing' ? 1 : 0)
+        assert.deepEqual(f.userStore.getUser(account.userId), user)
+        const reconnected = await f.connect({ token: account.token })
+        assert.equal(reconnected.playerId, buyer.playerId)
+        assert.equal(reconnected.profile.avatar, expectedAvatar)
+        assert.equal(reconnected.membership.isVip, renewal)
+        const synced = await request(reconnected.socket, 'room:syncState')
+        assert.equal(synced.ok, true)
+        assert.equal(synced.room.players.find((p) => p.id === buyer.playerId).avatar, expectedAvatar)
+        assert.equal(synced.room.players.find((p) => p.id === buyer.playerId).disconnected, false)
+      } finally { await f.close() }
+    })
+  }
+}
+
+test('one service listener survives repeated connections; online changes broadcast once and close removes it', async (t) => {
+  const f = await paymentSocketFixture()
+  try {
+    const account = await f.login('buyer'), other = await f.login('observer')
+    let buyer = await f.connect({ token: account.token })
+    const observer = await f.connect({ token: other.token })
+    const created = await request(buyer.socket, 'room:create', { gameMode: 'deal-only' })
+    await request(observer.socket, 'room:join', { roomId: created.room.roomId })
+    await request(buyer.socket, 'room:startGame')
+    for (let i = 0; i < 12; i += 1) {
+      buyer = await f.connect({ token: account.token })
+      assert.equal(f.paymentService.listenerCount('changed'), 1)
+    }
+    await request(observer.socket, 'user:syncState')
+    const rooms = [], games = [], states = [], expiryTimers = [], cleared = []
+    observer.socket.on('room:state', (data) => rooms.push(data))
+    observer.socket.on('game:stateSync', (data) => games.push(data))
+    buyer.socket.on('user:state', (data) => states.push(data))
+    const originalTimeout = global.setTimeout, originalClear = global.clearTimeout
+    t.mock.method(global, 'setTimeout', (callback, ms, ...args) => {
+      const timer = originalTimeout(callback, ms, ...args)
+      if (ms > DAY_MS) expiryTimers.push(timer)
+      return timer
+    })
+    t.mock.method(global, 'clearTimeout', (timer) => { cleared.push(timer); return originalClear(timer) })
+    const first = await purchase(f, buyer.socket, 'online-listener-order')
+    await request(observer.socket, 'user:syncState')
+    assert.equal(rooms.length, 1)
+    assert.equal(games.length, 1)
+    assert.equal(states.at(-1).membership.isVip, true)
+    const active = f.io.sockets.sockets.get(buyer.socket.id)
+    assert.equal(active.data.profile.isVip, true)
+    assert.ok(expiryTimers.length > 0)
+    await f.paymentService.event(refund(first, 'online-listener-refund'))
+    await request(buyer.socket, 'user:syncState')
+    await request(observer.socket, 'user:syncState')
+    assert.equal(rooms.length, 2)
+    assert.equal(games.length, 2)
+    assert.equal(states.at(-1).membership.isVip, false)
+    assert.equal(active.data.profile.isVip, false)
+    assert.ok(expiryTimers.every((timer) => cleared.includes(timer)))
+    await purchase(f, buyer.socket, 'online-next-order')
+    const latestTimer = expiryTimers.at(-1)
+    assert.equal(cleared.includes(latestTimer), false)
+    const disconnected = new Promise((resolve) => active.once('disconnect', resolve))
+    buyer.socket.disconnect()
+    await disconnected
+    assert.ok(cleared.includes(latestTimer), 'disconnect must clear expiry timer')
+    assert.equal(f.paymentService.listenerCount('changed'), 1)
+  } finally { await f.close() }
+  assert.equal(f.paymentService.listenerCount('changed'), 0)
+})
+
+test('payment changes never create sessions or refresh detached-session retention', async () => {
+  const f = await paymentSocketFixture()
+  try {
+    const user = f.userStore.findOrCreate({ provider: 'wechat_mini_program', scope: 'test-app', subject: 'no-session' })
+    const registry = f.manager.sessionRegistry
+    assert.equal(registry.sessions.size, 0)
+    f.paymentService.emit('changed', user.userId)
+    assert.equal(registry.sessions.size, 0)
+    assert.equal(registry.identityToPlayer.size, 0)
+    const account = await f.login('detached')
+    const session = registry.get(account.playerId), before = { ...session }
+    f.paymentService.emit('changed', account.userId)
+    assert.deepEqual(session, before)
+    assert.equal(registry.sessions.size, 1)
+    assert.equal(f.manager.rooms.size, 0)
+  } finally { await f.close() }
+})

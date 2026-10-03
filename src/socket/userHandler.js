@@ -1,44 +1,8 @@
 const EVENTS = require('./events')
-const { getUserState, resolveStoredProfile } = require('../user/profile')
 const { handleError, handleSuccess, requireActiveConnection } = require('./helpers')
 
-function registerUserHandlers(io, socket, roomManager, getRoomChannel, userStore, paymentService) {
-  let expiryTimer
-
-  function syncUser(user, { markActive = false, error } = {}) {
-    const previous = socket.data.profile
-    socket.data.profile = user
-    const changed = ['nickname', 'avatar', 'vipExpiresAt', 'lastNormalAvatar']
-      .some((key) => previous[key] !== user[key]) || previous.isVip !== user.isVip
-    let result = null
-    if ((changed || markActive) && roomManager.getRoomIdForPlayer(socket.data.playerId)) {
-      result = roomManager.updatePlayerProfile(socket.data.playerId, user, { markActive })
-      const channel = getRoomChannel(result.room.id)
-      io.to(channel).emit(EVENTS.server.ROOM_STATE, { room: result.roomState })
-      if (result.gameState) io.to(channel).emit(EVENTS.server.GAME_STATE_SYNC, result.gameState)
-    }
-    const state = getUserState(user, paymentService?.product)
-    socket.emit(EVENTS.server.USER_STATE, { ...state, ...(error ? { error } : {}) })
-    clearTimeout(expiryTimer)
-    if (user.isVip) {
-      expiryTimer = setTimeout(() => {
-        try {
-          requireActiveConnection(socket, roomManager)
-          const latest = userStore.getUser(socket.data.userId)
-          if (!latest) throw new Error('用户不存在')
-          syncUser(latest)
-        } catch (_) {
-          // 到期时数据库故障也先撤下缓存中的 VIP 外观，不阻塞普通游戏。
-          syncUser(resolveStoredProfile(socket.data.profile), {
-            error: { message: '暂时无法获取 VIP 状态' },
-          })
-        }
-      }, Math.min(Math.max(user.vipExpiresAt - Date.now(), 1), 2147483647))
-      expiryTimer.unref()
-    }
-    return { ...state, ...(result ? { room: result.roomState, gameState: result.gameState } : {}),
-      player: result ? result.player : { ...state.profile, isVip: user.isVip } }
-  }
+function registerUserHandlers(socket, roomManager, userStore, paymentService, syncProfile) {
+  const syncUser = (user, options) => syncProfile(socket.data.playerId, user, options)
 
   socket.on(EVENTS.client.USER_SYNC_STATE, (payload, ack) => {
     try {
@@ -85,17 +49,7 @@ function registerUserHandlers(io, socket, roomManager, getRoomChannel, userStore
         finally { querying = false }
       })
     }
-    const changed = (userId) => {
-      if (userId !== socket.data.userId) return
-      try {
-        requireActiveConnection(socket, roomManager)
-        syncUser(userStore.getUser(userId))
-      } catch (_) { /* The next authenticated state refresh retries synchronization. */ }
-    }
-    paymentService.on('changed', changed)
-    socket.on('disconnect', () => paymentService.off('changed', changed))
   }
-  socket.on('disconnect', () => clearTimeout(expiryTimer))
   syncUser(socket.data.profile)
 }
 
