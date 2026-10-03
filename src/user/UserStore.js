@@ -1,4 +1,5 @@
 const Database = require('better-sqlite3')
+const PaymentLedger = require('../payment/PaymentLedger')
 const { randomUUID } = require('crypto')
 const { AVATARS, createDefaultProfile, normalizeProfile, resolveStoredProfile } = require('./profile')
 
@@ -38,6 +39,7 @@ class UserStore {
       if (!this.db.pragma('table_info(users)').some((column) => column.name === 'vip_expires_at')) {
         this.db.exec('ALTER TABLE users ADD COLUMN vip_expires_at INTEGER NOT NULL DEFAULT 0')
       }
+      this.payments = new PaymentLedger(this.db)
       this.read = this.db.prepare(`SELECT user_id AS userId, nickname, avatar,
         last_normal_avatar AS lastNormalAvatar, vip_expires_at AS vipExpiresAt FROM users WHERE user_id = ?`)
       this.find = this.db.prepare('SELECT user_id FROM user_identities WHERE provider = ? AND scope = ? AND subject = ?')

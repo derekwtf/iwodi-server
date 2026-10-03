@@ -1,6 +1,8 @@
 const EVENTS = {
   client: {
     USER_SYNC_STATE: 'user:syncState',
+    USER_CREATE_VIP_ORDER: 'user:createVipOrder',
+    USER_QUERY_VIP_ORDER: 'user:queryVipOrder',
     USER_UPDATE_PROFILE: 'user:updateProfile',
     ROOM_CREATE: 'room:create',
     ROOM_JOIN: 'room:join',

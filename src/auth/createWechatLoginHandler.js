@@ -1,6 +1,6 @@
 const { getUserState } = require('../user/profile')
 
-function createWechatLoginHandler({ roomManager, fetchWechatSession, userStore, tokens, appId }) {
+function createWechatLoginHandler({ roomManager, fetchWechatSession, userStore, tokens, appId, paymentService }) {
   if (!appId) throw new Error('必须配置 WECHAT_APP_ID')
   return async function handleWechatLogin(req, res) {
     const code = String(req.body?.code || '').trim()
@@ -31,7 +31,7 @@ function createWechatLoginHandler({ roomManager, fetchWechatSession, userStore, 
       )
       res.json({
         playerId,
-        ...getUserState(user),
+        ...getUserState(user, paymentService?.product),
         ...tokens.issue(user.userId),
       })
     } catch (error) {

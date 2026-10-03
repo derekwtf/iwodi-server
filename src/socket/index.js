@@ -9,7 +9,7 @@ function getRoomChannel(roomId) {
   return `room:${roomId}`
 }
 
-function initializeSocketServer(io, roomManager, { userStore, tokens }) {
+function initializeSocketServer(io, roomManager, { userStore, tokens, paymentService }) {
   const voteTimerStore = new Map()
 
   io.use((socket, next) => {
@@ -114,7 +114,7 @@ function initializeSocketServer(io, roomManager, { userStore, tokens }) {
 
     socket.emit(EVENTS.server.CONNECT_SUCCESS, {
       playerId: connection.playerId,
-      ...getUserState(socket.data.profile),
+      ...getUserState(socket.data.profile, paymentService?.product),
     })
 
     if (connection.reconnectEvent) {
@@ -131,7 +131,7 @@ function initializeSocketServer(io, roomManager, { userStore, tokens }) {
     }
 
     registerRoomHandlers(io, socket, roomManager, getRoomChannel, voteTimerStore)
-    registerUserHandlers(io, socket, roomManager, getRoomChannel, userStore)
+    registerUserHandlers(io, socket, roomManager, getRoomChannel, userStore, paymentService)
     registerGameHandlers(
       io,
       socket,

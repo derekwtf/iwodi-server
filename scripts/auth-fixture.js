@@ -8,19 +8,23 @@ const WordLibrary = require('../src/data/WordLibrary')
 const createAuthRouter = require('../src/auth/createAuthRouter')
 const { createTokenService } = require('../src/auth/tokens')
 const { initializeSocketServer } = require('../src/socket')
+const { PaymentService } = require('../src/payment/PaymentService')
+const createEventsRouter = require('../src/payment/createEventsRouter')
 
 async function createFixture(filename = ':memory:', options = {}) {
   const userStore = new UserStore(filename)
+  const paymentService = options.payment ? new PaymentService({ userStore, ...options.payment }) : null
   const tokens = createTokenService('test-only-secret-'.repeat(4))
   const manager = new RoomManager({ wordLibrary: new WordLibrary(), minStartPlayers: 2 })
   const app = express()
   app.use(express.json())
   // 唯一注入点是既有微信换码函数；生产服务没有测试登录路由。
-  app.use('/auth', createAuthRouter({ roomManager: manager, userStore, tokens, appId: options.appId || 'test-app',
+  app.use('/auth', createAuthRouter({ roomManager: manager, userStore, tokens, paymentService, appId: options.appId || 'test-app',
     fetchWechatSession: options.fetchWechatSession || (async (code) => ({ openid: `verified-${code}` })) }))
+  if (paymentService) app.use('/wechat/events', createEventsRouter(paymentService))
   const server = http.createServer(app)
   const io = new Server(server)
-  initializeSocketServer(io, manager, { userStore, tokens })
+  initializeSocketServer(io, manager, { userStore, tokens, paymentService })
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
   const url = `http://127.0.0.1:${server.address().port}`
   const clients = []
@@ -42,7 +46,7 @@ async function createFixture(filename = ':memory:', options = {}) {
     socket.connect()
     return { socket, ...await response }
   }
-  return { userStore, tokens, manager, app, server, io, url, login, connect,
+  return { userStore, paymentService, tokens, manager, app, server, io, url, login, connect,
     async close() {
       clients.forEach((socket) => socket.close())
       for (const roomId of manager.rooms.keys()) manager.destroyRoom(roomId)

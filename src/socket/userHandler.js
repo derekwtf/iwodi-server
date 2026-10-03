@@ -2,7 +2,7 @@ const EVENTS = require('./events')
 const { getUserState, resolveStoredProfile } = require('../user/profile')
 const { handleError, handleSuccess, requireActiveConnection } = require('./helpers')
 
-function registerUserHandlers(io, socket, roomManager, getRoomChannel, userStore) {
+function registerUserHandlers(io, socket, roomManager, getRoomChannel, userStore, paymentService) {
   let expiryTimer
 
   function syncUser(user, { markActive = false, error } = {}) {
@@ -17,7 +17,7 @@ function registerUserHandlers(io, socket, roomManager, getRoomChannel, userStore
       io.to(channel).emit(EVENTS.server.ROOM_STATE, { room: result.roomState })
       if (result.gameState) io.to(channel).emit(EVENTS.server.GAME_STATE_SYNC, result.gameState)
     }
-    const state = getUserState(user)
+    const state = getUserState(user, paymentService?.product)
     socket.emit(EVENTS.server.USER_STATE, { ...state, ...(error ? { error } : {}) })
     clearTimeout(expiryTimer)
     if (user.isVip) {
@@ -66,6 +66,35 @@ function registerUserHandlers(io, socket, roomManager, getRoomChannel, userStore
 
   socket.on(EVENTS.client.USER_UPDATE_PROFILE, (payload, ack) => saveProfile(payload, ack))
   socket.on(EVENTS.client.ROOM_UPDATE_PROFILE, (payload, ack) => saveProfile(payload, ack, true))
+  if (paymentService) {
+    let querying = false
+    for (const [event, method] of [
+      [EVENTS.client.USER_CREATE_VIP_ORDER, 'create'], [EVENTS.client.USER_QUERY_VIP_ORDER, 'queryOwn'],
+    ]) {
+      socket.on(event, async (payload, ack) => {
+        if (querying) return handleError(socket, event, ack, Object.assign(new Error('订单处理中，请稍后刷新'), { code: 'VIP_ORDER_BUSY' }))
+        querying = true
+        try {
+          requireActiveConnection(socket, roomManager)
+          const result = await paymentService[method](socket.data.userId, payload || {}, () =>
+            roomManager.getActiveSocketId(socket.data.playerId) === socket.id)
+          requireActiveConnection(socket, roomManager)
+          const user = userStore.getUser(socket.data.userId)
+          handleSuccess(ack, { ...result, ...syncUser(user) })
+        } catch (error) { handleError(socket, event, ack, error) }
+        finally { querying = false }
+      })
+    }
+    const changed = (userId) => {
+      if (userId !== socket.data.userId) return
+      try {
+        requireActiveConnection(socket, roomManager)
+        syncUser(userStore.getUser(userId))
+      } catch (_) { /* The next authenticated state refresh retries synchronization. */ }
+    }
+    paymentService.on('changed', changed)
+    socket.on('disconnect', () => paymentService.off('changed', changed))
+  }
   socket.on('disconnect', () => clearTimeout(expiryTimer))
   syncUser(socket.data.profile)
 }

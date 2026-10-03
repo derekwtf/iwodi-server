@@ -29,7 +29,7 @@ function resolveStoredProfile(profile, now = Date.now()) {
     vipExpiresAt, isVip }
 }
 
-function getUserState(user) {
+function getUserState(user, product = {}) {
   return {
     userId: user.userId,
     profile: { nickname: user.nickname, avatar: user.avatar },
@@ -39,7 +39,10 @@ function getUserState(user) {
       availableAvatars: [...AVATARS, ...(user.isVip ? VIP_AVATARS : [])],
       vipAvatars: [...VIP_AVATARS],
       durationDays: 30,
+      productId: 'vip_month',
+      priceFen: 1000,
       purchasable: false,
+      ...product,
       serverTime: Date.now(),
     },
   }

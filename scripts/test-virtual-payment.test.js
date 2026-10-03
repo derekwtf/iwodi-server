@@ -1,0 +1,271 @@
+const { test } = require('node:test')
+const assert = require('node:assert/strict')
+const { mkdtempSync, rmSync } = require('node:fs')
+const { tmpdir } = require('node:os')
+const { join } = require('node:path')
+const UserStore = require('../src/user/UserStore')
+const { readPaymentConfig, DAY_MS } = require('../src/payment/config')
+const { PaymentService } = require('../src/payment/PaymentService')
+const { WechatPaymentClient, paySignature, hmac } = require('../src/payment/WechatPaymentClient')
+const { MessageCipher, signature } = require('../src/payment/MessageCipher')
+const { createFixture, request } = require('./auth-fixture')
+
+const config = readPaymentConfig({ VIP_PAYMENT_ENABLED: 'true', WECHAT_APP_ID: 'test-app',
+  WECHAT_APP_SECRET: 'test-secret', VIP_OFFER_ID: '123', VIP_APP_KEY: 'test-appkey',
+  WECHAT_MESSAGE_TOKEN: 'test-token', WECHAT_MESSAGE_AES_KEY: 'A'.repeat(43) })
+const start = Date.UTC(2026, 0, 1)
+const paid = (order, extra = {}) => ({ order: { order_id: order.out_trade_no, wx_order_id: `wx-${order.out_trade_no}`,
+  env_type: 1, order_type: 0, status: 2, order_fee: 1000, paid_fee: 1000, left_fee: 1000, paid_time: start / 1000, ...extra } })
+function fixture(t, filename = ':memory:') {
+  const store = new UserStore(filename)
+  t.after(() => { if (store.db.open) store.close() })
+  const user = store.findOrCreate({ provider: 'wechat_mini_program', scope: 'test-app', subject: 'openid' })
+  let now = start, queries = 0, provides = 0
+  const client = { query: async (o) => { queries++; return paid(o) }, provide: async () => { provides++ },
+    sign: (o, key) => new WechatPaymentClient(config).sign(o, key) }
+  const service = new PaymentService({ userStore: store, config: { ...config }, now: () => now,
+    fetchWechatSession: async () => ({ openid: 'openid', sessionKey: 'session-secret' }), client,
+    logger: { warn() {} } })
+  const create = async (id = 'request-number-0001') => {
+    const result = await service.create(user.userId, { requestId: id, productId: 'vip_month', priceFen: 1000, code: 'code' })
+    return store.payments.require(result.order.outTradeNo)
+  }
+  return { store, user, service, client, create, setNow: (v) => { now = v }, counts: () => ({ queries, provides }) }
+}
+const refund = (o, id, amount = 1000) => ({ Event: 'xpay_refund_notify', MchOrderId: o.out_trade_no,
+  WxOrderId: `wx-${o.out_trade_no}`, OpenId: o.openid, WxRefundId: id, RefundFee: amount, RetCode: 0 })
+const delivery = (o) => ({ Event: 'xpay_goods_deliver_notify', OpenId: o.openid,
+  OutTradeNo: o.out_trade_no, Env: 0, GoodsInfo: { ProductId: o.product_id, Quantity: 1,
+    OrigPrice: 1000, ActualPrice: 1000, Attach: o.attach } })
+
+test('default disabled, exact vip_month/1000 configuration and official HMAC vectors', () => {
+  assert.equal(readPaymentConfig({}).enabled, false)
+  assert.equal(readPaymentConfig({}).productId, 'vip_month')
+  assert.throws(() => readPaymentConfig({ VIP_PAYMENT_ENABLED: 'true' }))
+  assert.throws(() => readPaymentConfig({ VIP_PRICE_FEN: '1' }))
+  const body = '{"openid": "xxx", "user_ip": "127.0.0.1", "env": 0}'
+  assert.equal(paySignature('/xpay/query_user_balance', body, '12345'), 'c37809f27c6d7fd1837ad2500a04512b66b34fd793a39a385fade56dca89a4b5')
+  assert.equal(hmac('9hAb/NEYUlkaMBEsmFgzig==', body), '089d9e8dc5d308977360c4b79ec600a93d736802802a807d634192328032f6c7')
+})
+
+test('official JSON safe-mode sample, URL verification, encrypted response and forged/appid rejection', () => {
+  const cipher = new MessageCipher({ token: 'AAAAA', appId: 'wxba5fad812f8e6fb9', aesKey: 'A'.repeat(43) })
+  assert.equal(cipher.verifyUrl({ signature: 'f464b24fc39322e44b38aa78f5edd27bd1441696', timestamp: '1714036504',
+    nonce: '1514711492', echostr: '4375120948345356249' }), '4375120948345356249')
+  const encrypted = '+qdx1OKCy+5JPCBFWw70tm0fJGb2Jmeia4FCB7kao+/Q5c/ohsOzQHi8khUOb05JCpj0JB4RvQMkUyus8TPxLKJGQqcvZqzDpVzazhZv6JsXUnnR8XGT740XgXZUXQ7vJVnAG+tE8NUd4yFyjPy7GgiaviNrlCTj+l5kdfMuFUPpRSrfMZuMcp3Fn2Pede2IuQrKEYwKSqFIZoNqJ4M8EajAsjLY2km32IIjdf8YL/P50F7mStwntrA2cPDrM1kb6mOcfBgRtWygb3VIYnSeOBrebufAlr7F9mFUPAJGj04='
+  const query = { timestamp: '1714112445', nonce: '415670741', encrypt_type: 'aes', msg_signature: '046e02f8204d34f8ba5fa3b1db94908f3df2e9b3' }
+  assert.equal(cipher.decrypt(encrypted, query).debug_str, 'hello world')
+  assert.throws(() => cipher.decrypt(encrypted, { ...query, msg_signature: '0'.repeat(40) }))
+  assert.throws(() => new MessageCipher({ token: 'AAAAA', appId: 'wrong', aesKey: 'A'.repeat(43) }).decrypt(encrypted, query))
+  const response = cipher.encrypt({ demo_resp: 'good luck' }, '415670741', 1713424427, Buffer.from('707722b803182950'))
+  assert.equal(response.Encrypt, 'ELGduP2YcVatjqIS+eZbp80MNLoAUWvzzyJxgGzxZO/5sAvd070Bs6qrLARC9nVHm48Y4hyRbtzve1L32tmxSQ==')
+  assert.equal(response.MsgSignature, '1b9339964ed2e271e7c7b6ff2b0ef902fc94dea1')
+})
+
+test('stable token cache coalesces requests and signs the exact query body; expiry/invalid-token retry', async () => {
+  let time = 1000, tokens = 0, calls = 0, rejectToken = false
+  const client = new WechatPaymentClient(config, { now: () => time, fetchImpl: async (url, options) => {
+    url = new URL(url)
+    const body = JSON.parse(options.body)
+    if (url.pathname === '/cgi-bin/stable_token') {
+      tokens++
+      assert.equal(body.force_refresh, false)
+      return { ok: true, json: async () => ({ access_token: `token-${tokens}`, expires_in: 7200 }) }
+    }
+    calls++
+    assert.equal(url.searchParams.get('pay_sig'), paySignature(url.pathname, options.body, config.appKey))
+    assert.equal(body.openid, 'openid')
+    const errcode = rejectToken ? 40001 : 0
+    rejectToken = false
+    return { ok: true, json: async () => ({ errcode, order: {} }) }
+  } })
+  const order = { openid: 'openid', env: 0, out_trade_no: 'order' }
+  await Promise.all([client.query(order), client.query(order)])
+  assert.equal(tokens, 1)
+  assert.equal(calls, 2)
+  time += 7200000
+  await client.query(order)
+  assert.equal(tokens, 2)
+  rejectToken = true
+  await client.query(order)
+  assert.equal(tokens, 3)
+})
+
+test('create binds authenticated identity, uses immutable sign data and request-id recovery never resigns', async (t) => {
+  const f = fixture(t)
+  const payload = { requestId: 'request-number-0001', productId: 'vip_month', priceFen: 1000, code: 'code' }
+  const result = await f.service.create(f.user.userId, { ...payload, quantity: 500, env: 1, durationDays: 999 })
+  assert.equal(JSON.parse(result.payment.signData).buyQuantity, 1)
+  assert.equal(JSON.parse(result.payment.signData).env, 0)
+  assert.equal(result.payment.signature, hmac('session-secret', result.payment.signData))
+  assert.equal(JSON.stringify(f.store.payments.require(result.order.outTradeNo)).includes('session-secret'), false)
+  assert.equal((await f.service.create(f.user.userId, payload)).payment, undefined)
+  await assert.rejects(f.service.create(f.user.userId, { ...payload, requestId: 'request-number-0002', priceFen: 1 }), { code: 'VIP_PRICE_CHANGED' })
+  f.service.fetchSession = async () => ({ openid: 'stranger', sessionKey: 'secret' })
+  await assert.rejects(f.service.create(f.user.userId, { ...payload, requestId: 'request-number-0002' }), { code: 'PAYMENT_IDENTITY_MISMATCH' })
+  f.service.config.enabled = false
+  await assert.rejects(f.service.create(f.user.userId, { ...payload, requestId: 'request-number-0002' }), { code: 'VIP_NOT_FOR_SALE' })
+})
+
+test('query waits for a timed-out creation to settle; no cross-account order access', async (t) => {
+  const f = fixture(t)
+  let complete
+  f.service.fetchSession = () => new Promise((resolve) => { complete = resolve })
+  const create = f.create()
+  const query = f.service.queryOwn(f.user.userId, { requestId: 'request-number-0001' })
+  complete({ openid: 'openid', sessionKey: 'key' })
+  const order = await create
+  assert.equal((await query).order.outTradeNo, order.out_trade_no)
+  await assert.rejects(f.service.queryOwn('stranger', { outTradeNo: order.out_trade_no }), { code: 'VIP_ORDER_NOT_FOUND' })
+})
+
+test('duplicate push and concurrent query grant once, iOS lacks WeChatPayInfo, off-sale still processes', async (t) => {
+  const f = fixture(t), order = await f.create()
+  f.service.config.enabled = false
+  f.client.query = async (o) => paid(o, { order_type: 7 })
+  await Promise.all([f.service.reconcile(order.out_trade_no), f.service.event(delivery(order)), f.service.reconcile(order.out_trade_no)])
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, start + 30 * DAY_MS)
+  assert.equal(f.counts().provides, 1)
+  assert.equal(f.store.payments.require(order.out_trade_no).delivery_ack_at, start)
+  const second = f.store.payments.create(f.user.userId, 'request-number-0002', 'openid', config, start)
+  await f.service.reconcile(second.out_trade_no)
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, start + 60 * DAY_MS)
+})
+
+test('invalid amount, ownership, product, quantity and env never grant; platform ids unique', async (t) => {
+  const f = fixture(t), order = await f.create()
+  for (const patch of [{ OpenId: 'wrong' }, { Env: 1 }, { GoodsInfo: { ...delivery(order).GoodsInfo, Quantity: 2 } },
+    { GoodsInfo: { ...delivery(order).GoodsInfo, ProductId: 'wrong' } }, { GoodsInfo: { ...delivery(order).GoodsInfo, ActualPrice: 1 } }]) {
+    await assert.rejects(f.service.event({ ...delivery(order), ...patch }), { code: 'DELIVERY_MISMATCH' })
+  }
+  for (const patch of [{ paid_fee: 1 }, { order_fee: 1 }, { env_type: 2 }, { order_id: 'wrong' }, { order_type: 8 }]) {
+    f.client.query = async (o) => paid(o, patch)
+    await assert.rejects(f.service.reconcile(order.out_trade_no, { force: true }))
+  }
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, 0)
+  f.client.query = async (o) => paid(o, { wx_order_id: 'same-platform-order' })
+  await f.service.reconcile(order.out_trade_no, { force: true })
+  const second = await f.create('request-number-0002')
+  await assert.rejects(f.service.reconcile(second.out_trade_no))
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, start + 30 * DAY_MS)
+})
+
+test('grant failure rolls back entitlement and ledger, restart retries only failed delivery acknowledgement', async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'wodi-payment-'))
+  t.after(() => rmSync(dir, { force: true, recursive: true }))
+  const filename = join(dir, 'users.sqlite'), f = fixture(t, filename), order = await f.create()
+  f.store.db.exec("CREATE TRIGGER fail_vip BEFORE UPDATE OF vip_expires_at ON users BEGIN SELECT RAISE(ABORT, 'test'); END")
+  await assert.rejects(f.service.reconcile(order.out_trade_no))
+  assert.equal(f.store.payments.require(order.out_trade_no).granted_at, null)
+  f.store.db.exec('DROP TRIGGER fail_vip')
+  f.client.provide = async () => { throw new Error('offline') }
+  await assert.rejects(f.service.reconcile(order.out_trade_no))
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, start + 30 * DAY_MS)
+  f.store.close()
+  const restored = fixture(t, filename)
+  restored.setNow(start + 6 * 60000)
+  await restored.service.sweep()
+  assert.equal(restored.store.getUser(f.user.userId).vipExpiresAt, start + 30 * DAY_MS)
+  assert.ok(restored.store.payments.require(order.out_trade_no).delivery_ack_at)
+})
+
+test('refund before delivery prevents granting; failed and partial refunds never revoke a full order', async (t) => {
+  const f = fixture(t), first = await f.create()
+  await f.service.event(refund(first, 'refund-first'))
+  await f.service.reconcile(first.out_trade_no)
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, 0)
+  const next = await f.create('request-number-0002')
+  await f.service.reconcile(next.out_trade_no)
+  await f.service.event({ ...refund(next, 'failed'), RetCode: 1 })
+  await f.service.event(refund(next, 'partial', 500))
+  await f.service.event(refund(next, 'partial', 500))
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, start + 30 * DAY_MS)
+  assert.equal(f.store.payments.require(next.out_trade_no).review_reason, 'PARTIAL_REFUND')
+  assert.equal(f.store.db.prepare('SELECT count(*) AS n FROM vip_refunds').get().n, 3)
+})
+
+test('refunds adjust later renewal intervals; consumed old orders do not consume other orders', async (t) => {
+  const f = fixture(t), a = await f.create(), b = await f.create('request-number-0002'), c = await f.create('request-number-0003')
+  for (const order of [a, b, c]) await f.service.reconcile(order.out_trade_no)
+  f.setNow(start + 10 * DAY_MS)
+  await f.service.event(refund(a, 'refund-a'))
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, start + 70 * DAY_MS)
+  assert.equal(f.store.payments.require(b.out_trade_no).starts_at, start + 10 * DAY_MS)
+  assert.equal(f.store.payments.require(c.out_trade_no).starts_at, start + 40 * DAY_MS)
+  await f.service.event(refund(a, 'refund-a'))
+  f.setNow(start + 50 * DAY_MS)
+  await f.service.event(refund(b, 'refund-b'))
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, start + 70 * DAY_MS)
+  await f.service.event(refund(c, 'refund-c'))
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, start + 50 * DAY_MS)
+})
+
+test('refund transaction rollback, retained legacy VIP and future renewal refund', async (t) => {
+  const f = fixture(t)
+  f.store.db.prepare('UPDATE users SET vip_expires_at=? WHERE user_id=?').run(start + 10 * DAY_MS, f.user.userId)
+  const a = await f.create(), b = await f.create('request-number-0002')
+  await f.service.reconcile(a.out_trade_no); await f.service.reconcile(b.out_trade_no)
+  f.store.db.exec("CREATE TRIGGER fail_vip BEFORE UPDATE OF vip_expires_at ON users BEGIN SELECT RAISE(ABORT, 'test'); END")
+  await assert.rejects(f.service.event(refund(a, 'refund-atomic')))
+  assert.equal(f.store.payments.refundById.get('refund-atomic'), undefined)
+  assert.equal(f.store.payments.require(b.out_trade_no).starts_at, start + 40 * DAY_MS)
+  f.store.db.exec('DROP TRIGGER fail_vip')
+  await f.service.event(refund(a, 'refund-atomic'))
+  await f.service.event(refund(b, 'refund-b'))
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, start + 10 * DAY_MS)
+})
+
+test('daily reconciliation catches full refund and partial refund is flagged; iOS inquiry uses actual usage', async (t) => {
+  const f = fixture(t), a = await f.create()
+  await f.service.reconcile(a.out_trade_no)
+  const inquiry = { Event: 'xpay_subscribe_ios_refund_query_notify', pay_order_id: a.out_trade_no, product_id: 'vip_month', p_count: '1' }
+  assert.equal((await f.service.event(inquiry)).result_code, 0)
+  f.setNow(start + DAY_MS)
+  assert.equal((await f.service.event(inquiry)).result_code, 1)
+  f.client.query = async (o) => paid(o, { status: 5, left_fee: 0 })
+  await f.service.sweep()
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, start + DAY_MS)
+  assert.equal((await f.service.event(inquiry)).result_code, 0)
+})
+
+test('authenticated socket + encrypted HTTP delivery/refund update membership and room without avatar replacement', async () => {
+  const f = await createFixture(':memory:', { payment: { config,
+    fetchWechatSession: async (code) => ({ openid: `verified-${code}`, sessionKey: 'key' }),
+    client: { query: async (o) => paid(o), provide: async () => {}, sign: (o, key) => new WechatPaymentClient(config).sign(o, key) } } })
+  try {
+    const account = await f.login('buyer'), other = await f.login('other')
+    assert.equal(account.membership.productId, 'vip_month')
+    assert.equal(account.membership.purchasable, true)
+    const buyer = await f.connect({ token: account.token }), stranger = await f.connect({ token: other.token })
+    const room = await request(buyer.socket, 'room:create', { gameMode: 'deal-only' })
+    await request(stranger.socket, 'room:join', { roomId: room.room.roomId })
+    const orderResponse = await request(buyer.socket, 'user:createVipOrder', { code: 'buyer', requestId: 'socket-request-0001', productId: 'vip_month', priceFen: 1000 })
+    assert.equal(orderResponse.ok, true)
+    const order = f.userStore.payments.require(orderResponse.order.outTradeNo)
+    assert.equal((await request(stranger.socket, 'user:queryVipOrder', { outTradeNo: order.out_trade_no })).ok, false)
+    const cipher = new MessageCipher(config)
+    async function post(message, forged = false) {
+      const envelope = cipher.encrypt(message)
+      const query = new URLSearchParams({ timestamp: String(envelope.TimeStamp), nonce: envelope.Nonce, encrypt_type: 'aes',
+        msg_signature: forged ? '0'.repeat(40) : envelope.MsgSignature })
+      return fetch(`${f.url}/wechat/events?${query}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(envelope) })
+    }
+    assert.equal((await post(delivery(order), true)).status, 403)
+    const delivered = await post(delivery(order))
+    assert.equal(delivered.status, 200)
+    const body = await delivered.json()
+    assert.equal(cipher.decrypt(body.Encrypt, { timestamp: String(body.TimeStamp), nonce: body.Nonce, encrypt_type: 'aes', msg_signature: body.MsgSignature }).ErrCode, 0)
+    const latest = await request(buyer.socket, 'user:syncState')
+    assert.equal(latest.membership.isVip, true)
+    assert.equal(latest.profile.avatar, account.profile.avatar)
+    assert.equal(f.manager.getRoomState(room.room.roomId).players[0].isVip, true)
+    await request(buyer.socket, 'user:updateProfile', { nickname: '会员', avatar: '/assets/avatars/avatar-9.svg' })
+    assert.equal((await post(refund(order, 'socket-refund'))).status, 200)
+    const refunded = await request(buyer.socket, 'user:syncState')
+    assert.equal(refunded.membership.isVip, false)
+    assert.equal(refunded.profile.avatar, account.profile.avatar)
+    assert.equal(f.manager.getRoomState(room.room.roomId).players[0].isVip, false)
+    const echoQuery = new URLSearchParams({ timestamp: '123', nonce: 'n', echostr: 'echo', signature: signature(config.token, '123', 'n') })
+    assert.equal(await (await fetch(`${f.url}/wechat/events?${echoQuery}`)).text(), 'echo')
+  } finally { await f.close() }
+})
