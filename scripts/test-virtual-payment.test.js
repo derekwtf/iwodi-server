@@ -5,7 +5,7 @@ const { tmpdir } = require('node:os')
 const { join } = require('node:path')
 const UserStore = require('../src/user/UserStore')
 const { readPaymentConfig, DAY_MS } = require('../src/payment/config')
-const { PaymentService } = require('../src/payment/PaymentService')
+const { PaymentService, publicOrder } = require('../src/payment/PaymentService')
 const { WechatPaymentClient, paySignature, hmac } = require('../src/payment/WechatPaymentClient')
 const { MessageCipher, signature } = require('../src/payment/MessageCipher')
 const { createFixture, request } = require('./auth-fixture')
@@ -117,6 +117,122 @@ test('query waits for a timed-out creation to settle; no cross-account order acc
   const order = await create
   assert.equal((await query).order.outTradeNo, order.out_trade_no)
   await assert.rejects(f.service.queryOwn('stranger', { outTradeNo: order.out_trade_no }), { code: 'VIP_ORDER_NOT_FOUND' })
+})
+
+for (const status of ['granted', 'refunded', 'closed', 'review']) {
+  test(`own query returns latest ${status} ledger result on platform failure without changing reconciliation errors`, async (t) => {
+    const f = fixture(t), order = await f.create(), logs = []
+    if (status === 'granted') await f.service.reconcile(order.out_trade_no)
+    if (status === 'refunded') {
+      await f.service.event(refund(order, 'fallback-refund'))
+      f.store.payments.review.run('PARTIAL_REFUND', order.out_trade_no)
+    }
+    if (status === 'closed') f.store.payments.closeOrder.run(order.out_trade_no)
+    if (status === 'review') f.store.payments.review.run('REFUND_AMOUNT_UNCONFIRMED', order.out_trade_no)
+    const failure = Object.assign(new Error('sensitive upstream message'), { code: 'PAYMENT_UNAVAILABLE' })
+    let queries = 0
+    f.client.query = async () => { queries++; throw failure }
+    f.service.logger.warn = (...args) => logs.push(args)
+    f.setNow(start + 3000)
+    for (const payload of [{ outTradeNo: order.out_trade_no }, { requestId: order.request_id }, {}]) {
+      const result = await f.service.queryOwn(f.user.userId, payload)
+      assert.equal(result.order.status, status)
+      assert.deepEqual(result.order, publicOrder(f.store.payments.require(order.out_trade_no)))
+    }
+    assert.equal(queries, 3, 'confirmed ledger must still attempt platform reconciliation')
+    assert.deepEqual(logs, Array.from({ length: 3 }, () => ['[vip-payment]', {
+      order: order.out_trade_no, code: failure.code,
+    }]))
+    await assert.rejects(f.service.reconcile(order.out_trade_no, { force: true }), (error) => error === failure)
+    await assert.rejects(f.service.event(delivery(order)), (error) => error === failure)
+    assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, status === 'granted' ? start + 30 * DAY_MS : 0)
+  })
+}
+
+test('own query returns a grant committed before failed acknowledgement; scheduled retry never grants twice', async (t) => {
+  const f = fixture(t), order = await f.create(), logs = []
+  let provides = 0, changes = 0
+  f.service.logger.warn = (...args) => logs.push(args)
+  f.service.on('changed', () => { changes++ })
+  f.client.provide = async () => { provides++; throw new Error('ack offline') }
+  const result = await f.service.queryOwn(f.user.userId, { outTradeNo: order.out_trade_no })
+  assert.equal(result.order.status, 'granted')
+  assert.equal(result.order.endsAt, start + 30 * DAY_MS)
+  let latest = f.store.payments.require(order.out_trade_no)
+  assert.equal(latest.delivery_ack_at, null)
+  assert.equal(latest.next_check_at, start + RETRY_MS)
+  assert.deepEqual(logs, [['[vip-payment]', { order: order.out_trade_no, code: 'PAYMENT_ERROR' }]])
+  await f.service.queryOwn(f.user.userId, { outTradeNo: order.out_trade_no })
+  await f.service.sweep()
+  assert.equal(provides, 2, 'background must wait for the scheduled retry')
+  f.setNow(start + RETRY_MS)
+  await f.service.sweep()
+  assert.equal(provides, 3)
+  latest = f.store.payments.require(order.out_trade_no)
+  assert.equal(latest.last_error, 'PAYMENT_ERROR')
+  assert.equal(latest.next_check_at, start + 2 * RETRY_MS)
+  f.client.provide = async () => { provides++ }
+  f.setNow(start + 2 * RETRY_MS)
+  await f.service.sweep()
+  await f.service.reconcile(order.out_trade_no, { force: true })
+  latest = f.store.payments.require(order.out_trade_no)
+  assert.equal(latest.delivery_ack_at, start + 2 * RETRY_MS)
+  assert.equal(latest.next_check_at, start + 2 * RETRY_MS + DAY_MS)
+  assert.equal(latest.last_error, null)
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, start + 30 * DAY_MS)
+  assert.equal(provides, 4)
+  assert.equal(changes, 1)
+})
+
+test('failed query rereads a refund committed by another service while its platform request was in flight', async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'wodi-payment-query-'))
+  t.after(() => rmSync(dir, { force: true, recursive: true }))
+  const filename = join(dir, 'users.sqlite'), f = fixture(t, filename), order = await f.create()
+  await f.service.reconcile(order.out_trade_no)
+  const other = fixture(t, filename)
+  f.setNow(start + DAY_MS); other.setNow(start + DAY_MS)
+  let rejectQuery, entered
+  const querying = new Promise((resolve) => { entered = resolve })
+  f.client.query = () => new Promise((resolve, reject) => { rejectQuery = reject; entered() })
+  const pending = f.service.queryOwn(f.user.userId, { outTradeNo: order.out_trade_no })
+  await querying
+  await other.service.event(refund(order, 'concurrent-refund'))
+  rejectQuery(new Error('offline'))
+  const result = await pending
+  assert.equal(result.order.status, 'refunded')
+  assert.equal(result.order.refundedAt, start + DAY_MS)
+  assert.equal(result.order.endsAt, start + DAY_MS)
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, start + DAY_MS)
+})
+
+test('pending, invalid amount and unauthorized queries never fall back to success', async (t) => {
+  const f = fixture(t), order = await f.create()
+  const failure = Object.assign(new Error('offline'), { code: 'PAYMENT_UNAVAILABLE' })
+  let queries = 0
+  f.client.query = async () => { queries++; throw failure }
+  await assert.rejects(f.service.queryOwn('stranger', { outTradeNo: order.out_trade_no }), { code: 'VIP_ORDER_NOT_FOUND' })
+  assert.equal(queries, 0)
+  await assert.rejects(f.service.queryOwn(f.user.userId, { outTradeNo: order.out_trade_no }), (error) => error === failure)
+  f.client.query = async (o) => paid(o, { paid_fee: 1 })
+  await assert.rejects(f.service.queryOwn(f.user.userId, { outTradeNo: order.out_trade_no }), { code: 'PAYMENT_AMOUNT_MISMATCH' })
+  assert.equal(f.store.payments.require(order.out_trade_no).status, 'pending')
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, 0)
+})
+
+test('database failures during grant, initial read and fallback read remain errors', async (t) => {
+  const f = fixture(t), order = await f.create()
+  f.store.db.exec("CREATE TRIGGER fail_vip BEFORE UPDATE OF vip_expires_at ON users BEGIN SELECT RAISE(ABORT, 'test'); END")
+  await assert.rejects(f.service.queryOwn(f.user.userId, { outTradeNo: order.out_trade_no }), { code: 'SQLITE_CONSTRAINT_TRIGGER' })
+  assert.equal(f.store.payments.require(order.out_trade_no).status, 'pending')
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, 0)
+  f.store.db.exec('DROP TRIGGER fail_vip')
+  await f.service.reconcile(order.out_trade_no)
+  f.setNow(start + 3000)
+  let queries = 0
+  f.client.query = async () => { queries++; f.store.close(); throw new Error('offline') }
+  await assert.rejects(f.service.queryOwn(f.user.userId, { outTradeNo: order.out_trade_no }), /database connection is not open/)
+  await assert.rejects(f.service.queryOwn(f.user.userId, { outTradeNo: order.out_trade_no }), /database connection is not open/)
+  assert.equal(queries, 1)
 })
 
 test('duplicate push and concurrent query grant once, iOS lacks WeChatPayInfo, off-sale still processes', async (t) => {

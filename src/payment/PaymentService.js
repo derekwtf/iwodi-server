@@ -84,7 +84,14 @@ class PaymentService extends EventEmitter {
     else order = this.ledger.latest.get(userId)
     if (!order && !payload.outTradeNo) return { order: null }
     if (!order || order.user_id !== userId) throw paymentError('VIP_ORDER_NOT_FOUND', '未找到该订单')
-    const current = await this.reconcile(order.out_trade_no)
+    let current
+    try { current = await this.reconcile(order.out_trade_no) }
+    catch (error) {
+      // Reconciliation can commit a grant before the platform acknowledgement fails.
+      current = this.ledger.require(order.out_trade_no)
+      if (!['granted', 'refunded', 'closed', 'review'].includes(publicOrder(current).status)) throw error
+      this.warn(order.out_trade_no, error.code || 'PAYMENT_ERROR')
+    }
     return { order: publicOrder(current) }
   }
 
