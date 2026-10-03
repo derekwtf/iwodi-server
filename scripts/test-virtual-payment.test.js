@@ -169,6 +169,122 @@ test('grant failure rolls back entitlement and ledger, restart retries only fail
   assert.ok(restored.store.payments.require(order.out_trade_no).delivery_ack_at)
 })
 
+const HOUR_MS = 60 * 60 * 1000
+const RETRY_MS = 5 * 60 * 1000
+for (const [age, interval] of [[0, RETRY_MS], [HOUR_MS - 1, RETRY_MS], [HOUR_MS, HOUR_MS],
+  [DAY_MS - 1, HOUR_MS], [DAY_MS, DAY_MS], [365 * DAY_MS, DAY_MS]]) {
+  for (const fails of [false, true]) {
+    test(`pending order aged ${age}ms schedules ${interval}ms after ${fails ? 'query failure' : 'unpaid response'}`, async (t) => {
+      const f = fixture(t), order = await f.create()
+      const now = start + age
+      let queries = 0
+      f.setNow(now)
+      f.client.query = async (o) => {
+        queries++
+        if (fails) throw Object.assign(new Error('offline'), { code: 'OFFLINE' })
+        return paid(o, { status: 1, paid_fee: 0, left_fee: 0 })
+      }
+      await f.service.sweep()
+      const latest = f.store.payments.require(order.out_trade_no)
+      assert.equal(queries, 1)
+      assert.equal(latest.status, 'pending')
+      assert.equal(latest.last_checked_at, now)
+      assert.equal(latest.next_check_at, now + interval)
+      assert.equal(latest.last_error, fails ? 'OFFLINE' : null)
+      assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, 0)
+      f.setNow(now + interval - 1)
+      await f.service.sweep()
+      assert.equal(queries, 1)
+      f.setNow(now + interval)
+      await f.service.sweep()
+      assert.equal(queries, 2)
+    })
+  }
+}
+
+test('pending scheduling uses completion time across age boundaries', async (t) => {
+  const f = fixture(t), order = await f.create()
+  f.setNow(start + HOUR_MS - 1)
+  f.client.query = async (o) => {
+    f.setNow(start + HOUR_MS)
+    return paid(o, { status: 0 })
+  }
+  await f.service.reconcile(order.out_trade_no)
+  assert.equal(f.store.payments.require(order.out_trade_no).next_check_at, start + 2 * HOUR_MS)
+  f.setNow(start + DAY_MS - 1)
+  f.client.query = async () => { f.setNow(start + DAY_MS); throw new Error('offline') }
+  await assert.rejects(f.service.reconcile(order.out_trade_no))
+  assert.equal(f.store.payments.require(order.out_trade_no).next_check_at, start + 2 * DAY_MS)
+})
+
+test('old pending failure keeps daily due date across restart and grants a late payment once', async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'wodi-payment-backoff-'))
+  t.after(() => rmSync(dir, { force: true, recursive: true }))
+  const filename = join(dir, 'users.sqlite'), f = fixture(t, filename), order = await f.create()
+  const now = start + 365 * DAY_MS
+  f.setNow(now)
+  f.client.query = async () => { throw new Error('not submitted') }
+  await f.service.sweep()
+  f.store.close()
+  const restored = fixture(t, filename)
+  restored.setNow(now + DAY_MS - 1)
+  await restored.service.sweep()
+  assert.equal(restored.counts().queries, 0)
+  restored.setNow(now + DAY_MS)
+  await restored.service.sweep()
+  await restored.service.event(delivery(order))
+  await restored.service.reconcile(order.out_trade_no, { force: true })
+  assert.equal(restored.store.getUser(f.user.userId).vipExpiresAt, now + 31 * DAY_MS)
+  assert.equal(restored.counts().provides, 1)
+})
+
+test('active query, notification and manual reconciliation bypass backoff; page queries still coalesce for two seconds', async (t) => {
+  const f = fixture(t), order = await f.create(), now = start + 2 * DAY_MS
+  let queries = 0
+  f.setNow(now)
+  f.client.query = async (o) => { queries++; return paid(o, { status: 1 }) }
+  await f.service.sweep()
+  await f.service.queryOwn(f.user.userId, { outTradeNo: order.out_trade_no })
+  assert.equal(queries, 1)
+  f.setNow(now + 2000)
+  await f.service.queryOwn(f.user.userId, { outTradeNo: order.out_trade_no })
+  assert.equal(queries, 2)
+  await f.service.sweep()
+  assert.equal(queries, 2)
+  f.client.query = async (o) => { queries++; return paid(o) }
+  await f.service.event(delivery(order))
+  assert.equal(queries, 3)
+  await f.service.reconcile(order.out_trade_no, { force: true })
+  assert.equal(queries, 4)
+  assert.equal(f.counts().provides, 1)
+})
+
+test('late grant with failed platform acknowledgement retries every five minutes, then checks refunds daily even on query failure', async (t) => {
+  const f = fixture(t), order = await f.create(), now = start + 365 * DAY_MS
+  let provides = 0
+  f.setNow(now)
+  f.client.provide = async () => { provides++; throw new Error('ack offline') }
+  await f.service.sweep()
+  const granted = f.store.payments.require(order.out_trade_no)
+  assert.equal(granted.status, 'granted')
+  assert.equal(granted.delivery_ack_at, null)
+  assert.equal(granted.next_check_at, now + RETRY_MS)
+  f.setNow(now + RETRY_MS)
+  await f.service.sweep()
+  assert.equal(provides, 2)
+  assert.equal(f.store.payments.require(order.out_trade_no).next_check_at, now + 2 * RETRY_MS)
+  f.client.provide = async () => { provides++ }
+  f.setNow(now + 2 * RETRY_MS)
+  await f.service.sweep()
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, now + 30 * DAY_MS)
+  assert.equal(f.store.payments.require(order.out_trade_no).next_check_at, now + 2 * RETRY_MS + DAY_MS)
+  f.client.query = async () => { throw new Error('refund query offline') }
+  f.setNow(now + 2 * RETRY_MS + DAY_MS)
+  await f.service.sweep()
+  assert.equal(f.store.payments.require(order.out_trade_no).next_check_at, now + 2 * RETRY_MS + 2 * DAY_MS)
+  assert.equal(provides, 3)
+})
+
 test('refund before delivery prevents granting; failed and partial refunds never revoke a full order', async (t) => {
   const f = fixture(t), first = await f.create()
   await f.service.event(refund(first, 'refund-first'))

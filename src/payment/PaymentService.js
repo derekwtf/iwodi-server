@@ -2,6 +2,19 @@ const { EventEmitter } = require('events')
 const { paymentError, DAY_MS } = require('./config')
 const { WechatPaymentClient } = require('./WechatPaymentClient')
 
+const RETRY_MS = 5 * 60 * 1000
+const HOUR_MS = 60 * 60 * 1000
+
+function checkInterval(order, now) {
+  if (order.status === 'granted') return order.delivery_ack_at ? DAY_MS : RETRY_MS
+  if (order.status === 'pending') {
+    const age = now - order.created_at
+    if (age >= DAY_MS) return DAY_MS
+    if (age >= HOUR_MS) return HOUR_MS
+  }
+  return RETRY_MS
+}
+
 function publicOrder(order) {
   if (!order) return null
   return { outTradeNo: order.out_trade_no, requestId: order.request_id, productId: order.product_id,
@@ -51,7 +64,7 @@ class PaymentService extends EventEmitter {
     const work = (async () => {
       const session = await this.fetchSession(payload.code)
       if (!stillActive()) throw paymentError('SESSION_REPLACED', '连接已变化，请重新确认')
-      if (!session.sessionKey || this.ledger.identity.get(this.config.appId, session.openid)?.user_id !== userId) {
+      if (!session.sessionKey || this.store.find.get('wechat_mini_program', this.config.appId, session.openid)?.user_id !== userId) {
         throw paymentError('PAYMENT_IDENTITY_MISMATCH', '微信身份已变化，请重新登录')
       }
       const order = this.ledger.create(userId, payload.requestId, session.openid, this.config, this.now())
@@ -124,15 +137,20 @@ class PaymentService extends EventEmitter {
       if (!force && order.last_checked_at && this.now() - order.last_checked_at < 2000 && !order.last_error) return order
       try {
         const response = await this.client.query(order)
-        const latest = await this.confirm(order, response.order)
-        const interval = latest.status === 'granted' && latest.delivery_ack_at ? DAY_MS : 5 * 60 * 1000
-        this.ledger.checked.run(this.now(), this.now() + interval, null, id)
-        return this.ledger.require(id)
+        await this.confirm(order, response.order)
       } catch (error) {
-        this.ledger.checked.run(this.now(), this.now() + 5 * 60 * 1000, error.code || 'PAYMENT_ERROR', id)
+        this.scheduleCheck(id, error.code || 'PAYMENT_ERROR')
         throw error
       }
+      this.scheduleCheck(id)
+      return this.ledger.require(id)
     })
+  }
+
+  scheduleCheck(id, error = null) {
+    // Confirmation may have granted entitlement before the platform acknowledgement failed.
+    const latest = this.ledger.require(id), now = this.now()
+    this.ledger.checked.run(now, now + checkInterval(latest, now), error, id)
   }
 
   async event(message) {

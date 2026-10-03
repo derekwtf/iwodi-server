@@ -38,7 +38,6 @@ class PaymentLedger {
     this.byRequest = db.prepare('SELECT * FROM vip_orders WHERE user_id = ? AND request_id = ?')
     this.byPlatform = db.prepare('SELECT * FROM vip_orders WHERE wx_order_id = ?')
     this.latest = db.prepare('SELECT * FROM vip_orders WHERE user_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 1')
-    this.identity = db.prepare("SELECT user_id FROM user_identities WHERE provider = 'wechat_mini_program' AND scope = ? AND subject = ?")
     this.insert = db.prepare(`INSERT INTO vip_orders
       (out_trade_no,user_id,request_id,app_id,openid,offer_id,product_id,price_fen,quantity,duration_ms,currency,env,attach,created_at,next_check_at)
       VALUES (@out_trade_no,@user_id,@request_id,@app_id,@openid,@offer_id,@product_id,@price_fen,1,@duration_ms,'CNY',0,@attach,@created_at,@next_check_at)`)
