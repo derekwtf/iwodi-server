@@ -3,7 +3,7 @@ const { randomInt } = require('crypto')
 const AVATAR_COUNT = 8
 const AVATARS = new Set(Array.from({ length: AVATAR_COUNT }, (_, index) =>
   `/assets/avatars/avatar-${index + 1}.svg`))
-const VIP_AVATARS = new Set(Array.from({ length: 12 }, (_, index) =>
+const VIP_AVATARS = new Set(Array.from({ length: 20 }, (_, index) =>
   `/assets/avatars/avatar-${index + 9}.svg`))
 
 function normalizeProfile({ nickname, avatar } = {}, isVip = false) {
@@ -12,7 +12,7 @@ function normalizeProfile({ nickname, avatar } = {}, isVip = false) {
     throw Object.assign(new Error('请输入昵称'), { code: 'INVALID_NICKNAME' })
   }
   if (!AVATARS.has(avatar) && !(isVip && VIP_AVATARS.has(avatar))) {
-    throw Object.assign(new Error('请选择可用头像，9～20 号仅限有效 VIP'), { code: 'INVALID_AVATAR' })
+    throw Object.assign(new Error('请选择可用头像，9～28 号仅限有效 VIP'), { code: 'INVALID_AVATAR' })
   }
   return { nickname: normalized, avatar }
 }

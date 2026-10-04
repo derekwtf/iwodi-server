@@ -10,7 +10,7 @@ const { getRoomState, getGamePublicState } = require('../src/room/stateProjectio
 const { createFixture, request } = require('./auth-fixture')
 
 const normal = '/assets/avatars/avatar-3.svg'
-const vip = '/assets/avatars/avatar-20.svg'
+const vip = '/assets/avatars/avatar-28.svg'
 const identity = { provider: 'wechat_mini_program', scope: 'test-app', subject: 'verified-vip' }
 
 function setExpiry(store, userId, value) {
@@ -49,10 +49,10 @@ const appearanceCases = [
     { avatar: defaultAvatar, isVip: false }],
   ['VIP avatar with an invalid fallback', { avatar: vip, lastNormalAvatar: 'https://example.com/avatar.png' },
     { avatar: defaultAvatar, isVip: false }],
-  ['reserved avatar with active VIP', { avatar: '/assets/avatars/avatar-21.svg', vipExpiresAt: projectionTime + 1,
+  ['reserved avatar with active VIP', { avatar: '/assets/avatars/avatar-29.svg', vipExpiresAt: projectionTime + 1,
     lastNormalAvatar: normal }, { avatar: normal, isVip: true }],
   ['reserved avatar with a reserved fallback', { avatar: '/assets/avatars/avatar-40.svg',
-    lastNormalAvatar: '/assets/avatars/avatar-21.svg' }, { avatar: defaultAvatar, isVip: false }],
+    lastNormalAvatar: '/assets/avatars/avatar-29.svg' }, { avatar: defaultAvatar, isVip: false }],
   ['invalid URL with active VIP', { avatar: 'https://example.com/avatar.png', vipExpiresAt: projectionTime + 1,
     lastNormalAvatar: normal }, { avatar: normal, isVip: true }],
   ['invalid URL without VIP', { avatar: 'https://example.com/avatar.png' },
@@ -190,7 +190,7 @@ test('private state, forged claims, outside-room editing, room broadcast, expiry
     const host = await f.connect({ token: account.token })
     assert.equal(host.membership.isVip, true)
     assert.equal(host.membership.vipExpiresAt, expiresAt)
-    assert.equal(host.membership.availableAvatars.length, 20)
+    assert.equal(host.membership.availableAvatars.length, 28)
     const saved = await request(host.socket, 'user:updateProfile', { nickname: '会员', avatar: vip })
     assert.equal(saved.ok, true)
     const created = await request(host.socket, 'room:create', { gameMode: 'deal-only' })
@@ -284,7 +284,7 @@ for (const event of ['user:updateProfile', 'room:updateProfile']) {
       assert.deepEqual(saved.profile, { nickname: '会员', avatar: vip })
       assert.equal(saved.membership.isVip, true)
       assert.equal(saved.membership.vipExpiresAt, expiry)
-      assert.equal(saved.membership.availableAvatars.length, 20)
+      assert.equal(saved.membership.availableAvatars.length, 28)
       assert.ok(saved.membership.serverTime >= before && saved.membership.serverTime <= Date.now())
       assert.deepEqual(states, [{ userId: saved.userId, profile: saved.profile, membership: saved.membership }])
       assert.deepEqual(rooms, [saved.room])

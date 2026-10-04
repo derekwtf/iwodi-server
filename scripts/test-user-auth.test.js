@@ -16,12 +16,12 @@ function identity(subject, scope = 'app', provider = 'wechat_mini_program') {
   return { provider, scope, subject }
 }
 
-test('ordinary avatars are 1–8; VIP avatars are 9–20; reserves cannot be saved', () => {
+test('ordinary avatars are 1–8; VIP avatars are 9–28; reserves cannot be saved', () => {
   for (let avatarId = 1; avatarId <= 40; avatarId += 1) {
     const candidate = { ...profile, avatar: `/assets/avatars/avatar-${avatarId}.svg` }
     if (avatarId <= 8) assert.deepEqual(normalizeProfile(candidate), candidate)
     else assert.throws(() => normalizeProfile(candidate), { code: 'INVALID_AVATAR' })
-    if (avatarId <= 20) assert.deepEqual(normalizeProfile(candidate, true), candidate)
+    if (avatarId <= 28) assert.deepEqual(normalizeProfile(candidate, true), candidate)
     else assert.throws(() => normalizeProfile(candidate, true), { code: 'INVALID_AVATAR' })
   }
 })
@@ -31,7 +31,7 @@ test('reserved stored avatars fall back on login and repair persisted choices', 
   try {
     const verifiedIdentity = identity('reserved-avatar')
     const user = store.findOrCreate(verifiedIdentity)
-    for (const avatarId of [21, 32, 40]) {
+    for (const avatarId of [29, 32, 40]) {
       const avatar = `/assets/avatars/avatar-${avatarId}.svg`
       store.db.prepare('UPDATE users SET avatar = ?, last_normal_avatar = ? WHERE user_id = ?')
         .run(avatar, avatar, user.userId)
