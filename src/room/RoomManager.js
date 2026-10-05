@@ -310,14 +310,9 @@ class RoomManager extends EventEmitter {
     if (room.status !== 'waiting') {
       throw this._createError('GAME_ALREADY_STARTED', '游戏已开始，无法切换玩法')
     }
-    const rules = getPlayRules(playMode)
-    if (room.players.length > rules.maxPlayers) {
-      throw this._createError('ROOM_OVER_CAPACITY', '肢体表达适合 3～5 人，请先将房间人数调整至 5 人以内')
-    }
+    getPlayRules(playMode)
     if (room.playMode !== playMode) {
       room.playMode = playMode
-      room.spyCountManual = false
-      this._refreshSpyCount(room)
       this._markRoomActive(room)
     }
     return { room, roomState: this.getRoomState(room.id) }
@@ -593,7 +588,7 @@ class RoomManager extends EventEmitter {
   }
 
   _refreshSpyCount(room) {
-    if (room.playMode === 'body' || !room.spyCountManual) {
+    if (!room.spyCountManual) {
       room.spyCount = getDefaultSpyCount(room.playMode, room.players.length)
       return
     }

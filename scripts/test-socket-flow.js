@@ -40,7 +40,7 @@ async function main() {
   const fixture = await createFixture()
   fixture.manager.bodyPromptLibrary = new BodyPromptLibrary()
   try {
-    const accounts = await Promise.all(Array.from({ length: 6 }, (_, index) => fixture.login('flow-' + index)))
+    const accounts = await Promise.all(Array.from({ length: 13 }, (_, index) => fixture.login('flow-' + index)))
     const clients = []
     for (const account of accounts) clients.push(await fixture.connect({ token: account.token }))
     let host = clients[0]
@@ -48,6 +48,22 @@ async function main() {
     assert.equal(first.room.playMode, 'language')
     const oldRoomId = first.room.roomId
     await request(clients[1].socket, 'room:join', { roomId: oldRoomId })
+    for (const playMode of ['language', 'body']) {
+      await request(host.socket, 'room:setPlayMode', { playMode })
+      assert.equal((await request(host.socket, 'room:startGame', { playMode })).error.code, 'NOT_ENOUGH_PLAYERS')
+      assert.equal(fixture.manager.getRoomState(oldRoomId).status, 'waiting')
+    }
+    await request(clients[2].socket, 'room:join', { roomId: oldRoomId })
+    for (const playMode of ['language', 'body']) {
+      await request(host.socket, 'room:setPlayMode', { playMode })
+      const card = waitForEvent(host.socket, 'game:started')
+      assert.equal((await request(host.socket, 'room:startGame', { playMode })).ok, true)
+      assert.equal((await card).playMode, playMode)
+      const restart = await request(host.socket, 'game:restart')
+      assert.equal(restart.room.minStartPlayers, 3)
+      assert.equal(restart.room.maxPlayers, 12)
+    }
+    await request(clients[2].socket, 'room:leave')
     const oldDisconnected = waitForEvent(host.socket, 'disconnect')
     host = await fixture.connect({ token: accounts[0].token, playerId: host.playerId })
     await oldDisconnected
@@ -72,7 +88,7 @@ async function main() {
     assert.equal((await request(clients[1].socket, 'room:setPlayMode', { playMode: 'body' })).error.code, 'HOST_ONLY_ACTION')
     const modeBroadcast = waitForEvent(clients[1].socket, 'room:state', (payload) => payload.room.playMode === 'body')
     const mode = await request(host.socket, 'room:setPlayMode', { playMode: 'body' })
-    assert.equal(mode.room.maxPlayers, 5)
+    assert.equal(mode.room.maxPlayers, 12)
     assert.equal(mode.room.minStartPlayers, 3)
     assert.equal(mode.room.spyCount, 1)
     assert.deepEqual((await modeBroadcast).room, mode.room)
@@ -84,12 +100,16 @@ async function main() {
     assert.equal((await refreshed).room.playMode, 'body')
     assert.equal(fixture.manager.getRoomState(roomId).status, 'waiting')
     await request(clients[4].socket, 'room:join', { roomId })
-    assert.equal((await request(clients[5].socket, 'room:join', { roomId })).error.code, 'ROOM_FULL')
-    const participants = [host, ...clients.slice(1, 5)]
+    assert.equal((await request(clients[5].socket, 'room:join', { roomId })).ok, true)
+    const spyBroadcast = waitForEvent(clients[1].socket, 'room:state', (payload) => payload.room.spyCount === 2)
+    const configured = await request(host.socket, 'room:setSpyCount', { spyCount: 2 })
+    assert.equal(configured.spyCount, 2)
+    assert.equal((await spyBroadcast).room.spyCount, 2)
+    const participants = [host, ...clients.slice(1, 6)]
     const cards = participants.map((client) => waitForEvent(client.socket, 'game:started'))
     assert.equal((await request(host.socket, 'room:startGame', { playMode: 'body' })).ok, true)
     const snapshots = await Promise.all(cards)
-    assert.equal(snapshots.filter((card) => card.myRole === 'spy').length, 1)
+    assert.equal(snapshots.filter((card) => card.myRole === 'spy').length, 2)
     assert.ok(snapshots.every((card) => card.playMode === 'body' && card.myPerformanceSteps.length === 2))
     assert.equal((await request(host.socket, 'room:setPlayMode', { playMode: 'language' })).error.code, 'GAME_ALREADY_STARTED')
     for (const event of ['game:confirmWord', 'game:startVote', 'game:vote', 'game:continue']) {
@@ -116,25 +136,47 @@ async function main() {
     const restarted = await request(host.socket, 'game:restart')
     assert.equal(restarted.room.status, 'waiting')
     assert.equal(restarted.room.playMode, 'body')
+    assert.equal(restarted.room.spyCount, 1)
     assert.equal((await restartEvent).room.playMode, 'body')
     assert.equal((await request(host.socket, 'room:syncState')).game, null)
     await request(host.socket, 'room:setPlayMode', { playMode: 'language' })
     const languageCard = waitForEvent(host.socket, 'game:started')
     await request(host.socket, 'room:startGame', { playMode: 'language' })
     assert.equal((await languageCard).myPerformanceSteps, null)
+    await request(host.socket, 'game:restart')
+    await request(replacement.socket, 'room:join', { roomId })
+    for (const client of clients.slice(6, 12)) {
+      assert.equal((await request(client.socket, 'room:join', { roomId })).ok, true)
+    }
+    await request(host.socket, 'room:setSpyCount', { spyCount: 3 })
+    for (const playMode of ['body', 'language', 'body']) {
+      const broadcast = waitForEvent(clients[1].socket, 'room:state', (payload) => payload.room.playMode === playMode)
+      const switched = await request(host.socket, 'room:setPlayMode', { playMode })
+      assert.equal(switched.room.spyCount, 3)
+      assert.equal(switched.room.maxPlayers, 12)
+      assert.equal(switched.room.playerCount, 12)
+      assert.deepEqual((await broadcast).room, switched.room)
+    }
+    const overflow = await request(clients[12].socket, 'room:create')
+    const fullRoom = fixture.manager.getRoomState(roomId)
+    for (const playMode of ['language', 'body']) {
+      await request(host.socket, 'room:setPlayMode', { playMode })
+      assert.equal((await request(clients[12].socket, 'room:join', { roomId })).error.code, 'ROOM_FULL')
+      assert.equal(fixture.manager.getRoomIdForPlayer(clients[12].playerId), overflow.room.roomId)
+      assert.deepEqual(fixture.manager.getRoomState(roomId), { ...fullRoom, playMode })
+    }
+    const finalCards = [host, clients[1], replacement, ...clients.slice(3, 12)]
+      .map((client) => waitForEvent(client.socket, 'game:started'))
+    assert.equal((await request(host.socket, 'room:startGame', { playMode: 'body' })).ok, true)
+    assert.equal((await Promise.all(finalCards)).filter((card) => card.myRole === 'spy').length, 3)
+    const finalRestart = await request(host.socket, 'game:restart')
+    assert.equal(finalRestart.room.spyCount, 3)
     for (const payload of publicPayloads) {
       const serialized = JSON.stringify(payload)
       for (const secret of ['myWord', 'myRole', 'myPerformanceSteps', 'playerWords', 'playerPerformanceSteps', 'wordPair', 'promptPairKey']) {
         assert.equal(serialized.includes('"' + secret + '"'), false)
       }
     }
-    await request(host.socket, 'game:restart')
-    await request(replacement.socket, 'room:join', { roomId })
-    await request(clients[5].socket, 'room:join', { roomId })
-    const before = fixture.manager.getRoomState(roomId)
-    const rejected = await request(host.socket, 'room:setPlayMode', { playMode: 'body' })
-    assert.equal(rejected.error.code, 'ROOM_OVER_CAPACITY')
-    assert.deepEqual(fixture.manager.getRoomState(roomId), before)
     console.log('Real authenticated socket flow passed for language and body.')
   } finally { await fixture.close() }
 }

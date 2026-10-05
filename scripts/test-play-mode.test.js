@@ -14,34 +14,29 @@ function fixture(context, count = 4, options = {}) {
   const playerIds = Array.from({ length: count }, (_, index) => manager.registerConnection({
     socketId: `socket-${index}`, identityKey: `identity-${index}`,
   }).playerId)
-  const { room } = manager.createRoom({ playerId: playerIds[0], nickname: '房主' })
+  const { room } = manager.createRoom({ playerId: playerIds[0], nickname: '房主', playMode: options.playMode || 'language' })
   for (const playerId of playerIds.slice(1)) manager.joinRoom(room.id, { playerId, nickname: playerId })
   return { manager, room, hostId: playerIds[0], playerIds }
 }
 
-for (const [playMode, counts] of [['body', [2, 3, 4, 5, 6]], ['language', [3, 4, 5, 6, 8, 9, 12]]]) {
-  for (const count of counts) test(`${playMode}: ${count} players obey product rules`, (context) => {
-    const { manager, room, hostId } = fixture(context, count, { minStartPlayers: 2, maxPlayers: 99 })
-    if (playMode === 'body' && count === 6) {
-      const previous = manager.getRoomState(room.id)
-      assert.throws(() => manager.setPlayMode(hostId, playMode), { code: 'ROOM_OVER_CAPACITY' })
-      assert.deepEqual(manager.getRoomState(room.id), previous)
-      room.playMode = 'body'
-      assert.throws(() => manager.startGame(hostId, playMode), { code: 'NOT_ENOUGH_PLAYERS' })
-      return
-    }
+for (const playMode of ['language', 'body']) {
+  for (const count of [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]) test(`${playMode}: ${count} players obey product rules`, (context) => {
+    const { manager, room, hostId } = fixture(context, count, { playMode, minStartPlayers: 2, maxPlayers: 99 })
     manager.setPlayMode(hostId, playMode)
-    const minPlayers = playMode === 'body' ? 3 : 4
-    assert.equal(manager.getRoomState(room.id).minStartPlayers, minPlayers)
-    assert.equal(manager.getRoomState(room.id).maxPlayers, playMode === 'body' ? 5 : 12)
-    if (count < minPlayers) {
+    assert.equal(manager.getRoomState(room.id).minStartPlayers, 3)
+    assert.equal(manager.getRoomState(room.id).maxPlayers, 12)
+    assert.equal(room.spyCount, count >= 9 ? 2 : 1)
+    if (count < 3) {
+      const before = manager.getRoomState(room.id)
       assert.throws(() => manager.startGame(hostId, playMode), { code: 'NOT_ENOUGH_PLAYERS' })
+      assert.deepEqual(manager.getRoomState(room.id), before)
       assert.equal(room.gameState, null)
+      assert.deepEqual(room.usedPromptPairIds, { language: [], body: [] })
     } else {
       manager.startGame(hostId, playMode)
       assert.equal(room.gameState.playMode, playMode)
       assert.equal(Object.values(room.gameState.roles).filter((role) => role === 'spy').length,
-        playMode === 'language' && count >= 9 ? 2 : 1)
+        count >= 9 ? 2 : 1)
     }
   })
 }
@@ -54,20 +49,24 @@ test('permissions, strict modes, locking, and failed changes are atomic', (conte
     assert.throws(() => manager.setPlayMode(hostId, invalid), { code: 'INVALID_PLAY_MODE' })
     assert.throws(() => manager.createRoom({ playerId: hostId, playMode: invalid }), { code: 'INVALID_PLAY_MODE' })
     assert.equal(manager.getRoomIdForPlayer(hostId), room.id)
+    assert.deepEqual(manager.getRoomState(room.id), before)
+    assert.equal(room.spyCountManual, true)
   }
   assert.throws(() => manager.setPlayMode(playerIds[1], 'body'), { code: 'HOST_ONLY_ACTION' })
   manager.markDisconnected('socket-5')
-  assert.throws(() => manager.setPlayMode(hostId, 'body'), { code: 'ROOM_OVER_CAPACITY' })
+  manager.setPlayMode(hostId, 'body')
   assert.equal(room.spyCount, 2)
-  assert.equal(room.playMode, 'language')
+  assert.equal(room.spyCountManual, true)
+  assert.equal(room.playMode, 'body')
   assert.equal(manager.getRoomState(room.id).maxPlayers, before.maxPlayers)
   const activeAt = room.lastActivityAt
-  manager.setPlayMode(hostId, 'language')
+  manager.setPlayMode(hostId, 'body')
   assert.equal(room.lastActivityAt, activeAt)
   assert.equal(room.spyCount, 2)
   manager.leaveRoom(room.id, playerIds[5])
   manager.setPlayMode(hostId, 'body')
   assert.equal(room.spyCount, 1)
+  assert.equal(room.spyCountManual, true)
   manager.setPlayMode(hostId, 'language')
   assert.equal(room.spyCount, 1)
   assert.throws(() => manager.startGame(hostId, 'body'), { code: 'PLAY_MODE_MISMATCH' })
@@ -78,40 +77,90 @@ test('permissions, strict modes, locking, and failed changes are atomic', (conte
   assert.throws(() => manager.restartGame(playerIds[1]), { code: 'HOST_ONLY_ACTION' })
 })
 
-test('language rejects a thirteenth member without leaving their original room', (context) => {
-  const { manager, room } = fixture(context, 12)
+for (const playMode of ['language', 'body']) test(`${playMode} rejects a thirteenth member without leaving their original room`, (context) => {
+  const { manager, room } = fixture(context, 12, { playMode })
   const playerId = manager.registerConnection({ socketId: 'overflow', identityKey: 'overflow' }).playerId
   const original = manager.createRoom({ playerId }).room
+  const before = manager.getRoomState(room.id)
+  const originalBefore = manager.getRoomState(original.id)
   assert.throws(() => manager.joinRoom(room.id, { playerId }), { code: 'ROOM_FULL' })
   assert.equal(manager.getRoomIdForPlayer(playerId), original.id)
   assert.equal(room.players.length, 12)
+  assert.deepEqual(manager.getRoomState(room.id), before)
+  assert.deepEqual(manager.getRoomState(original.id), originalBefore)
 })
 
-for (const [count, maxSpyCount] of [[4, 1], [5, 1], [6, 2], [8, 2], [9, 3], [12, 3]]) {
-  test(`language spy bounds at ${count} players`, (context) => {
+for (const playMode of ['language', 'body']) {
+  for (const [count, maxSpyCount] of [[3, 1], [5, 1], [6, 2], [8, 2], [9, 3], [12, 3]]) {
+    test(`${playMode} spy bounds at ${count} players`, (context) => {
+      const { manager, room, hostId, playerIds } = fixture(context, count, { playMode })
+      assert.throws(() => manager.setSpyCount(playerIds[1], 1), { code: 'HOST_ONLY_ACTION' })
+      for (const invalid of [0, -1, 1.5, '1', NaN, Infinity, maxSpyCount + 1]) {
+        const before = room.spyCount
+        assert.throws(() => manager.setSpyCount(hostId, invalid), { code: 'INVALID_SPY_COUNT' })
+        assert.equal(room.spyCount, before)
+      }
+      for (let spyCount = 1; spyCount <= maxSpyCount; spyCount += 1) {
+        manager.setSpyCount(hostId, spyCount)
+        manager.startGame(hostId, playMode)
+        assert.equal(Object.values(room.gameState.roles).filter((role) => role === 'spy').length, spyCount)
+        manager.restartGame(hostId)
+        assert.equal(room.spyCount, spyCount)
+        assert.equal(room.spyCountManual, true)
+      }
+      room.spyCount = 1.5
+      assert.throws(() => manager.startGame(hostId, playMode), { code: 'INVALID_SPY_COUNT' })
+    })
+  }
+}
+
+for (const count of [6, 7, 8, 9, 10, 11, 12]) {
+  test(`mode switches preserve default and manual configuration with ${count} players`, (context) => {
     const { manager, room, hostId } = fixture(context, count)
-    for (const invalid of [0, -1, 1.5, '1', NaN, Infinity, maxSpyCount + 1]) {
-      const before = room.spyCount
-      assert.throws(() => manager.setSpyCount(hostId, invalid), { code: 'INVALID_SPY_COUNT' })
-      assert.equal(room.spyCount, before)
+    for (const spyCount of [null, 1, count >= 9 ? 3 : 2]) {
+      if (spyCount !== null) manager.setSpyCount(hostId, spyCount)
+      for (const playMode of ['body', 'language']) {
+        manager.setPlayMode(hostId, playMode)
+        assert.equal(room.playMode, playMode)
+        assert.equal(room.spyCount, spyCount === null ? (count >= 9 ? 2 : 1) : spyCount)
+        assert.equal(room.spyCountManual, spyCount !== null)
+      }
     }
-    manager.setSpyCount(hostId, maxSpyCount)
-    manager.startGame(hostId, 'language')
-    assert.equal(Object.values(room.gameState.roles).filter((role) => role === 'spy').length, maxSpyCount)
-    manager.restartGame(hostId)
-    room.spyCount = 1.5
-    assert.throws(() => manager.startGame(hostId, 'language'), { code: 'INVALID_SPY_COUNT' })
   })
 }
 
-test('body capacity, spy count, snapshots, original reconnect cards, leave and restart', (context) => {
-  const { manager, room, hostId, playerIds } = fixture(context, 5)
+for (const playMode of ['language', 'body']) {
+  test(`${playMode} population changes refresh defaults and clamp manual counts without resetting them`, (context) => {
+    const { manager, room, hostId, playerIds } = fixture(context, 12, { playMode })
+    for (const playerId of playerIds.slice(8)) manager.leaveRoom(room.id, playerId)
+    assert.equal(room.spyCount, 1)
+    manager.joinRoom(room.id, { playerId: playerIds[8] })
+    assert.equal(room.spyCount, 2)
+    manager.setSpyCount(hostId, 1)
+    manager.joinRoom(room.id, { playerId: playerIds[9] })
+    assert.equal(room.spyCount, 1)
+    manager.setSpyCount(hostId, 3)
+    manager.startGame(hostId, playMode)
+    manager.restartGame(hostId)
+    assert.equal(room.spyCount, 3)
+    for (const playerId of playerIds.slice(8, 10)) manager.leaveRoom(room.id, playerId)
+    assert.equal(room.spyCount, 2)
+    for (const playerId of playerIds.slice(5, 8)) manager.leaveRoom(room.id, playerId)
+    assert.equal(room.spyCount, 1)
+    assert.equal(room.spyCountManual, true)
+    for (const playerId of playerIds.slice(5, 12)) manager.joinRoom(room.id, { playerId })
+    assert.equal(room.spyCount, 1)
+    assert.equal(room.spyCountManual, true)
+    manager.startGame(hostId, playMode)
+    manager.restartGame(hostId)
+    assert.equal(room.spyCount, 1)
+  })
+}
+
+test('body multi-spy snapshots, original reconnect cards, leave and restart', (context) => {
+  const { manager, room, hostId, playerIds } = fixture(context, 6)
   manager.setPlayMode(hostId, 'body')
-  for (const invalid of [0, 2, '1', 1.5]) {
-    assert.throws(() => manager.setSpyCount(hostId, invalid), { code: 'INVALID_SPY_COUNT' })
-  }
-  const extraId = manager.registerConnection({ socketId: 'extra', identityKey: 'extra' }).playerId
-  assert.throws(() => manager.joinRoom(room.id, { playerId: extraId }), { code: 'ROOM_FULL' })
+  manager.setSpyCount(hostId, 2)
   manager.startGame(hostId, 'body')
   const publicState = manager.getGamePublicState(room.id, { includeEndedSecrets: true })
   for (const key of ['wordPair', 'roles', 'playerWords', 'myWord', 'myRole', 'myPerformanceSteps',
