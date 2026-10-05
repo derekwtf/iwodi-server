@@ -53,7 +53,6 @@ function createRoomManager() {
     wordLibrary: new WordLibrary([{ civilian: '苹果', spy: '香蕉' }]),
     waitingIdleMs: 50,
     playingIdleMs: 70,
-    endedIdleMs: 50,
     idleWarningMs: 20,
   })
 }
@@ -115,7 +114,7 @@ async function testPlayingRoomHeartbeatExtendsLifetime() {
   joinRoom(roomManager, roomId, guestAId, '玩家甲')
   joinRoom(roomManager, roomId, guestBId, '玩家乙')
   joinRoom(roomManager, roomId, guestCId, '玩家丙')
-  roomManager.startGame(hostId)
+  roomManager.startGame(hostId, 'language')
 
   await sleep(40)
   roomManager.heartbeat(hostId)
@@ -143,7 +142,7 @@ async function testPlayingRoomClosesWithoutHeartbeat() {
   joinRoom(roomManager, roomId, guestAId, '玩家丁')
   joinRoom(roomManager, roomId, guestBId, '玩家戊')
   joinRoom(roomManager, roomId, guestCId, '玩家己')
-  roomManager.startGame(hostId)
+  roomManager.startGame(hostId, 'language')
 
   const closePayload = await waitForEvent(
     roomManager,
@@ -155,32 +154,29 @@ async function testPlayingRoomClosesWithoutHeartbeat() {
   assert.strictEqual(roomManager.getRoomState(roomId), null)
 }
 
-async function testEndedRoomIdleClose() {
+async function testRestartedRoomIdleClose() {
   const roomManager = createRoomManager()
-  const hostId = registerPlayer(roomManager, 'socket-ended-host')
-  const guestAId = registerPlayer(roomManager, 'socket-ended-a')
-  const guestBId = registerPlayer(roomManager, 'socket-ended-b')
-  const guestCId = registerPlayer(roomManager, 'socket-ended-c')
+  const hostId = registerPlayer(roomManager, 'socket-restarted-host')
+  const guestAId = registerPlayer(roomManager, 'socket-restarted-a')
+  const guestBId = registerPlayer(roomManager, 'socket-restarted-b')
+  const guestCId = registerPlayer(roomManager, 'socket-restarted-c')
   const roomId = createRoom(roomManager, hostId, '房主丁')
 
   joinRoom(roomManager, roomId, guestAId, '玩家庚')
   joinRoom(roomManager, roomId, guestBId, '玩家辛')
   joinRoom(roomManager, roomId, guestCId, '玩家壬')
-  roomManager.startGame(hostId)
+  roomManager.startGame(hostId, 'language')
 
-  const room = roomManager.rooms.get(roomId)
-  room.gameState.phase = 'ended'
-  room.gameState.finalResult = { winner: 'civilian' }
-  room.status = 'ended'
-  roomManager._markRoomActive(room)
+  roomManager.restartGame(hostId)
+  assert.strictEqual(roomManager.rooms.get(roomId).gameState, null)
 
   const closePayload = await waitForEvent(
     roomManager,
     'room:closed',
-    (payload) => payload.roomId === roomId && payload.reason === 'ended_idle_timeout'
+    (payload) => payload.roomId === roomId && payload.reason === 'waiting_idle_timeout'
   )
 
-  assert.strictEqual(closePayload.previousStatus, 'ended')
+  assert.strictEqual(closePayload.previousStatus, 'waiting')
   assert.strictEqual(roomManager.getRoomState(roomId), null)
 }
 
@@ -189,7 +185,7 @@ async function main() {
   await testWaitingRoomKeepAliveExtendsLifetime()
   await testPlayingRoomHeartbeatExtendsLifetime()
   await testPlayingRoomClosesWithoutHeartbeat()
-  await testEndedRoomIdleClose()
+  await testRestartedRoomIdleClose()
   console.log('Room idle test passed.')
 }
 

@@ -59,53 +59,9 @@ function requireActiveConnection(socket, roomManager) {
   }
 }
 
-function clearVoteTimers(voteTimerStore, roomId) {
-  const timers = voteTimerStore.get(roomId)
-  if (!timers) {
-    return
-  }
-
-  if (timers.reminderTimer) {
-    clearTimeout(timers.reminderTimer)
-  }
-  if (timers.timeoutTimer) {
-    clearTimeout(timers.timeoutTimer)
-  }
-
-  voteTimerStore.delete(roomId)
-}
-
-function emitGameAction(io, getRoomChannel, roomId, gameAction, options = {}) {
-  if (!roomId || !gameAction || !gameAction.payload) {
-    return
-  }
-
-  const { onTerminalAction } = options
-  const roomChannel = getRoomChannel(roomId)
-  switch (gameAction.type) {
-    case 'speakingStarted':
-      io.to(roomChannel).emit(EVENTS.server.GAME_SPEAKING_STARTED, gameAction.payload)
-      if (typeof onTerminalAction === 'function') {
-        onTerminalAction(roomId)
-      }
-      break
-    case 'result':
-      io.to(roomChannel).emit(EVENTS.server.GAME_RESULT, gameAction.payload)
-      if (typeof onTerminalAction === 'function') {
-        onTerminalAction(roomId)
-      }
-      break
-    case 'ended':
-      io.to(roomChannel).emit(EVENTS.server.GAME_ENDED, gameAction.payload)
-      if (typeof onTerminalAction === 'function') {
-        onTerminalAction(roomId)
-      }
-      break
-    case 'stateSync':
-    default:
-      io.to(roomChannel).emit(EVENTS.server.GAME_STATE_SYNC, gameAction.payload)
-      break
-  }
+function emitGameAction(io, getRoomChannel, roomId, gameAction) {
+  if (!roomId || !gameAction || !gameAction.payload) return
+  io.to(getRoomChannel(roomId)).emit(EVENTS.server.GAME_STATE_SYNC, gameAction.payload)
 }
 
 function handleError(socket, action, ack, error) {
@@ -138,7 +94,6 @@ function handleSuccess(ack, payload) {
 module.exports = {
   createUserSync,
   requireActiveConnection,
-  clearVoteTimers,
   emitGameAction,
   handleError,
   handleSuccess,

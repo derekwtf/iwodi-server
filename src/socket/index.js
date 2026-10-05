@@ -1,5 +1,5 @@
 const EVENTS = require('./events')
-const { clearVoteTimers, handleError, requireActiveConnection, createUserSync } = require('./helpers')
+const { handleError, requireActiveConnection, createUserSync } = require('./helpers')
 const registerRoomHandlers = require('./roomHandler')
 const registerGameHandlers = require('./gameHandler')
 const registerUserHandlers = require('./userHandler')
@@ -10,7 +10,6 @@ function getRoomChannel(roomId) {
 }
 
 function initializeSocketServer(io, roomManager, { userStore, tokens, paymentService }) {
-  const voteTimerStore = new Map()
   const { syncUser, clearExpiryTimer } = createUserSync(io, roomManager, getRoomChannel, { userStore, paymentService })
   if (paymentService) {
     const changed = (userId) => {
@@ -40,10 +39,6 @@ function initializeSocketServer(io, roomManager, { userStore, tokens, paymentSer
       error.data = { code: error.code || 'USER_STORE_UNAVAILABLE' }
       next(error)
     }
-  })
-
-  roomManager.on('room:destroyed', ({ roomId }) => {
-    clearVoteTimers(voteTimerStore, roomId)
   })
 
   roomManager.on('room:idleWarning', (payload) => {
@@ -140,20 +135,17 @@ function initializeSocketServer(io, roomManager, { userStore, tokens, paymentSer
       socket.to(getRoomChannel(roomId)).emit(EVENTS.server.ROOM_STATE, {
         room: roomManager.getRoomState(roomId),
       })
-      const game = roomManager.getGamePublicState(roomId, {
-        includeEndedSecrets: true,
-      })
+      const game = roomManager.getGamePublicState(roomId)
       if (game) socket.to(getRoomChannel(roomId)).emit(EVENTS.server.GAME_STATE_SYNC, game)
     }
 
-    registerRoomHandlers(io, socket, roomManager, getRoomChannel, voteTimerStore)
+    registerRoomHandlers(io, socket, roomManager, getRoomChannel)
     registerUserHandlers(socket, roomManager, userStore, paymentService, syncUser)
     registerGameHandlers(
       io,
       socket,
       roomManager,
-      getRoomChannel,
-      voteTimerStore
+      getRoomChannel
     )
 
     socket.on('disconnect', () => {

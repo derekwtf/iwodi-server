@@ -2,17 +2,17 @@ const EVENTS = require('./events')
 const { emitPlayerLeftSequence, publishLeaveResult } = require('./emitPatterns')
 const { handleError, handleSuccess } = require('./helpers')
 
-function registerRoomHandlers(io, socket, roomManager, getRoomChannel, voteTimerStore) {
+function registerRoomHandlers(io, socket, roomManager, getRoomChannel) {
   socket.on(EVENTS.client.ROOM_CREATE, (payload = {}, ack) => {
     try {
       const result = roomManager.createRoom({
         playerId: socket.data.playerId,
         ...socket.data.profile,
-        gameMode: payload.gameMode,
+        playMode: payload.playMode,
       })
 
       if (result.previousRoomResult) {
-        publishLeaveResult(io, socket, getRoomChannel, result.previousRoomResult, voteTimerStore)
+        publishLeaveResult(io, socket, getRoomChannel, result.previousRoomResult)
       }
 
       const roomChannel = getRoomChannel(result.room.id)
@@ -35,7 +35,7 @@ function registerRoomHandlers(io, socket, roomManager, getRoomChannel, voteTimer
       })
 
       if (result.previousRoomResult) {
-        publishLeaveResult(io, socket, getRoomChannel, result.previousRoomResult, voteTimerStore)
+        publishLeaveResult(io, socket, getRoomChannel, result.previousRoomResult)
       }
 
       const roomChannel = getRoomChannel(result.room.id)
@@ -69,7 +69,7 @@ function registerRoomHandlers(io, socket, roomManager, getRoomChannel, voteTimer
       const result = roomManager.leaveRoom(roomId, socket.data.playerId, {
         reason: 'leave',
       })
-      publishLeaveResult(io, socket, getRoomChannel, result || { roomId }, voteTimerStore, {
+      publishLeaveResult(io, socket, getRoomChannel, result || { roomId }, {
         notifyLeaver: true,
       })
 
@@ -119,6 +119,16 @@ function registerRoomHandlers(io, socket, roomManager, getRoomChannel, voteTimer
       })
     } catch (error) {
       handleError(socket, EVENTS.client.ROOM_KEEP_ALIVE, ack, error)
+    }
+  })
+
+  socket.on(EVENTS.client.ROOM_SET_PLAY_MODE, (payload = {}, ack) => {
+    try {
+      const result = roomManager.setPlayMode(socket.data.playerId, payload.playMode)
+      io.to(getRoomChannel(result.room.id)).emit(EVENTS.server.ROOM_STATE, { room: result.roomState })
+      handleSuccess(ack, { room: result.roomState })
+    } catch (error) {
+      handleError(socket, EVENTS.client.ROOM_SET_PLAY_MODE, ack, error)
     }
   })
 
@@ -183,7 +193,7 @@ function registerRoomHandlers(io, socket, roomManager, getRoomChannel, voteTimer
 
   socket.on(EVENTS.client.ROOM_START_GAME, (payload = {}, ack) => {
     try {
-      const result = roomManager.startGame(socket.data.playerId)
+      const result = roomManager.startGame(socket.data.playerId, payload.playMode)
       const roomChannel = getRoomChannel(result.room.id)
 
       result.room.players.forEach((player) => {
@@ -204,6 +214,10 @@ function registerRoomHandlers(io, socket, roomManager, getRoomChannel, voteTimer
 
       handleSuccess(ack, { room: result.roomState })
     } catch (error) {
+      if (error.code === 'PLAY_MODE_MISMATCH') {
+        const roomId = roomManager.getRoomIdForPlayer(socket.data.playerId)
+        socket.emit(EVENTS.server.ROOM_STATE, { room: roomManager.getRoomState(roomId) })
+      }
       handleError(socket, EVENTS.client.ROOM_START_GAME, ack, error)
     }
   })
@@ -217,7 +231,7 @@ function registerRoomHandlers(io, socket, roomManager, getRoomChannel, voteTimer
       }
 
       const result = roomManager.abandonReconnect(socket.data.playerId)
-      publishLeaveResult(io, socket, getRoomChannel, result || { roomId }, voteTimerStore, {
+      publishLeaveResult(io, socket, getRoomChannel, result || { roomId }, {
         notifyLeaver: true,
       })
 

@@ -5,6 +5,7 @@ const cors = require('cors')
 const http = require('http')
 const { Server } = require('socket.io')
 const WordLibrary = require('./data/WordLibrary')
+const BodyPromptLibrary = require('./data/BodyPromptLibrary')
 const RoomManager = require('./room/RoomManager')
 const createAuthRouter = require('./auth/createAuthRouter')
 const createWechatSessionFetcher = require('./auth/createWechatSessionFetcher')
@@ -32,17 +33,14 @@ const allowedOrigins = String(process.env.CLIENT_ORIGIN || '*')
 const wordLibrary = new WordLibrary()
 const roomManager = new RoomManager({
   wordLibrary,
-  minStartPlayers: process.env.MIN_START_PLAYERS,
+  bodyPromptLibrary: new BodyPromptLibrary(),
   hostTransferGraceMs: Number(process.env.HOST_TRANSFER_GRACE_MS || 30 * 1000),
   allDisconnectedTtlMs: Number(
     process.env.ROOM_ALL_DISCONNECTED_TTL_MS || 10 * 60 * 1000
   ),
   waitingIdleMs: Number(process.env.ROOM_WAITING_IDLE_MS || 15 * 60 * 1000),
   playingIdleMs: Number(process.env.ROOM_PLAYING_IDLE_MS || 10 * 60 * 1000),
-  endedIdleMs: Number(process.env.ROOM_ENDED_IDLE_MS || 5 * 60 * 1000),
   idleWarningMs: Number(process.env.ROOM_IDLE_WARNING_MS || 60 * 1000),
-  voteReminderMs: Number(process.env.VOTE_REMINDER_MS || 2 * 60 * 1000),
-  voteTimeoutMs: Number(process.env.VOTE_TIMEOUT_MS || 3 * 60 * 1000),
 })
 const io = new Server(server, {
   cors: {
@@ -85,10 +83,7 @@ app.get('/health', (req, res) => {
       allDisconnectedTtlMs: roomManager.allDisconnectedTtlMs,
       waitingIdleMs: roomManager.waitingIdleMs,
       playingIdleMs: roomManager.playingIdleMs,
-      endedIdleMs: roomManager.endedIdleMs,
       idleWarningMs: roomManager.idleWarningMs,
-      voteReminderMs: roomManager.voteReminderMs,
-      voteTimeoutMs: roomManager.voteTimeoutMs,
     },
     wordLibrarySize: wordLibrary.size,
   })

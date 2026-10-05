@@ -45,7 +45,6 @@ function createRoomManager() {
     allDisconnectedTtlMs: 70,
     waitingIdleMs: 500,
     playingIdleMs: 500,
-    endedIdleMs: 500,
     idleWarningMs: 100,
   })
 }

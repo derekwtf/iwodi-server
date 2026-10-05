@@ -8,7 +8,7 @@ const { readPaymentConfig, DAY_MS } = require('../src/payment/config')
 const { PaymentService, publicOrder } = require('../src/payment/PaymentService')
 const { WechatPaymentClient, paySignature, hmac } = require('../src/payment/WechatPaymentClient')
 const { MessageCipher, signature } = require('../src/payment/MessageCipher')
-const { createFixture, request } = require('./auth-fixture')
+const { createFixture, request, fillRoom } = require('./auth-fixture')
 
 const config = readPaymentConfig({ VIP_PAYMENT_ENABLED: 'true', WECHAT_APP_ID: 'test-app',
   WECHAT_APP_SECRET: 'test-secret', VIP_OFFER_ID: '123', VIP_APP_KEY: 'test-appkey',
@@ -597,7 +597,7 @@ test('authenticated socket + encrypted HTTP delivery/refund update membership an
     assert.equal(account.membership.productId, 'vip_month')
     assert.equal(account.membership.purchasable, true)
     const buyer = await f.connect({ token: account.token }), stranger = await f.connect({ token: other.token })
-    const room = await request(buyer.socket, 'room:create', { gameMode: 'deal-only' })
+    const room = await request(buyer.socket, 'room:create', { playMode: 'language' })
     await request(stranger.socket, 'room:join', { roomId: room.room.roomId })
     const orderResponse = await request(buyer.socket, 'user:createVipOrder', { code: 'buyer', requestId: 'socket-request-0001', productId: 'vip_month', priceFen: 1000 })
     assert.equal(orderResponse.ok, true)
@@ -660,10 +660,11 @@ for (const phase of ['waiting', 'dealing']) {
         const first = await purchase(f, buyer.socket, 'offline-first-order')
         const second = renewal ? await purchase(f, buyer.socket, 'offline-renewal-order') : null
         await request(buyer.socket, 'user:updateProfile', { nickname: '会员', avatar: vip })
-        const created = await request(buyer.socket, 'room:create', { gameMode: 'deal-only' })
+        const created = await request(buyer.socket, 'room:create', { playMode: 'language' })
         const roomId = created.room.roomId
         await request(observer.socket, 'room:join', { roomId })
-        if (phase === 'dealing') assert.equal((await request(buyer.socket, 'room:startGame')).ok, true)
+        await fillRoom(f, f.manager.getRoomIdForPlayer(buyer.playerId))
+        if (phase === 'dealing') assert.equal((await request(buyer.socket, 'room:startGame', { playMode: 'language' })).ok, true)
         const serverSocket = f.io.sockets.sockets.get(buyer.socket.id)
         const disconnected = new Promise((resolve) => serverSocket.once('disconnect', resolve))
         buyer.socket.disconnect()
@@ -734,9 +735,10 @@ test('one service listener survives repeated connections; online changes broadca
     const account = await f.login('buyer'), other = await f.login('observer')
     let buyer = await f.connect({ token: account.token })
     const observer = await f.connect({ token: other.token })
-    const created = await request(buyer.socket, 'room:create', { gameMode: 'deal-only' })
+    const created = await request(buyer.socket, 'room:create', { playMode: 'language' })
     await request(observer.socket, 'room:join', { roomId: created.room.roomId })
-    await request(buyer.socket, 'room:startGame')
+    await fillRoom(f, f.manager.getRoomIdForPlayer(buyer.playerId))
+    await request(buyer.socket, 'room:startGame', { playMode: 'language' })
     for (let i = 0; i < 12; i += 1) {
       buyer = await f.connect({ token: account.token })
       assert.equal(f.paymentService.listenerCount('changed'), 1)

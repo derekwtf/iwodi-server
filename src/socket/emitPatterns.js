@@ -1,5 +1,5 @@
 const EVENTS = require('./events')
-const { clearVoteTimers, emitGameAction } = require('./helpers')
+const { emitGameAction } = require('./helpers')
 
 function emitPlayerLeftSequence(
   io,
@@ -27,7 +27,7 @@ function emitPlayerLeftSequence(
   }
 }
 
-function publishLeaveResult(io, socket, getRoomChannel, result, voteTimerStore, options = {}) {
+function publishLeaveResult(io, socket, getRoomChannel, result, options = {}) {
   if (!result) return
   const { roomId, roomState, removedPlayer, hostChanged, reason, gameAction } = result
   const roomChannel = getRoomChannel(roomId)
@@ -43,9 +43,7 @@ function publishLeaveResult(io, socket, getRoomChannel, result, voteTimerStore, 
       reason,
     })
   }
-  emitGameAction(io, getRoomChannel, roomId, gameAction, {
-    onTerminalAction: (targetRoomId) => clearVoteTimers(voteTimerStore, targetRoomId),
-  })
+  emitGameAction(io, getRoomChannel, roomId, gameAction)
 }
 
 module.exports = {

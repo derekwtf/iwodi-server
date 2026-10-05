@@ -48,7 +48,7 @@ roomManager.joinRoom(room.id, {
   avatar: 'c.png',
 })
 
-roomManager.startGame(hostId)
+roomManager.startGame(hostId, 'language')
 
 const publicState = roomManager.getGamePublicState(room.id)
 assert.equal(publicState.phase, 'dealing')

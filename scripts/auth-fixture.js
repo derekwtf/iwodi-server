@@ -15,7 +15,7 @@ async function createFixture(filename = ':memory:', options = {}) {
   const userStore = new UserStore(filename)
   const paymentService = options.payment ? new PaymentService({ userStore, ...options.payment }) : null
   const tokens = createTokenService('test-only-secret-'.repeat(4))
-  const manager = new RoomManager({ wordLibrary: new WordLibrary(), minStartPlayers: 2 })
+  const manager = new RoomManager({ wordLibrary: new WordLibrary() })
   const app = express()
   app.use(express.json())
   // 唯一注入点是既有微信换码函数；生产服务没有测试登录路由。
@@ -67,4 +67,13 @@ function request(socket, event, data = {}) {
   })
 }
 
-module.exports = { createFixture, request }
+async function fillRoom(fixture, roomId) {
+  while (fixture.manager.getRoomState(roomId).playerCount < 4) {
+    const account = await fixture.login(`extra-${roomId}-${fixture.manager.getRoomState(roomId).playerCount}`)
+    const player = await fixture.connect({ token: account.token })
+    const joined = await request(player.socket, 'room:join', { roomId })
+    if (!joined.ok) throw new Error(joined.error.message)
+  }
+}
+
+module.exports = { createFixture, request, fillRoom }

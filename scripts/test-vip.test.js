@@ -7,7 +7,7 @@ const Database = require('better-sqlite3')
 const UserStore = require('../src/user/UserStore')
 const { resolveStoredProfile } = require('../src/user/profile')
 const { getRoomState, getGamePublicState } = require('../src/room/stateProjection')
-const { createFixture, request } = require('./auth-fixture')
+const { createFixture, request, fillRoom } = require('./auth-fixture')
 
 const normal = '/assets/avatars/avatar-3.svg'
 const vip = '/assets/avatars/avatar-28.svg'
@@ -76,19 +76,16 @@ for (const [name, profile, appearance] of appearanceCases) {
     }))
     const room = {
       id: 'appearance-room',
+      playMode: 'language',
       status: 'playing',
       players: [players[1], players[0]],
       gameState: {
         phase: 'dealing',
-        round: 1,
+        playMode: 'language',
+        wordPair: { categoryLabel: '测试' },
         playerRoster: [...players].reverse().map((player) => player.id === 'left'
           ? { ...player, hasLeft: true, leftReason: 'leave' }
           : { ...player, nickname: 'old name', avatar: '/assets/avatars/avatar-8.svg', vipExpiresAt: 0 }),
-        alivePlayers: ['online', 'offline'],
-        eliminatedPlayers: [],
-        speakOrder: [],
-        roundHistory: [],
-        confirmedPlayers: [],
       },
     }
     const before = structuredClone(room)
@@ -110,7 +107,6 @@ for (const [name, profile, appearance] of appearanceCases) {
       disconnected: player.disconnected,
       hasLeft: player.id === 'left',
       leftReason: player.id === 'left' ? 'leave' : null,
-      eliminatedRound: null,
     })))
     for (const player of [...roomState.players, ...gameState.players]) {
       for (const field of ['userId', 'vipExpiresAt', 'lastNormalAvatar']) {
@@ -193,7 +189,7 @@ test('private state, forged claims, outside-room editing, room broadcast, expiry
     assert.equal(host.membership.availableAvatars.length, 28)
     const saved = await request(host.socket, 'user:updateProfile', { nickname: '会员', avatar: vip })
     assert.equal(saved.ok, true)
-    const created = await request(host.socket, 'room:create', { gameMode: 'deal-only' })
+    const created = await request(host.socket, 'room:create', { playMode: 'language' })
     const roomId = created.room.roomId
     const joined = await request(stranger.socket, 'room:join', { roomId, avatar: vip, isVip: true })
     assert.equal(joined.room.players[0].isVip, true)
@@ -203,7 +199,8 @@ test('private state, forged claims, outside-room editing, room broadcast, expiry
     for (const secret of [account.userId, 'verified-vip', 'vipExpiresAt', 'lastNormalAvatar', account.token]) {
       assert.equal(publicJson.includes(secret), false)
     }
-    await request(host.socket, 'room:startGame')
+    await fillRoom(f, f.manager.getRoomIdForPlayer(host.playerId))
+    await request(host.socket, 'room:startGame', { playMode: 'language' })
     const oldActivity = f.manager.rooms.get(roomId).lastActivityAt
     const expiredRoom = waitFor(stranger.socket, 'room:state', (data) => !data.room.players[0].isVip)
     const expiredSelf = waitFor(host.socket, 'user:state', (data) => data.membership?.isVip === false)
@@ -227,7 +224,7 @@ test('revocation and normal-avatar VIPs synchronize without changing the room or
     const account = await f.login('vip')
     setExpiry(f.userStore, account.userId, Date.now() + 60000)
     const host = await f.connect({ token: account.token })
-    const created = await request(host.socket, 'room:create', { gameMode: 'deal-only' })
+    const created = await request(host.socket, 'room:create', { playMode: 'language' })
     assert.equal(created.room.players[0].isVip, true)
     setExpiry(f.userStore, account.userId, 0)
     const synced = await request(host.socket, 'user:syncState')
@@ -246,14 +243,14 @@ test('database failure at expiry removes cached VIP appearance and reports uncon
     setExpiry(f.userStore, account.userId, Date.now() + 300)
     f.userStore.updateProfile(account.userId, { nickname: '会员', avatar: vip })
     const host = await f.connect({ token: account.token })
-    const created = await request(host.socket, 'room:create', { gameMode: 'deal-only' })
+    const created = await request(host.socket, 'room:create', { playMode: 'language' })
     const fallback = waitFor(host.socket, 'user:state', (data) => Boolean(data.error))
     f.userStore.close()
     const result = await fallback
     assert.equal(result.profile.avatar, normal)
     assert.equal(result.membership.isVip, false)
     assert.equal(f.manager.getRoomState(created.room.roomId).players[0].isVip, false)
-    assert.equal((await request(host.socket, 'room:create', { gameMode: 'deal-only' })).ok, true)
+    assert.equal((await request(host.socket, 'room:create', { playMode: 'language' })).ok, true)
   } finally { await f.close() }
 })
 
@@ -267,9 +264,10 @@ for (const event of ['user:updateProfile', 'room:updateProfile']) {
       const host = await f.connect({ token: account.token })
       const guestAccount = await f.login('observer')
       const guest = await f.connect({ token: guestAccount.token })
-      const created = await request(host.socket, 'room:create', { gameMode: 'deal-only' })
+      const created = await request(host.socket, 'room:create', { playMode: 'language' })
       await request(guest.socket, 'room:join', { roomId: created.room.roomId })
-      await request(host.socket, 'room:startGame')
+      await fillRoom(f, f.manager.getRoomIdForPlayer(host.playerId))
+      await request(host.socket, 'room:startGame', { playMode: 'language' })
       const states = [], rooms = [], games = [], guestStates = []
       host.socket.on('user:state', (data) => states.push(data))
       host.socket.on('room:state', (data) => rooms.push(data.room))

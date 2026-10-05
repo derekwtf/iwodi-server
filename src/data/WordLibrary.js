@@ -48,11 +48,12 @@ class WordLibrary {
       ? { excludeIndices: options }
       : options
     const excluded = new Set(normalizedOptions.excludeIndices || [])
+    const excludedKeys = new Set(normalizedOptions.excludeKeys || [])
     const requestedCategories = Array.isArray(normalizedOptions.categories)
       ? new Set(normalizedOptions.categories.map(normalizeWord).filter(Boolean))
       : null
     const available = this.wordGroups.filter((group) => {
-      if (excluded.has(group.index)) {
+      if (excluded.has(group.index) || excludedKeys.has(`language:${group.categoryId}:${group.groupId}`)) {
         return false
       }
 
@@ -83,6 +84,7 @@ class WordLibrary {
 
     return {
       index: target.index,
+      historyReset: available.length === 0,
       groupId: target.groupId,
       categoryId: target.categoryId,
       categoryLabel: target.categoryLabel,

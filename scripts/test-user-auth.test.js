@@ -9,7 +9,7 @@ const UserStore = require('../src/user/UserStore')
 const { normalizeProfile } = require('../src/user/profile')
 const SessionRegistry = require('../src/room/SessionRegistry')
 const { createTokenService, TOKEN_TTL_MS } = require('../src/auth/tokens')
-const { createFixture, request } = require('./auth-fixture')
+const { createFixture, request, fillRoom } = require('./auth-fixture')
 const profile = { nickname: '新昵称', avatar: '/assets/avatars/avatar-8.svg' }
 
 function identity(subject, scope = 'app', provider = 'wechat_mini_program') {
@@ -116,7 +116,7 @@ test('Socket authentication, private identity, profile persistence, membership a
     }
     await assert.rejects(f.connect({}, { query: { playerId: a.playerId, token: a.token } }), (error) => error.data.code === 'AUTH_INVALID')
     const host = await f.connect({ token: a.token, playerId: a.playerId })
-    const initial = await request(host.socket, 'room:create', { nickname: 'fake', avatar: 'fake', gameMode: 'deal-only' })
+    const initial = await request(host.socket, 'room:create', { nickname: 'fake', avatar: 'fake', playMode: 'language' })
     assert.equal(initial.room.players[0].nickname, a.profile.nickname)
     const attacker = await f.connect({ token: b.token, playerId: a.playerId })
     assert.equal(attacker.playerId, b.playerId)
@@ -125,7 +125,8 @@ test('Socket authentication, private identity, profile persistence, membership a
     assert.equal((await request(attacker.socket, 'room:updateProfile', profile)).ok, false)
     assert.deepEqual(f.userStore.getUser(b.userId), { userId: b.userId, ...b.profile, lastNormalAvatar: b.profile.avatar, isVip: false, vipExpiresAt: 0 })
     await request(attacker.socket, 'room:join', { roomId: initial.room.roomId, nickname: 'fake', avatar: 'fake' })
-    const start = await request(host.socket, 'room:startGame')
+    await fillRoom(f, f.manager.getRoomIdForPlayer(host.playerId))
+    const start = await request(host.socket, 'room:startGame', { playMode: 'language' })
     assert.equal(start.ok, true)
     const saved = await request(host.socket, 'room:updateProfile', { ...profile, nickname: '  新昵称  ' })
     assert.equal(saved.userId, a.userId)
@@ -172,14 +173,15 @@ test('Runtime database failure rejects login/connect/save while existing ordinar
   try {
     const a = await f.login('a'), b = await f.login('b')
     const host = await f.connect({ token: a.token }), guest = await f.connect({ token: b.token })
-    const room = await request(host.socket, 'room:create', { gameMode: 'deal-only' })
+    const room = await request(host.socket, 'room:create', { playMode: 'language' })
     await request(guest.socket, 'room:join', { roomId: room.room.roomId })
+    await fillRoom(f, room.room.roomId)
     f.userStore.close()
     assert.equal((await f.login('new')).status, 503)
     await assert.rejects(f.connect({ token: a.token }), (error) => error.data.code === 'USER_STORE_UNAVAILABLE')
     assert.equal((await request(host.socket, 'room:updateProfile', profile)).error.code, 'USER_STORE_UNAVAILABLE')
     assert.equal(f.manager.getRoomState(room.room.roomId).players[0].nickname, a.profile.nickname)
-    assert.equal((await request(host.socket, 'room:startGame')).ok, true)
+    assert.equal((await request(host.socket, 'room:startGame', { playMode: 'language' })).ok, true)
     assert.equal((await request(host.socket, 'game:restart')).ok, true)
     assert.equal((await request(host.socket, 'room:create')).room.players[0].nickname, a.profile.nickname)
   } finally { await f.close() }
@@ -191,7 +193,7 @@ test('Service restart restores account and token but no room or old player sessi
   try {
     const first = await f.login('restart')
     const host = await f.connect({ token: first.token })
-    const room = await request(host.socket, 'room:create', { gameMode: 'deal-only' })
+    const room = await request(host.socket, 'room:create', { playMode: 'language' })
     await request(host.socket, 'room:updateProfile', profile)
     await f.close()
     f = await createFixture(join(dir, 'users.sqlite'))

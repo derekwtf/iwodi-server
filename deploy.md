@@ -2,7 +2,7 @@
 
 本文适用于当前持久账号版本，覆盖本地联调、Linux 服务器部署、环境变量、配套上线、更新、备份恢复与排障。入口为 `src/index.js`，运行时支持 Node.js 22.x 或 24.x，服务由 Express + Socket.IO 提供。
 
-2026-10-02 产品文档已改为语言 / 肢体 PlayMode 和统一线上发牌流程，但玩法切换、肢体词库及旧阶段退役仍待实施；本次没有发布代码。后续按 [新实施计划](../documents/PLAN/manager.md) 配套发布前后端，部署现有版本不会自动开放肢体玩法。
+2026-10-05 已完成语言 / 肢体 PlayMode、24 对独立情境、页面接入与旧线上阶段退役的本地代码，尚未部署。发布前完成人工验收，并配套切换客户端和服务端；旧协议不兼容，用户更新小程序后重新建房。
 
 ## 1. 部署约定
 
@@ -68,7 +68,6 @@ openssl rand -hex 32
 | `PORT` | `3010` | Node 监听端口，应与代理上游端口一致。部署使用固定可用端口；`0` 仅适合临时测试。 |
 | `CLIENT_ORIGIN` | `*` | CORS 来源列表，逗号分隔，例如 `https://servicewechat.com,https://wodi.server.zhibeii.com`。生产填写实际来源；它不替代微信后台合法域名配置或 Socket 认证。 |
 | `WECHAT_LOGIN_TIMEOUT_MS` | `5000` | 服务端调用微信换码接口的超时时间，单位毫秒。 |
-| `MIN_START_PLAYERS` | `4` | 当前发牌最少人数配置，允许整数 `2`～`12`，无效值按 `4`；目标语言 4～12 人、肢体 3～5 人的模式化规则尚待实现，不能仅靠此配置开放肢体玩法。 |
 | `HOST_TRANSFER_GRACE_MS` | `30000` | 房主断线后转移房主的等待时间，30 秒；不是断线玩家自动离房时间。 |
 | `ROOM_ALL_DISCONNECTED_TTL_MS` | `600000` | 全员断线后的房间保留时间，10 分钟。 |
 | `ROOM_WAITING_IDLE_MS` | `900000` | 等待房间无人操作时的保留时间，15 分钟。 |
@@ -95,7 +94,6 @@ WECHAT_LOGIN_TIMEOUT_MS=5000
 USER_DB_PATH=/var/lib/qile-wodi/prod/users.sqlite
 AUTH_TOKEN_SECRET=替换为openssl生成的随机密钥
 
-MIN_START_PLAYERS=4
 HOST_TRANSFER_GRACE_MS=30000
 ROOM_ALL_DISCONNECTED_TTL_MS=600000
 ROOM_WAITING_IDLE_MS=900000
@@ -475,3 +473,11 @@ curl --fail http://127.0.0.1:3010/health
 | 修改 env 后没有生效 | 确认改的是实际加载文件，并重启进程；PM2 的旧环境变量可能覆盖 dotenv，按第 7 节刷新配置。 |
 
 排障查看 `journalctl -u qile-wodi` 或对应 PM2/代理日志，不把完整 AppSecret、签名密钥或登录 token 写入日志、截图或问题描述。相关产品和验收记录见 [用户身份与资料验收](../documents/PLAN/10-用户身份与资料验收.md)。
+
+## PlayMode 配套切换
+
+- 先完成 DevTools 多窗口、真机隐私 / 长句阅读及 3～5 人内容试玩，再安排短暂停服并发布配套前后端，不部署到旧客户端仍持续使用的服务上。
+- 新版仅接收 `playMode: language | body`，开局带 `{ playMode }`；旧确认看卡、发言、投票、轮次、结算与公开揭晓接口退役，不保留旧协议兼容。
+- 服务重启清空内存房间 / 游戏 / 抽词历史，用户更新小程序后重新建房，不迁移旧房间。账号、身份、VIP 与支付数据库不迁移、不改动；保留原 `USER_DB_PATH`、`AUTH_TOKEN_SECRET` 和支付配置，依照现有流程备份。
+- 语言人数固定 4～12、肢体固定 3～5 且 1 名卧底；`MIN_START_PLAYERS`、投票计时器和结算空闲变量已退役。等待、发牌、掉线空闲清理仍保留，客户端 `FORCE_ENV='test'` 本次未改变。
+- 未实际发布前，本地修改不代表测试 / 正式服务已开放肢体玩法；回滚时同样配套回滚前后端并重新建房，不回滚或覆盖持久数据库。

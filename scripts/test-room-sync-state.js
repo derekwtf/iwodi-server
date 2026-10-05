@@ -77,7 +77,7 @@ function testPlayingRoomSyncState() {
   const roomManager = createRoomManager()
   const { roomId, hostId, guestAId } = createWaitingRoom(roomManager)
 
-  roomManager.startGame(hostId)
+  roomManager.startGame(hostId, 'language')
   const response = roomManager.getSyncState(guestAId)
 
   assert.strictEqual(response.room.roomId, roomId)

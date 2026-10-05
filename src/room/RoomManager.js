@@ -1,15 +1,9 @@
 const { EventEmitter } = require('events')
 const { randomInt } = require('crypto')
 const GameState = require('../game/GameState')
-const Judge = require('../game/Judge')
-const VoteManager = require('../game/VoteManager')
 const SessionRegistry = require('./SessionRegistry')
 const stateProjection = require('./stateProjection')
-const {
-  normalizeGameMode,
-  isDealOnlyMode,
-  getMinStartPlayers,
-} = require('./gameMode')
+const { getPlayRules, getMaxSpyCount, getDefaultSpyCount } = require('./playMode')
 
 class RoomManager extends EventEmitter {
   constructor(options = {}) {
@@ -17,19 +11,12 @@ class RoomManager extends EventEmitter {
     this.rooms = new Map()
     this.sessionRegistry = new SessionRegistry()
     this.wordLibrary = options.wordLibrary || null
-    this.maxPlayers = options.maxPlayers || 12
-    const minStartPlayers = String(options.minStartPlayers ?? '').trim()
-    this.minStartPlayers = /^(?:[2-9]|1[0-2])$/.test(minStartPlayers)
-      ? Number(minStartPlayers)
-      : 4
+    this.bodyPromptLibrary = options.bodyPromptLibrary || null
     this.hostTransferGraceMs = options.hostTransferGraceMs || 30 * 1000
     this.allDisconnectedTtlMs = options.allDisconnectedTtlMs || 10 * 60 * 1000
     this.waitingIdleMs = options.waitingIdleMs || 15 * 60 * 1000
     this.playingIdleMs = options.playingIdleMs || 10 * 60 * 1000
-    this.endedIdleMs = options.endedIdleMs || 5 * 60 * 1000
     this.idleWarningMs = options.idleWarningMs || 60 * 1000
-    this.voteReminderMs = options.voteReminderMs || 2 * 60 * 1000
-    this.voteTimeoutMs = options.voteTimeoutMs || 3 * 60 * 1000
   }
 
   registerConnection({ playerId, socketId, identityKey, profile }) {
@@ -99,8 +86,10 @@ class RoomManager extends EventEmitter {
     return session ? session.socketId : null
   }
 
-  createRoom({ playerId, nickname, avatar, vipExpiresAt = 0, lastNormalAvatar, gameMode }) {
+  createRoom({ playerId, nickname, avatar, vipExpiresAt = 0, lastNormalAvatar, playMode = 'language' }) {
     const session = this._getRequiredSession(playerId)
+
+    getPlayRules(playMode)
 
     let previousRoomResult = null
     if (session.roomId) {
@@ -122,7 +111,7 @@ class RoomManager extends EventEmitter {
         }),
       ],
       spyCount: 1,
-      gameMode: normalizeGameMode(gameMode),
+      playMode,
       status: 'waiting',
       gameState: null,
       createdAt: Date.now(),
@@ -134,7 +123,7 @@ class RoomManager extends EventEmitter {
       allDisconnectedAt: null,
       lastActivityAt: now,
       lastHeartbeatAt: now,
-      usedWordGroupIndices: [],
+      usedPromptPairIds: { language: [], body: [] },
     }
 
     session.roomId = room.id
@@ -180,7 +169,7 @@ class RoomManager extends EventEmitter {
       }
     }
 
-    if (room.players.length >= this.maxPlayers) {
+    if (room.players.length >= getPlayRules(room.playMode).maxPlayers) {
       throw this._createError('ROOM_FULL', '房间已满，无法加入')
     }
 
@@ -298,8 +287,11 @@ class RoomManager extends EventEmitter {
       throw this._createError('GAME_ALREADY_STARTED', '游戏已开始，无法调整卧底人数')
     }
 
-    const maxSpyCount = this._getMaxSpyCount(room.players.length)
-    const nextSpyCount = Math.max(1, Math.min(maxSpyCount, Number(requestedCount) || 1))
+    const maxSpyCount = getMaxSpyCount(room.playMode, room.players.length)
+    const nextSpyCount = requestedCount
+    if (!Number.isInteger(nextSpyCount) || nextSpyCount < 1 || nextSpyCount > maxSpyCount) {
+      throw this._createError('INVALID_SPY_COUNT', '卧底人数不符合当前玩法规则')
+    }
 
     room.spyCount = nextSpyCount
     room.spyCountManual = true
@@ -310,6 +302,25 @@ class RoomManager extends EventEmitter {
       roomState: this.getRoomState(room.id),
       spyCount: room.spyCount,
     }
+  }
+
+  setPlayMode(playerId, playMode) {
+    const { room, player } = this._getRoomAndPlayerByPlayerId(playerId)
+    this._assertHost(player)
+    if (room.status !== 'waiting') {
+      throw this._createError('GAME_ALREADY_STARTED', '游戏已开始，无法切换玩法')
+    }
+    const rules = getPlayRules(playMode)
+    if (room.players.length > rules.maxPlayers) {
+      throw this._createError('ROOM_OVER_CAPACITY', '肢体表达适合 3～5 人，请先将房间人数调整至 5 人以内')
+    }
+    if (room.playMode !== playMode) {
+      room.playMode = playMode
+      room.spyCountManual = false
+      this._refreshSpyCount(room)
+      this._markRoomActive(room)
+    }
+    return { room, roomState: this.getRoomState(room.id) }
   }
 
   requireProfileMember(playerId) {
@@ -346,214 +357,52 @@ class RoomManager extends EventEmitter {
       player: this._toPublicPlayer(player),
       roomState: this.getRoomState(room.id),
       gameState: room.gameState
-        ? this.getGamePublicState(room.id, {
-            includeEndedSecrets: room.gameState.phase === 'ended',
-          })
+        ? this.getGamePublicState(room.id)
         : null,
     }
   }
 
-  startGame(playerId) {
-    if (!this.wordLibrary) {
-      throw this._createError('WORD_LIBRARY_NOT_READY', '词库未加载，无法开始游戏')
-    }
-
+  startGame(playerId, playMode) {
     const { room, player } = this._getRoomAndPlayerByPlayerId(playerId)
     this._assertHost(player)
-
     if (room.status !== 'waiting') {
       throw this._createError('GAME_ALREADY_STARTED', '当前房间已开始游戏')
     }
-
-    const minStartPlayers = getMinStartPlayers(room.gameMode, this.minStartPlayers)
-    if (room.players.length < minStartPlayers) {
-      throw this._createError('NOT_ENOUGH_PLAYERS', `至少需要 ${minStartPlayers} 人才能开始游戏`)
+    getPlayRules(playMode)
+    if (playMode !== room.playMode) {
+      throw this._createError('PLAY_MODE_MISMATCH', '玩法已更新，请确认最新房间配置后开局')
     }
-
-    room.gameState = GameState.createGameState({
+    const rules = getPlayRules(room.playMode)
+    if (room.players.length < rules.minPlayers || room.players.length > rules.maxPlayers) {
+      throw this._createError('NOT_ENOUGH_PLAYERS', '当前人数不符合玩法要求：' + rules.minPlayers + '～' + rules.maxPlayers + ' 人')
+    }
+    if (!Number.isInteger(room.spyCount) || room.spyCount < 1 ||
+      room.spyCount > getMaxSpyCount(room.playMode, room.players.length)) {
+      throw this._createError('INVALID_SPY_COUNT', '卧底人数不符合当前玩法规则')
+    }
+    const wordLibrary = room.playMode === 'body' ? this.bodyPromptLibrary : this.wordLibrary
+    if (!wordLibrary) {
+      throw this._createError('WORD_LIBRARY_NOT_READY', '当前玩法词库未加载，请稍后重试')
+    }
+    const gameState = GameState.createGameState({
       players: room.players,
       spyCount: room.spyCount,
-      gameMode: room.gameMode,
-      wordLibrary: this.wordLibrary,
-      usedWordGroupIndices: room.usedWordGroupIndices,
+      playMode: room.playMode,
+      wordLibrary,
+      usedPromptPairIds: room.usedPromptPairIds[room.playMode],
     })
+    const history = gameState.historyReset ? [] : room.usedPromptPairIds[room.playMode]
+    room.gameState = gameState
     room.status = 'playing'
-    room.usedWordGroupIndices.push(room.gameState.wordGroupIndex)
+    room.usedPromptPairIds[room.playMode] = [...history, gameState.promptPairKey]
     this._markRoomActive(room)
-
-    return {
-      room,
-      roomState: this.getRoomState(room.id),
-    }
-  }
-
-  confirmWord(playerId) {
-    const { room } = this._getRoomAndPlayerByPlayerId(playerId)
-    this._assertGamePhase(room, ['dealing'])
-    this._assertAlivePlayer(room, playerId)
-
-    if (isDealOnlyMode(room.gameMode)) {
-      throw this._createError('GAME_CONFIRM_DISABLED', '仅发牌模式无需确认')
-    }
-
-    const progress = GameState.confirmWord(room.gameState, playerId)
-    let speakingState = null
-
-    if (progress.allConfirmed) {
-      GameState.startSpeaking(room.gameState)
-      speakingState = this.getGamePublicState(room.id)
-    }
-    this._markRoomActive(room)
-
-    return {
-      room,
-      roomState: this.getRoomState(room.id),
-      confirmedPlayers: [...room.gameState.confirmedPlayers],
-      confirmedCount: room.gameState.confirmedPlayers.length,
-      totalPlayers: room.gameState.alivePlayers.length,
-      allConfirmed: progress.allConfirmed,
-      speakingState,
-    }
-  }
-
-  startVote(playerId) {
-    const { room, player } = this._getRoomAndPlayerByPlayerId(playerId)
-    this._assertHost(player)
-    this._assertGamePhase(room, ['speaking'])
-
-    GameState.startVoting(room.gameState)
-    this._markRoomActive(room)
-
-    return {
-      room,
-      roomState: this.getRoomState(room.id),
-      publicState: this.getGamePublicState(room.id),
-    }
-  }
-
-  submitVote(playerId, targetId) {
-    const { room } = this._getRoomAndPlayerByPlayerId(playerId)
-    this._assertGamePhase(room, ['voting'])
-    this._assertAlivePlayer(room, playerId)
-
-    const normalizedTargetId =
-      targetId === null || targetId === undefined || targetId === ''
-        ? null
-        : String(targetId)
-
-    if (normalizedTargetId === playerId) {
-      throw this._createError('VOTE_SELF_NOT_ALLOWED', '不能给自己投票')
-    }
-
-    if (
-      normalizedTargetId &&
-      !room.gameState.alivePlayers.includes(normalizedTargetId)
-    ) {
-      throw this._createError('VOTE_TARGET_INVALID', '只能投给存活玩家')
-    }
-
-    const voteProgress = VoteManager.submitVote(
-      room.gameState,
-      playerId,
-      normalizedTargetId
-    )
-    this._markRoomActive(room)
-
-    return {
-      room,
-      roomState: this.getRoomState(room.id),
-      votedPlayers: voteProgress.votedPlayers,
-      totalPlayers: voteProgress.totalPlayers,
-      allVoted: VoteManager.isAllVoted(room.gameState),
-    }
-  }
-
-  getPendingVoters(roomId) {
-    const room = this.rooms.get(roomId)
-    if (!room || !room.gameState || room.gameState.phase !== 'voting') {
-      return []
-    }
-
-    return room.gameState.alivePlayers.filter(
-      (playerId) =>
-        !Object.prototype.hasOwnProperty.call(room.gameState.currentVotes, playerId)
-    )
-  }
-
-  completeVoteTimeout(roomId) {
-    const room = this.rooms.get(roomId)
-    if (!room || !room.gameState || room.gameState.phase !== 'voting') {
-      return null
-    }
-
-    this.getPendingVoters(roomId).forEach((playerId) => {
-      room.gameState.currentVotes[playerId] = null
-    })
-    room.gameState.votedPlayers = [...room.gameState.alivePlayers]
-
-    return this.finalizeVoting(roomId)
-  }
-
-  finalizeVoting(roomId) {
-    const room = this.rooms.get(roomId)
-    if (!room) {
-      throw this._createError('ROOM_NOT_FOUND', '房间不存在')
-    }
-
-    this._assertGamePhase(room, ['voting'])
-    GameState.finalizeVoting(room.gameState)
-
-    room.status = room.gameState.phase === 'ended' ? 'ended' : 'playing'
-    this._markRoomActive(room)
-
-    return {
-      room,
-      roomState: this.getRoomState(room.id),
-      publicState: this.getGamePublicState(room.id),
-      endedPayload:
-        room.gameState.phase === 'ended' ? this.getEndedPayload(room.id) : null,
-    }
-  }
-
-  continueGame(playerId) {
-    const { room, player } = this._getRoomAndPlayerByPlayerId(playerId)
-    this._assertHost(player)
-
-    if (room.gameState.phase === 'result') {
-      GameState.advanceToNextRound(room.gameState)
-      room.status = 'playing'
-      this._markRoomActive(room)
-
-      return {
-        type: 'nextRound',
-        room,
-        roomState: this.getRoomState(room.id),
-        publicState: this.getGamePublicState(room.id),
-      }
-    }
-
-    if (room.gameState.phase === 'ended') {
-      room.status = 'ended'
-      this._markRoomActive(room)
-
-      return {
-        type: 'ended',
-        room,
-        roomState: this.getRoomState(room.id),
-        endedPayload: this.getEndedPayload(room.id),
-      }
-    }
-
-    throw this._createError('INVALID_GAME_PHASE', '当前阶段无法继续')
+    return { room, roomState: this.getRoomState(room.id) }
   }
 
   restartGame(playerId) {
     const { room, player } = this._getRoomAndPlayerByPlayerId(playerId)
     this._assertHost(player)
-    this._assertGamePhase(
-      room,
-      isDealOnlyMode(room.gameMode) ? ['dealing', 'ended'] : ['ended']
-    )
+    this._assertGamePhase(room, ['dealing'])
 
     room.status = 'waiting'
     room.gameState = null
@@ -650,23 +499,15 @@ class RoomManager extends EventEmitter {
   }
 
   getRoomState(roomId) {
-    return stateProjection.getRoomState(
-      this.rooms.get(roomId), this.maxPlayers, this.minStartPlayers
-    )
+    return stateProjection.getRoomState(this.rooms.get(roomId))
   }
 
-  getGamePublicState(roomId, options = {}) {
-    return stateProjection.getGamePublicState(this.rooms.get(roomId), options)
+  getGamePublicState(roomId) {
+    return stateProjection.getGamePublicState(this.rooms.get(roomId))
   }
 
   getReconnectGameSnapshot(roomId, playerId) {
     return stateProjection.getReconnectGameSnapshot(this.rooms.get(roomId), playerId)
-  }
-
-  getEndedPayload(roomId) {
-    return stateProjection.getEndedPayload(
-      this.rooms.get(roomId), this.maxPlayers, this.minStartPlayers
-    )
   }
 
   destroyRoom(roomId) {
@@ -752,155 +593,28 @@ class RoomManager extends EventEmitter {
   }
 
   _refreshSpyCount(room) {
-    const maxSpyCount = this._getMaxSpyCount(room.players.length)
-    if (!room.spyCountManual) {
-      room.spyCount = this._getDefaultSpyCount(room.players.length)
+    if (room.playMode === 'body' || !room.spyCountManual) {
+      room.spyCount = getDefaultSpyCount(room.playMode, room.players.length)
       return
     }
-
-    room.spyCount = Math.max(1, Math.min(maxSpyCount, room.spyCount))
-  }
-
-  _getDefaultSpyCount(playerCount) {
-    if (playerCount >= 9) {
-      return 2
-    }
-
-    return 1
-  }
-
-  _getMaxSpyCount(playerCount) {
-    const ruleMax = playerCount >= 9 ? 3 : playerCount >= 6 ? 2 : 1
-    return Math.max(1, Math.min(ruleMax, Math.floor(playerCount / 2) || 1))
+    room.spyCount = Math.max(1, Math.min(getMaxSpyCount(room.playMode, room.players.length), room.spyCount))
   }
 
   _removePlayerFromGameState(room, playerId, reason) {
-    if (!room.gameState) {
-      return
-    }
-
-    room.gameState.alivePlayers = room.gameState.alivePlayers.filter(
-      (item) => item !== playerId
-    )
-    room.gameState.eliminatedPlayers = room.gameState.eliminatedPlayers.filter(
-      (item) => item !== playerId
-    )
-    room.gameState.speakOrder = room.gameState.speakOrder.filter(
-      (item) => item !== playerId
-    )
-    room.gameState.confirmedPlayers = room.gameState.confirmedPlayers.filter(
-      (item) => item !== playerId
-    )
-    room.gameState.votedPlayers = room.gameState.votedPlayers.filter(
-      (item) => item !== playerId
-    )
-
-    const nextVotes = {}
-    Object.entries(room.gameState.currentVotes || {}).forEach(([voterId, targetId]) => {
-      if (voterId === playerId) {
-        return
-      }
-      nextVotes[voterId] = targetId === playerId ? null : targetId
-    })
-    room.gameState.currentVotes = nextVotes
-
-    const rosterPlayer = (room.gameState.playerRoster || []).find(
-      (item) => item.id === playerId
-    )
+    if (!room.gameState) return
+    delete room.gameState.roles[playerId]
+    delete room.gameState.playerWords[playerId]
+    delete room.gameState.playerPerformanceSteps[playerId]
+    const rosterPlayer = room.gameState.playerRoster.find((player) => player.id === playerId)
     if (rosterPlayer) {
       rosterPlayer.hasLeft = true
       rosterPlayer.leftReason = reason || 'leave'
-      rosterPlayer.leftAtRound = room.gameState.round
     }
   }
 
   _resolveGameStateAfterLeave(room) {
-    if (!room.gameState || room.players.length === 0) {
-      return null
-    }
-
-    if (isDealOnlyMode(room.gameMode) && room.gameState.phase === 'dealing') {
-      return {
-        type: 'stateSync',
-        payload: this.getGamePublicState(room.id),
-      }
-    }
-
-    const judgeResult = Judge.checkGameOver(
-      room.gameState.alivePlayers,
-      room.gameState.roles
-    )
-    if (judgeResult.gameOver) {
-      room.gameState.phase = 'ended'
-      room.gameState.finalResult = {
-        winner: judgeResult.winner,
-      }
-      room.status = 'ended'
-
-      return {
-        type: 'ended',
-        payload: this.getEndedPayload(room.id),
-      }
-    }
-
-    if (room.gameState.phase === 'dealing') {
-      if (
-        room.gameState.confirmedPlayers.length === room.gameState.alivePlayers.length &&
-        room.gameState.alivePlayers.length > 0
-      ) {
-        GameState.startSpeaking(room.gameState)
-        room.status = 'playing'
-
-        return {
-          type: 'speakingStarted',
-          payload: this.getGamePublicState(room.id),
-        }
-      }
-
-      return {
-        type: 'stateSync',
-        payload: this.getGamePublicState(room.id),
-      }
-    }
-
-    if (room.gameState.phase === 'voting') {
-      if (VoteManager.isAllVoted(room.gameState)) {
-        GameState.finalizeVoting(room.gameState)
-        room.status = room.gameState.phase === 'ended' ? 'ended' : 'playing'
-
-        if (room.gameState.phase === 'ended') {
-          return {
-            type: 'ended',
-            payload: this.getEndedPayload(room.id),
-          }
-        }
-
-        return {
-          type: 'result',
-          payload: this.getGamePublicState(room.id),
-        }
-      }
-
-      return {
-        type: 'stateSync',
-        payload: this.getGamePublicState(room.id),
-      }
-    }
-
-    if (room.gameState.phase === 'ended') {
-      room.status = 'ended'
-      return {
-        type: 'ended',
-        payload: this.getEndedPayload(room.id),
-      }
-    }
-
-    room.status = room.gameState.phase === 'result' ? 'playing' : room.status
-
-    return {
-      type: 'stateSync',
-      payload: this.getGamePublicState(room.id),
-    }
+    if (!room.gameState || room.players.length === 0) return null
+    return { type: 'stateSync', payload: this.getGamePublicState(room.id) }
   }
 
   _markRoomActive(room, options = {}) {
@@ -942,14 +656,6 @@ class RoomManager extends EventEmitter {
         ttlMs: this.waitingIdleMs,
         baseAt: room.lastActivityAt || room.createdAt || Date.now(),
         reason: 'waiting_idle_timeout',
-      }
-    }
-
-    if (room.status === 'ended') {
-      return {
-        ttlMs: this.endedIdleMs,
-        baseAt: room.lastActivityAt || room.createdAt || Date.now(),
-        reason: 'ended_idle_timeout',
       }
     }
 
@@ -1211,12 +917,6 @@ class RoomManager extends EventEmitter {
   _assertGamePhase(room, allowedPhases) {
     if (!room.gameState || !allowedPhases.includes(room.gameState.phase)) {
       throw this._createError('INVALID_GAME_PHASE', '当前阶段无法执行该操作')
-    }
-  }
-
-  _assertAlivePlayer(room, playerId) {
-    if (!room.gameState.alivePlayers.includes(playerId)) {
-      throw this._createError('PLAYER_ALREADY_OUT', '当前玩家已被淘汰')
     }
   }
 
