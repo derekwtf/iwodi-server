@@ -1,0 +1,183 @@
+{
+  "id": "mystery_fantasy",
+  "label": "奇幻怪谈",
+  "description": "神怪设定与现代生活互相借词，不依赖冷门作品设定",
+  "groups": [
+    {
+      "id": "mystery_fantasy-001",
+      "words": [
+        "闹鬼",
+        "漏电"
+      ]
+    },
+    {
+      "id": "mystery_fantasy-002",
+      "words": [
+        "鬼打墙",
+        "导航失灵"
+      ]
+    },
+    {
+      "id": "mystery_fantasy-003",
+      "words": [
+        "僵尸",
+        "梦游"
+      ]
+    },
+    {
+      "id": "mystery_fantasy-004",
+      "words": [
+        "吸血鬼",
+        "蚊子"
+      ]
+    },
+    {
+      "id": "mystery_fantasy-005",
+      "words": [
+        "女巫",
+        "药剂师"
+      ]
+    },
+    {
+      "id": "mystery_fantasy-006",
+      "words": [
+        "水晶球",
+        "监控屏"
+      ]
+    },
+    {
+      "id": "mystery_fantasy-007",
+      "words": [
+        "符纸",
+        "封条"
+      ]
+    },
+    {
+      "id": "mystery_fantasy-008",
+      "words": [
+        "结界",
+        "围墙"
+      ]
+    },
+    {
+      "id": "mystery_fantasy-009",
+      "words": [
+        "招魂",
+        "群里喊人"
+      ]
+    },
+    {
+      "id": "mystery_fantasy-010",
+      "words": [
+        "托梦",
+        "留言"
+      ]
+    },
+    {
+      "id": "mystery_fantasy-011",
+      "words": [
+        "占卜",
+        "抽盲盒"
+      ]
+    },
+    {
+      "id": "mystery_fantasy-012",
+      "words": [
+        "渡劫",
+        "赶截止日期"
+      ]
+    },
+    {
+      "id": "mystery_fantasy-013",
+      "words": [
+        "法器",
+        "遥控器"
+      ]
+    },
+    {
+      "id": "mystery_fantasy-014",
+      "words": [
+        "传送门",
+        "地铁闸机"
+      ]
+    },
+    {
+      "id": "mystery_fantasy-015",
+      "words": [
+        "分身术",
+        "多开账号"
+      ]
+    },
+    {
+      "id": "mystery_fantasy-016",
+      "words": [
+        "读心术",
+        "聊天记录"
+      ]
+    },
+    {
+      "id": "mystery_fantasy-017",
+      "words": [
+        "魔法棒",
+        "自拍杆"
+      ]
+    },
+    {
+      "id": "mystery_fantasy-018",
+      "words": [
+        "复活",
+        "重启"
+      ]
+    },
+    {
+      "id": "mystery_fantasy-019",
+      "words": [
+        "灵魂出窍",
+        "开会走神"
+      ]
+    },
+    {
+      "id": "mystery_fantasy-020",
+      "words": [
+        "驱魔",
+        "杀毒"
+      ]
+    },
+    {
+      "id": "mystery_fantasy-021",
+      "words": [
+        "藏宝图",
+        "外卖定位"
+      ]
+    },
+    {
+      "id": "mystery_fantasy-022",
+      "words": [
+        "封印",
+        "冻结账号"
+      ]
+    },
+    {
+      "id": "mystery_fantasy-023",
+      "words": [
+        "契约",
+        "用户协议"
+      ]
+    },
+    {
+      "id": "mystery_fantasy-024",
+      "words": [
+        "月老",
+        "推荐算法"
+      ]
+    },
+    {
+      "id": "mystery_fantasy-025",
+      "words": [
+        "神谕",
+        "老板批示"
+      ]
+    }
+  ],
+  "groupCount": 25
+}

@@ -1,0 +1,176 @@
+{
+  "id": "life_drama",
+  "label": "人生大戏",
+  "description": "婚丧嫁娶、人生节点与带黑色幽默的仪式反差",
+  "groups": [
+    {
+      "id": "life_drama-001",
+      "words": [
+        "中彩票",
+        "遭雷劈"
+      ]
+    },
+    {
+      "id": "life_drama-002",
+      "words": [
+        "结婚",
+        "丧偶"
+      ]
+    },
+    {
+      "id": "life_drama-003",
+      "words": [
+        "去世",
+        "退休"
+      ]
+    },
+    {
+      "id": "life_drama-004",
+      "words": [
+        "花圈",
+        "鲜花"
+      ]
+    },
+    {
+      "id": "life_drama-005",
+      "words": [
+        "婚礼",
+        "葬礼"
+      ]
+    },
+    {
+      "id": "life_drama-006",
+      "words": [
+        "殡仪馆",
+        "婚庆公司"
+      ]
+    },
+    {
+      "id": "life_drama-007",
+      "words": [
+        "遗照",
+        "证件照"
+      ]
+    },
+    {
+      "id": "life_drama-008",
+      "words": [
+        "骨灰盒",
+        "首饰盒"
+      ]
+    },
+    {
+      "id": "life_drama-009",
+      "words": [
+        "棺材",
+        "睡袋"
+      ]
+    },
+    {
+      "id": "life_drama-010",
+      "words": [
+        "乔迁",
+        "拆迁"
+      ]
+    },
+    {
+      "id": "life_drama-011",
+      "words": [
+        "回老家",
+        "返厂维修"
+      ]
+    },
+    {
+      "id": "life_drama-012",
+      "words": [
+        "抓周",
+        "抽签"
+      ]
+    },
+    {
+      "id": "life_drama-013",
+      "words": [
+        "家谱",
+        "组织架构图"
+      ]
+    },
+    {
+      "id": "life_drama-014",
+      "words": [
+        "遗嘱",
+        "分红方案"
+      ]
+    },
+    {
+      "id": "life_drama-015",
+      "words": [
+        "养老院",
+        "幼儿园"
+      ]
+    },
+    {
+      "id": "life_drama-016",
+      "words": [
+        "相亲角",
+        "人才市场"
+      ]
+    },
+    {
+      "id": "life_drama-017",
+      "words": [
+        "产房",
+        "考场"
+      ]
+    },
+    {
+      "id": "life_drama-018",
+      "words": [
+        "婚戒",
+        "手铐"
+      ]
+    },
+    {
+      "id": "life_drama-019",
+      "words": [
+        "离婚证",
+        "毕业证"
+      ]
+    },
+    {
+      "id": "life_drama-020",
+      "words": [
+        "登记结婚",
+        "注册账号"
+      ]
+    },
+    {
+      "id": "life_drama-021",
+      "words": [
+        "搬家",
+        "删号重练"
+      ]
+    },
+    {
+      "id": "life_drama-022",
+      "words": [
+        "满月酒",
+        "寿宴"
+      ]
+    },
+    {
+      "id": "life_drama-023",
+      "words": [
+        "灵车",
+        "婚车"
+      ]
+    },
+    {
+      "id": "life_drama-024",
+      "words": [
+        "阎王",
+        "考官"
+      ]
+    }
+  ],
+  "groupCount": 24
+}

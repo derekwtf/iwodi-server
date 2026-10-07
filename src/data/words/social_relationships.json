@@ -1,0 +1,218 @@
+{
+  "id": "social_relationships",
+  "label": "人情社交",
+  "description": "亲密关系、人情往来、线上相处与社交潜台词",
+  "groups": [
+    {
+      "id": "social_relationships-001",
+      "words": [
+        "表白",
+        "自首"
+      ]
+    },
+    {
+      "id": "social_relationships-002",
+      "words": [
+        "分手",
+        "退货"
+      ]
+    },
+    {
+      "id": "social_relationships-003",
+      "words": [
+        "复合",
+        "回锅肉"
+      ]
+    },
+    {
+      "id": "social_relationships-004",
+      "words": [
+        "暧昧",
+        "试用期"
+      ]
+    },
+    {
+      "id": "social_relationships-005",
+      "words": [
+        "前任",
+        "浏览记录"
+      ]
+    },
+    {
+      "id": "social_relationships-006",
+      "words": [
+        "闺蜜",
+        "情报员"
+      ]
+    },
+    {
+      "id": "social_relationships-007",
+      "words": [
+        "伴郎",
+        "保安"
+      ]
+    },
+    {
+      "id": "social_relationships-008",
+      "words": [
+        "喜帖",
+        "传票"
+      ]
+    },
+    {
+      "id": "social_relationships-009",
+      "words": [
+        "份子钱",
+        "门票"
+      ]
+    },
+    {
+      "id": "social_relationships-010",
+      "words": [
+        "婚礼",
+        "发布会"
+      ]
+    },
+    {
+      "id": "social_relationships-011",
+      "words": [
+        "约会",
+        "接头"
+      ]
+    },
+    {
+      "id": "social_relationships-012",
+      "words": [
+        "吃醋",
+        "护食"
+      ]
+    },
+    {
+      "id": "social_relationships-013",
+      "words": [
+        "敬酒",
+        "通关"
+      ]
+    },
+    {
+      "id": "social_relationships-014",
+      "words": [
+        "秒回",
+        "自动回复"
+      ]
+    },
+    {
+      "id": "social_relationships-015",
+      "words": [
+        "断联",
+        "断网"
+      ]
+    },
+    {
+      "id": "social_relationships-016",
+      "words": [
+        "熟人",
+        "大数据"
+      ]
+    },
+    {
+      "id": "social_relationships-017",
+      "words": [
+        "朋友圈",
+        "橱窗"
+      ]
+    },
+    {
+      "id": "social_relationships-018",
+      "words": [
+        "客套话",
+        "广告词"
+      ]
+    },
+    {
+      "id": "social_relationships-019",
+      "words": [
+        "催婚",
+        "催债"
+      ]
+    },
+    {
+      "id": "social_relationships-020",
+      "words": [
+        "网恋",
+        "网购"
+      ]
+    },
+    {
+      "id": "social_relationships-021",
+      "words": [
+        "红娘",
+        "猎头"
+      ]
+    },
+    {
+      "id": "social_relationships-022",
+      "words": [
+        "闹洞房",
+        "密室逃脱"
+      ]
+    },
+    {
+      "id": "social_relationships-023",
+      "words": [
+        "投喂",
+        "打赏"
+      ]
+    },
+    {
+      "id": "social_relationships-024",
+      "words": [
+        "备胎",
+        "充电宝"
+      ]
+    },
+    {
+      "id": "social_relationships-025",
+      "words": [
+        "安全感",
+        "满格电量"
+      ]
+    },
+    {
+      "id": "social_relationships-026",
+      "words": [
+        "好人卡",
+        "退件通知"
+      ]
+    },
+    {
+      "id": "social_relationships-027",
+      "words": [
+        "合租室友",
+        "随机队友"
+      ]
+    },
+    {
+      "id": "social_relationships-028",
+      "words": [
+        "朋友圈",
+        "简历"
+      ]
+    },
+    {
+      "id": "social_relationships-029",
+      "words": [
+        "亲戚聚会",
+        "新闻发布会"
+      ]
+    },
+    {
+      "id": "social_relationships-030",
+      "words": [
+        "出轨",
+        "表白"
+      ]
+    }
+  ],
+  "groupCount": 30
+}

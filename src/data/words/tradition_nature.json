@@ -1,7 +1,7 @@
 {
   "id": "tradition_nature",
   "label": "传统与自然",
-  "description": "传统节日、工艺、文化符号、自然地理",
+  "description": "传统节俗、工艺、自然动植物与跨界生活比喻",
   "groups": [
     {
       "id": "tradition_nature-001",
@@ -140,38 +140,6 @@
       ]
     },
     {
-      "id": "tradition_nature-021",
-      "words": [
-        "松树",
-        "柏树",
-        "杉树"
-      ]
-    },
-    {
-      "id": "tradition_nature-022",
-      "words": [
-        "泰山",
-        "华山",
-        "嵩山"
-      ]
-    },
-    {
-      "id": "tradition_nature-023",
-      "words": [
-        "黄山",
-        "庐山",
-        "峨眉山"
-      ]
-    },
-    {
-      "id": "tradition_nature-024",
-      "words": [
-        "长江",
-        "黄河",
-        "珠江"
-      ]
-    },
-    {
       "id": "tradition_nature-025",
       "words": [
         "长城",
@@ -222,7 +190,6 @@
     {
       "id": "tradition_nature-033",
       "words": [
-        "算盘",
         "铜钱",
         "元宝"
       ]
@@ -239,8 +206,7 @@
       "id": "tradition_nature-036",
       "words": [
         "拜年",
-        "祭祖",
-        "赏月"
+        "祭祖"
       ]
     },
     {
@@ -320,24 +286,10 @@
       ]
     },
     {
-      "id": "tradition_nature-047",
-      "words": [
-        "海滩",
-        "湖畔"
-      ]
-    },
-    {
       "id": "tradition_nature-048",
       "words": [
         "沙漠",
         "戈壁"
-      ]
-    },
-    {
-      "id": "tradition_nature-049",
-      "words": [
-        "瀑布",
-        "峡谷"
       ]
     },
     {
@@ -479,7 +431,84 @@
         "日晷",
         "沙漏"
       ]
+    },
+    {
+      "id": "tradition_nature-070",
+      "words": [
+        "闹钟",
+        "公鸡"
+      ]
+    },
+    {
+      "id": "tradition_nature-071",
+      "words": [
+        "蒲公英",
+        "降落伞"
+      ]
+    },
+    {
+      "id": "tradition_nature-072",
+      "words": [
+        "含羞草",
+        "社恐"
+      ]
+    },
+    {
+      "id": "tradition_nature-073",
+      "words": [
+        "蜗牛",
+        "房奴"
+      ]
+    },
+    {
+      "id": "tradition_nature-074",
+      "words": [
+        "蚊帐",
+        "结界"
+      ]
+    },
+    {
+      "id": "tradition_nature-075",
+      "words": [
+        "仙人掌",
+        "狼牙棒"
+      ]
+    },
+    {
+      "id": "tradition_nature-076",
+      "words": [
+        "蛇蜕",
+        "旧衣服"
+      ]
+    },
+    {
+      "id": "tradition_nature-077",
+      "words": [
+        "冬眠",
+        "放寒假"
+      ]
+    },
+    {
+      "id": "tradition_nature-078",
+      "words": [
+        "候鸟",
+        "春运旅客"
+      ]
+    },
+    {
+      "id": "tradition_nature-079",
+      "words": [
+        "蘑菇",
+        "雨伞"
+      ]
+    },
+    {
+      "id": "tradition_nature-080",
+      "words": [
+        "河豚",
+        "气球"
+      ]
     }
   ],
-  "groupCount": 63
+  "groupCount": 68
 }

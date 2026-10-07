@@ -1,0 +1,197 @@
+{
+  "id": "work_school",
+  "label": "职场校园",
+  "description": "上班上学、考核规训与集体生活中的微妙反差",
+  "groups": [
+    {
+      "id": "work_school-001",
+      "words": [
+        "加班",
+        "留堂"
+      ]
+    },
+    {
+      "id": "work_school-002",
+      "words": [
+        "团建",
+        "军训"
+      ]
+    },
+    {
+      "id": "work_school-003",
+      "words": [
+        "年会",
+        "春晚"
+      ]
+    },
+    {
+      "id": "work_school-004",
+      "words": [
+        "述职",
+        "检讨"
+      ]
+    },
+    {
+      "id": "work_school-005",
+      "words": [
+        "周报",
+        "日记"
+      ]
+    },
+    {
+      "id": "work_school-006",
+      "words": [
+        "毕业答辩",
+        "见家长"
+      ]
+    },
+    {
+      "id": "work_school-007",
+      "words": [
+        "面试",
+        "审讯"
+      ]
+    },
+    {
+      "id": "work_school-008",
+      "words": [
+        "工位",
+        "摊位"
+      ]
+    },
+    {
+      "id": "work_school-009",
+      "words": [
+        "离职",
+        "退群"
+      ]
+    },
+    {
+      "id": "work_school-010",
+      "words": [
+        "老板",
+        "甲方"
+      ]
+    },
+    {
+      "id": "work_school-011",
+      "words": [
+        "导师",
+        "驾校教练"
+      ]
+    },
+    {
+      "id": "work_school-012",
+      "words": [
+        "班主任",
+        "宿管"
+      ]
+    },
+    {
+      "id": "work_school-013",
+      "words": [
+        "实习",
+        "试吃"
+      ]
+    },
+    {
+      "id": "work_school-014",
+      "words": [
+        "内卷",
+        "军备竞赛"
+      ]
+    },
+    {
+      "id": "work_school-015",
+      "words": [
+        "午休",
+        "待机"
+      ]
+    },
+    {
+      "id": "work_school-016",
+      "words": [
+        "劳动合同",
+        "婚前协议"
+      ]
+    },
+    {
+      "id": "work_school-017",
+      "words": [
+        "裁员",
+        "淘汰赛"
+      ]
+    },
+    {
+      "id": "work_school-018",
+      "words": [
+        "竞聘",
+        "选秀"
+      ]
+    },
+    {
+      "id": "work_school-019",
+      "words": [
+        "早八",
+        "早朝"
+      ]
+    },
+    {
+      "id": "work_school-020",
+      "words": [
+        "论文查重",
+        "安检"
+      ]
+    },
+    {
+      "id": "work_school-021",
+      "words": [
+        "公开课",
+        "直播带货"
+      ]
+    },
+    {
+      "id": "work_school-022",
+      "words": [
+        "校服",
+        "囚服"
+      ]
+    },
+    {
+      "id": "work_school-023",
+      "words": [
+        "工牌",
+        "护身符"
+      ]
+    },
+    {
+      "id": "work_school-024",
+      "words": [
+        "招聘",
+        "征婚"
+      ]
+    },
+    {
+      "id": "work_school-025",
+      "words": [
+        "试卷",
+        "体检报告"
+      ]
+    },
+    {
+      "id": "work_school-026",
+      "words": [
+        "班长",
+        "群主"
+      ]
+    },
+    {
+      "id": "work_school-027",
+      "words": [
+        "开会",
+        "念经"
+      ]
+    }
+  ],
+  "groupCount": 27
+}

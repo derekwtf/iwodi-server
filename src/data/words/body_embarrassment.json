@@ -1,0 +1,197 @@
+{
+  "id": "body_embarrassment",
+  "label": "身体糗事",
+  "description": "日常身体体验、出糗瞬间与形状声音的跨界联想",
+  "groups": [
+    {
+      "id": "body_embarrassment-001",
+      "words": [
+        "打嗝",
+        "放屁"
+      ]
+    },
+    {
+      "id": "body_embarrassment-002",
+      "words": [
+        "梦话",
+        "醉话"
+      ]
+    },
+    {
+      "id": "body_embarrassment-003",
+      "words": [
+        "打呼噜",
+        "电钻"
+      ]
+    },
+    {
+      "id": "body_embarrassment-004",
+      "words": [
+        "秃头",
+        "落叶"
+      ]
+    },
+    {
+      "id": "body_embarrassment-005",
+      "words": [
+        "鼻毛",
+        "睫毛"
+      ]
+    },
+    {
+      "id": "body_embarrassment-006",
+      "words": [
+        "抬头纹",
+        "搓衣板"
+      ]
+    },
+    {
+      "id": "body_embarrassment-007",
+      "words": [
+        "黑眼圈",
+        "烟熏妆"
+      ]
+    },
+    {
+      "id": "body_embarrassment-008",
+      "words": [
+        "肚腩",
+        "游泳圈"
+      ]
+    },
+    {
+      "id": "body_embarrassment-009",
+      "words": [
+        "牙套",
+        "铁丝网"
+      ]
+    },
+    {
+      "id": "body_embarrassment-010",
+      "words": [
+        "假牙",
+        "隐形眼镜"
+      ]
+    },
+    {
+      "id": "body_embarrassment-011",
+      "words": [
+        "拔牙",
+        "拆迁"
+      ]
+    },
+    {
+      "id": "body_embarrassment-012",
+      "words": [
+        "打针",
+        "纹身"
+      ]
+    },
+    {
+      "id": "body_embarrassment-013",
+      "words": [
+        "按摩",
+        "揉面"
+      ]
+    },
+    {
+      "id": "body_embarrassment-014",
+      "words": [
+        "便秘",
+        "堵车"
+      ]
+    },
+    {
+      "id": "body_embarrassment-015",
+      "words": [
+        "拉肚子",
+        "泄洪"
+      ]
+    },
+    {
+      "id": "body_embarrassment-016",
+      "words": [
+        "打喷嚏",
+        "爆米花"
+      ]
+    },
+    {
+      "id": "body_embarrassment-017",
+      "words": [
+        "汗毛",
+        "草坪"
+      ]
+    },
+    {
+      "id": "body_embarrassment-018",
+      "words": [
+        "起床气",
+        "路怒症"
+      ]
+    },
+    {
+      "id": "body_embarrassment-019",
+      "words": [
+        "减肥",
+        "还债"
+      ]
+    },
+    {
+      "id": "body_embarrassment-020",
+      "words": [
+        "暴食",
+        "报复性消费"
+      ]
+    },
+    {
+      "id": "body_embarrassment-021",
+      "words": [
+        "憋笑",
+        "憋尿"
+      ]
+    },
+    {
+      "id": "body_embarrassment-022",
+      "words": [
+        "磨牙",
+        "磨刀"
+      ]
+    },
+    {
+      "id": "body_embarrassment-023",
+      "words": [
+        "落枕",
+        "卡壳"
+      ]
+    },
+    {
+      "id": "body_embarrassment-024",
+      "words": [
+        "流鼻涕",
+        "拉丝芝士"
+      ]
+    },
+    {
+      "id": "body_embarrassment-025",
+      "words": [
+        "脚臭",
+        "臭豆腐"
+      ]
+    },
+    {
+      "id": "body_embarrassment-026",
+      "words": [
+        "体检",
+        "年检"
+      ]
+    },
+    {
+      "id": "body_embarrassment-027",
+      "words": [
+        "挂号",
+        "抢票"
+      ]
+    }
+  ],
+  "groupCount": 27
+}

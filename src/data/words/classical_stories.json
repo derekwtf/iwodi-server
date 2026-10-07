@@ -1,7 +1,7 @@
 {
   "id": "classical_stories",
   "label": "古典文学与故事",
-  "description": "古典名著、民间传说、诗词歌赋",
+  "description": "古典名著、民间传说及与现代生活的跨界联想",
   "groups": [
     {
       "id": "classical_stories-001",
@@ -283,7 +283,42 @@
         "木兰从军",
         "穆桂英挂帅"
       ]
+    },
+    {
+      "id": "classical_stories-041",
+      "words": [
+        "蟠桃会",
+        "同学会"
+      ]
+    },
+    {
+      "id": "classical_stories-042",
+      "words": [
+        "取经",
+        "出差"
+      ]
+    },
+    {
+      "id": "classical_stories-043",
+      "words": [
+        "画皮",
+        "美颜"
+      ]
+    },
+    {
+      "id": "classical_stories-044",
+      "words": [
+        "水帘洞",
+        "海景房"
+      ]
+    },
+    {
+      "id": "classical_stories-045",
+      "words": [
+        "女儿国",
+        "女生宿舍"
+      ]
     }
   ],
-  "groupCount": 39
+  "groupCount": 44
 }
