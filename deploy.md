@@ -101,18 +101,39 @@ ROOM_PLAYING_IDLE_MS=600000
 ROOM_IDLE_WARNING_MS=60000
 ```
 
-测试与正式环境至少隔离以下内容；同机部署还要使用不同的代码入口、服务名和监听端口：
+各环境至少隔离以下内容；同机部署还要使用不同的代码入口、服务名和监听端口：
 
-| 项目 | 测试示例 | 正式示例 |
-|---|---|---|
-| 外部域名 | `test.wodi.server.zhibeii.com` | `wodi.server.zhibeii.com` |
-| 配置文件 | `/etc/qile-wodi/test.env` | `/etc/qile-wodi/prod.env` |
-| 用户库 | `/var/lib/qile-wodi/test/users.sqlite` | `/var/lib/qile-wodi/prod/users.sqlite` |
-| 签名密钥 | 独立生成 | 独立生成 |
-| 同机 Node 端口 | `3011` | `3010` |
-| 同机服务名 | `qile-wodi-test` | `qile-wodi` |
+| 项目 | 测试示例 | IAP 环境 | 正式示例 |
+|---|---|---|---|
+| 外部域名 | `test.wodi.server.zhibeii.com` | `iap.wodi.server.zhibeii.com` | `wodi.server.zhibeii.com` |
+| 配置文件 | `/etc/qile-wodi/test.env` | `/etc/qile-wodi/iap.env` | `/etc/qile-wodi/prod.env` |
+| 用户库 | `/var/lib/qile-wodi/test/users.sqlite` | `/var/lib/qile-wodi/iap/users.sqlite` | `/var/lib/qile-wodi/prod/users.sqlite` |
+| 签名密钥 | 独立生成 | 独立生成 | 独立生成 |
+| 同机 Node 端口 | `3011` | `3030` | `3010` |
+| 同机服务名 | `qile-wodi-test` | `qile-wodi-iap` | `qile-wodi` |
 
-如果部署测试实例，从下方 systemd 模板复制另一份 unit，同时调整 `WorkingDirectory`、`ExecStart` 和 `EnvironmentFile`；测试域名代理到测试端口。不要让两个实例共用正式数据库。
+如果部署测试或 IAP 实例，从下方 systemd 模板复制另一份 unit，同时调整 `WorkingDirectory`、`ExecStart` 和 `EnvironmentFile`；各域名代理到对应端口。不要让多个实例共用正式数据库。
+
+### 2.4 IAP 环境配置
+
+IAP 环境使用独立模板 [.env.iap.example](.env.iap.example)，固定监听 `127.0.0.1:3030`。首次部署时，从该实例的服务端代码目录执行：
+
+```bash
+sudo install -d -o root -g www-data -m 750 /etc/qile-wodi
+sudo install -d -o www-data -g www-data -m 700 /var/lib/qile-wodi/iap /var/backups/qile-wodi/iap
+sudo install -o root -g www-data -m 640 .env.iap.example /etc/qile-wodi/iap.env
+openssl rand -hex 32
+sudoedit /etc/qile-wodi/iap.env
+```
+
+填写真实的 `WECHAT_APP_ID`、`WECHAT_APP_SECRET` 和独立生成的 `AUTH_TOKEN_SECRET`。已有配置时仅编辑，不重新复制覆盖。VIP 售卖默认保持关闭；如需开启，另行配置该环境的支付及消息密钥，消息推送 URL 为 `https://iap.wodi.server.zhibeii.com/wechat/events`。
+
+按第 4 节部署独立实例，例如代码入口使用 `/opt/qile-wodi/iap/server`，其 `.env` 链接到 `/etc/qile-wodi/iap.env`；systemd unit 使用 `qile-wodi-iap.service`，`WorkingDirectory` 指向该代码入口，`EnvironmentFile` 指向该配置文件。若使用直接指定 Node 的 `ExecStart`，同步调整脚本路径。域名代理到 `127.0.0.1:3030`，公网仍使用 HTTPS/WSS 的默认端口，不在客户端 URL 中追加 `:3030`。
+
+```bash
+curl --fail http://127.0.0.1:3030/health
+curl --fail https://iap.wodi.server.zhibeii.com/health
+```
 
 ## 3. 本地开发与联调
 
@@ -254,7 +275,7 @@ curl --fail http://127.0.0.1:3010/health
 
 ## 5. 域名、HTTPS 与反向代理
 
-将目标域名的 DNS 解析到服务器，配置有效的证书；云安全组和主机防火墙允许 `80/443`。Node 保持监听 `127.0.0.1:3010`，不需要对公网开放该端口。下方域名采用项目当前正式域名，部署其他环境时统一替换。
+将目标域名的 DNS 解析到服务器，配置有效的证书；云安全组和主机防火墙允许 `80/443`。正式 Node 保持监听 `127.0.0.1:3010`，IAP 实例监听 `127.0.0.1:3030`，均不需要对公网开放上游端口。Nginx 示例采用项目当前正式域名；部署 IAP 站点时，将域名统一替换为 `iap.wodi.server.zhibeii.com`，两处 `proxy_pass` 均改为 `http://127.0.0.1:3030`，证书申请命令也使用 IAP 域名。
 
 ### 5.1 Caddy（推荐）
 
@@ -269,6 +290,11 @@ sudoedit /etc/caddy/Caddyfile
 wodi.server.zhibeii.com {
     encode gzip
     reverse_proxy 127.0.0.1:3010
+}
+
+iap.wodi.server.zhibeii.com {
+    encode gzip
+    reverse_proxy 127.0.0.1:3030
 }
 ```
 
@@ -331,9 +357,9 @@ curl --fail https://wodi.server.zhibeii.com/health
 
 ## 6. 小程序配套配置与首次切换
 
-1. 在微信小程序后台配置 request 合法域名 `https://wodi.server.zhibeii.com`、socket 合法域名 `wss://wodi.server.zhibeii.com`，并确认 HTTPS 证书有效。测试环境使用对应测试域名。
+1. 在微信小程序后台配置 request 合法域名 `https://wodi.server.zhibeii.com`、socket 合法域名 `wss://wodi.server.zhibeii.com`，并确认 HTTPS 证书有效。测试环境使用对应测试域名；IAP 环境分别使用 `https://iap.wodi.server.zhibeii.com` 和 `wss://iap.wodi.server.zhibeii.com`。
 2. 在客户端目录执行 `npm ci`，在微信开发者工具中导入项目并“构建 npm”。当前 `weapp.socket.io@2.2.1` 实际使用 EIO=4 / Socket.IO 协议 5，支持 `auth`；不恢复 EIO=3 或 URL query 凭证。
-3. 明确选择 `client/config.js` 的 `FORCE_ENV`。当前代码为 `test`；正式发布需要主动选择 `prod`，并核对 `prod.socketUrl`。`apiBaseUrl` 由 socket 地址自动映射为 HTTPS，不存在独立服务端 env 可以替代该选择。
+3. 明确选择 `client/config.js` 的 `FORCE_ENV`。当前代码为 `test`；IAP 联调时主动选择 `iap`，正式发布时主动选择 `prod`，并核对对应 `socketUrl`。`apiBaseUrl` 由 socket 地址自动映射为 HTTPS，不存在独立服务端 env 可以替代该选择。
 4. 先在隔离测试环境完成真机验收，再让新版小程序可供用户更新，安排服务端切换窗口。停止旧服务，启动本版本，结束旧内存房间和所有旧连接。切换期间允许短暂不可用，不保留匿名通道。
 5. 用户首次通过微信验证后取得新账号和默认资料；旧昵称、头像、`playerId` 不导入。新版若短暂连接到旧服务、收到缺少凭证的登录响应，需要在服务切换完成后重试；旧版客户端需要更新。
 
