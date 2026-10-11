@@ -1,5 +1,4 @@
 .DS_Store
-.omx/
 .omc/
 node_modules/
 .env
