@@ -90,6 +90,15 @@ class SessionRegistry {
     return session
   }
 
+  removeIdentity(identityKey) {
+    const playerId = this.identityToPlayer.get(identityKey)
+    const session = this.get(playerId)
+    if (session?.roomId) throw new Error('账号会话清理前必须先离开房间')
+    if (session?.socketId) this.socketToPlayer.delete(session.socketId)
+    this.sessions.delete(playerId)
+    this.identityToPlayer.delete(identityKey)
+  }
+
   cleanupExpiredSessions(now = Date.now()) {
     let removed = 0
     for (const [playerId, session] of this.sessions) {

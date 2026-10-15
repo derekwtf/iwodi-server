@@ -34,6 +34,7 @@ function registerUserHandlers(socket, roomManager, userStore, paymentService, sy
     let querying = false
     for (const [event, method] of [
       [EVENTS.client.USER_CREATE_VIP_ORDER, 'create'], [EVENTS.client.USER_QUERY_VIP_ORDER, 'queryOwn'],
+      ...(typeof paymentService.confirmPurchase === 'function' ? [[EVENTS.client.USER_CONFIRM_VIP_PURCHASE, 'confirmPurchase']] : []),
     ]) {
       socket.on(event, async (payload, ack) => {
         if (querying) return handleError(socket, event, ack, Object.assign(new Error('订单处理中，请稍后刷新'), { code: 'VIP_ORDER_BUSY' }))

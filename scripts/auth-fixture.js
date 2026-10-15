@@ -9,19 +9,27 @@ const createAuthRouter = require('../src/auth/createAuthRouter')
 const { createTokenService } = require('../src/auth/tokens')
 const { initializeSocketServer } = require('../src/socket')
 const { PaymentService } = require('../src/payment/PaymentService')
+const { AppPaymentService } = require('../src/payment/AppPaymentService')
 const createEventsRouter = require('../src/payment/createEventsRouter')
+const createAppEventsRouter = require('../src/payment/createAppEventsRouter')
+const deleteAccountSession = require('../src/socket/deleteAccountSession')
 
 async function createFixture(filename = ':memory:', options = {}) {
   const userStore = new UserStore(filename)
-  const paymentService = options.payment ? new PaymentService({ userStore, ...options.payment }) : null
+  const paymentService = options.appPayment ? new AppPaymentService({ userStore, ...options.appPayment })
+    : options.payment ? new PaymentService({ userStore, ...options.payment }) : null
   const tokens = createTokenService('test-only-secret-'.repeat(4))
   const manager = new RoomManager({ wordLibrary: new WordLibrary() })
   const app = express()
   app.use(express.json())
-  // 唯一注入点是既有微信换码函数；生产服务没有测试登录路由。
+  // 测试仅注入平台验证依赖；生产服务没有测试登录路由。
   app.use('/auth', createAuthRouter({ roomManager: manager, userStore, tokens, paymentService, appId: options.appId || 'test-app',
+    channel: options.channel, appIdentityVerifier: options.appIdentityVerifier,
+    appleRevocationClient: options.appleRevocationClient,
+    deleteSession: (userId) => deleteAccountSession(io, manager, userId),
     fetchWechatSession: options.fetchWechatSession || (async (code) => ({ openid: `verified-${code}` })) }))
-  if (paymentService) app.use('/wechat/events', createEventsRouter(paymentService))
+  if (options.appPayment) app.use('/app/store/events', createAppEventsRouter(paymentService))
+  else if (paymentService) app.use('/wechat/events', createEventsRouter(paymentService))
   const server = http.createServer(app)
   const io = new Server(server)
   initializeSocketServer(io, manager, { userStore, tokens, paymentService })
@@ -48,6 +56,7 @@ async function createFixture(filename = ':memory:', options = {}) {
   }
   return { userStore, paymentService, tokens, manager, app, server, io, url, login, connect,
     async close() {
+      await paymentService?.stop()
       clients.forEach((socket) => socket.close())
       for (const roomId of manager.rooms.keys()) manager.destroyRoom(roomId)
       clearInterval(manager.sessionRegistry.sweepTimer)

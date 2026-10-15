@@ -273,7 +273,9 @@ class RoomManager extends EventEmitter {
     return {
       roomId: room.id,
       roomState: this.getRoomState(room.id),
-      removedPlayer: this._toPublicPlayer(removedPlayer),
+      removedPlayer: options.reason === 'account_deleted'
+        ? { ...this._toPublicPlayer(removedPlayer), nickname: '已删除账号', avatar: '/assets/avatars/avatar-1.svg', isVip: false }
+        : this._toPublicPlayer(removedPlayer),
       hostChanged,
       gameAction,
       reason: options.reason || 'leave',
@@ -386,6 +388,10 @@ class RoomManager extends EventEmitter {
       wordLibrary,
       usedPromptPairIds: room.usedPromptPairIds[room.playMode],
     })
+    // Private ownership is retained only for this in-memory round so deleting
+    // an account can also erase a departed player's roster after session expiry.
+    gameState.playerIdentities = Object.fromEntries(room.players.map((item) =>
+      [item.id, this.sessionRegistry.get(item.id)?.identityKey || '']))
     const history = gameState.historyReset ? [] : room.usedPromptPairIds[room.playMode]
     room.gameState = gameState
     room.status = 'playing'
@@ -442,6 +448,18 @@ class RoomManager extends EventEmitter {
     return this.leaveRoomByPlayerId(playerId, {
       reason: 'reconnect_abandon',
     })
+  }
+
+  forgetIdentityHistory(identityKey, knownPlayerId) {
+    const changes = []
+    for (const room of this.rooms.values()) {
+      const ids = room.gameState?.playerRoster.filter((player) => player.id === knownPlayerId ||
+        room.gameState.playerIdentities?.[player.id] === identityKey).map((player) => player.id) || []
+      if (!ids.length) continue
+      ids.forEach((playerId) => this._removePlayerFromGameState(room, playerId, 'account_deleted'))
+      changes.push({ roomId: room.id, payload: this.getGamePublicState(room.id) })
+    }
+    return changes
   }
 
   heartbeat(playerId) {
@@ -600,6 +618,11 @@ class RoomManager extends EventEmitter {
     delete room.gameState.roles[playerId]
     delete room.gameState.playerWords[playerId]
     delete room.gameState.playerPerformanceSteps[playerId]
+    if (reason === 'account_deleted') {
+      delete room.gameState.playerIdentities?.[playerId]
+      room.gameState.playerRoster = room.gameState.playerRoster.filter((player) => player.id !== playerId)
+      return
+    }
     const rosterPlayer = room.gameState.playerRoster.find((player) => player.id === playerId)
     if (rosterPlayer) {
       rosterPlayer.hasLeft = true
