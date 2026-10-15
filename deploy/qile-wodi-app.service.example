@@ -1,0 +1,22 @@
+[Unit]
+Description=iWoDi App Socket Server (single instance)
+After=network.target
+
+[Service]
+Type=simple
+User=qile-wodi-app
+Group=qile-wodi-app
+WorkingDirectory=/opt/qile-wodi-app/server
+ExecStart=/usr/bin/env APP_CHANNEL=app /usr/bin/node /opt/qile-wodi-app/server/src/index.js
+Environment=NODE_ENV=production
+EnvironmentFile=/etc/qile-wodi-app/app.env
+UMask=0077
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+
+# ExecStart 强制 App 渠道；app.env 仍须设置 PORT=3011、独立数据库和签名密钥。
+# SIGTERM 停止新连接并等待在途操作，应用 25 秒超时退出；停服会结束内存房间。
+
+[Install]
+WantedBy=multi-user.target

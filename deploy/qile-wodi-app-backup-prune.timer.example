@@ -1,0 +1,11 @@
+[Unit]
+Description=Check iWoDi App managed backup expiry every minute
+
+[Timer]
+OnCalendar=minutely
+AccuracySec=1s
+Persistent=true
+Unit=qile-wodi-app-backup-prune.service
+
+[Install]
+WantedBy=timers.target

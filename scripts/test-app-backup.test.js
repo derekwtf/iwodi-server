@@ -1,0 +1,289 @@
+const test = require('node:test')
+const assert = require('node:assert/strict')
+const { mkdtempSync, rmSync, realpathSync, existsSync, writeFileSync, readFileSync, statSync,
+  mkdirSync, readdirSync, chmodSync, cpSync, utimesSync, symlinkSync, renameSync } = require('node:fs')
+const { join } = require('node:path')
+const { tmpdir } = require('node:os')
+const { spawnSync } = require('node:child_process')
+const Database = require('better-sqlite3')
+const UserStore = require('../src/user/UserStore')
+const { createAppBackup, pruneAppBackups } = require('./app-backup')
+const { DELETED_APP_RETENTION_MS } = require('../src/user/app-retention')
+
+const script = join(__dirname, 'backup-users.js')
+function fixture(t, provider = 'google') {
+  const directory = mkdtempSync(join(realpathSync(tmpdir()), 'iwodi-backup-'))
+  const source = join(directory, 'source.sqlite')
+  const store = new UserStore(source)
+  store.db.pragma('wal_autocheckpoint = 0')
+  const user = store.findOrCreate({ provider, scope: 'backup-test', subject: 'fixture-identity' })
+  t.after(() => { if (store.db.open) store.close(); rmSync(directory, { recursive: true, force: true }) })
+  return { directory, source, store, user }
+}
+function cli(args, source, extra = {}, cwd = join(__dirname, '..')) {
+  const env = { ...process.env, USER_DB_PATH: source || '', APP_CHANNEL: 'wechat', ...extra }
+  for (const key of Object.keys(env)) if (env[key] === undefined) delete env[key]
+  return spawnSync(process.execPath, [script, ...args], {
+    cwd, env,
+    encoding: 'utf8', timeout: 10000,
+  })
+}
+function backupRoot(f, name = 'app-backups') {
+  const root = join(f.directory, name)
+  mkdirSync(root, { mode: 0o700 })
+  return root
+}
+const manifest = (bundle) => JSON.parse(readFileSync(join(bundle, 'manifest.json'), 'utf8'))
+const start = Date.UTC(2026, 9, 15)
+
+test('legacy WeChat CLI copies committed WAL data online without modifying the live source', (t) => {
+  const f = fixture(t, 'wechat_mini_program')
+  f.store.updateProfile(f.user.userId, { nickname: '在线备份资料', avatar: '/assets/avatars/avatar-2.svg' })
+  const before = f.store.getUser(f.user.userId)
+  assert.ok(statSync(`${f.source}-wal`).size > 0)
+  const destination = join(f.directory, 'wechat-backup.sqlite')
+  const result = cli([destination], f.source)
+  assert.equal(result.status, 0, result.stderr)
+  const copy = new Database(destination, { readonly: true, fileMustExist: true })
+  try {
+    assert.equal(copy.prepare('SELECT nickname FROM users WHERE user_id = ?').get(f.user.userId).nickname, before.nickname)
+    assert.equal(copy.pragma('integrity_check', { simple: true }), 'ok')
+    assert.deepEqual(copy.pragma('foreign_key_check'), [])
+  } finally { copy.close() }
+  assert.deepEqual(f.store.getUser(f.user.userId), before)
+})
+
+test('legacy CLI refuses an existing destination, the source path, or a nonexistent source', (t) => {
+  const f = fixture(t, 'wechat_mini_program')
+  const destination = join(f.directory, 'existing.sqlite')
+  writeFileSync(destination, 'keep-existing-file')
+  assert.notEqual(cli([destination], f.source).status, 0)
+  assert.equal(readFileSync(destination, 'utf8'), 'keep-existing-file')
+  assert.notEqual(cli([f.source], f.source).status, 0)
+  assert.ok(f.store.getUser(f.user.userId))
+  const absentTarget = join(f.directory, 'absent-target.sqlite')
+  assert.notEqual(cli([absentTarget], join(f.directory, 'missing.sqlite')).status, 0)
+  assert.equal(existsSync(absentTarget), false)
+})
+
+test('App CLI creates a private immutable bundle and independent prune works without a live source', (t) => {
+  const f = fixture(t), root = backupRoot(f)
+  const created = cli(['app-create', root], f.source, { APP_CHANNEL: 'app' })
+  assert.equal(created.status, 0, created.stderr)
+  const result = JSON.parse(created.stdout), metadata = manifest(result.bundle)
+  assert.equal(metadata.expiresAt, metadata.startedAt + DELETED_APP_RETENTION_MS)
+  assert.deepEqual(readdirSync(result.bundle).sort(), ['manifest.json', 'users.sqlite'])
+  assert.equal(statSync(result.bundle).mode & 0o777, 0o700)
+  for (const name of ['manifest.json', 'users.sqlite']) assert.equal(statSync(join(result.bundle, name)).mode & 0o777, 0o400)
+  assert.equal(JSON.stringify(metadata).includes(f.user.userId), false)
+  assert.equal(JSON.stringify(metadata).includes('fixture-identity'), false)
+  const pruned = cli(['app-prune', root], '', { APP_CHANNEL: 'app' })
+  assert.equal(pruned.status, 0, pruned.stderr)
+  assert.deepEqual(JSON.parse(pruned.stdout), { deleted: 0, kept: 1, ignored: 0 })
+  assert.notEqual(cli([join(f.directory, 'unmanaged.sqlite')], f.source, { APP_CHANNEL: 'app' }).status, 0)
+  assert.notEqual(cli(['app-create', root], f.source).status, 0, 'App mode must be explicit')
+})
+
+test('active-account snapshot expires exactly seven days from backup start and leaves the live account intact', async (t) => {
+  const f = fixture(t), root = backupRoot(f), before = f.store.getUser(f.user.userId)
+  const created = await createAppBackup({ source: f.source, root, now: () => start })
+  assert.deepEqual(await pruneAppBackups({ root, now: () => start + DELETED_APP_RETENTION_MS - 1 }), { deleted: 0, kept: 1, ignored: 0 })
+  assert.deepEqual(await pruneAppBackups({ root, now: () => start + DELETED_APP_RETENTION_MS }), { deleted: 1, kept: 0, ignored: 0 })
+  assert.equal(existsSync(created.bundle), false)
+  assert.deepEqual(f.store.getUser(f.user.userId), before)
+  assert.deepEqual(await pruneAppBackups({ root, now: () => start + DELETED_APP_RETENTION_MS }), { deleted: 0, kept: 0, ignored: 0 })
+})
+
+test('a sixth-day deletion snapshot has one day left and copying it never resets expiry', async (t) => {
+  const f = fixture(t), root = backupRoot(f), day = DELETED_APP_RETENTION_MS / 7
+  f.store.deleteAppUser(f.user.userId, { now: start - 6 * day })
+  const created = await createAppBackup({ source: f.source, root, now: () => start })
+  assert.equal(created.expiresAt, start + day)
+  const copiedRoot = join(f.directory, 'copied-backups')
+  cpSync(root, copiedRoot, { recursive: true, preserveTimestamps: false })
+  const copiedBundle = join(copiedRoot, created.bundle.split('/').at(-1))
+  chmodSync(copiedRoot, 0o700)
+  chmodSync(copiedBundle, 0o700)
+  utimesSync(copiedBundle, new Date(start + 6 * day), new Date(start + 6 * day))
+  for (const name of ['users.sqlite', 'manifest.json']) utimesSync(join(copiedBundle, name), new Date(start + 6 * day), new Date(start + 6 * day))
+  assert.deepEqual(await pruneAppBackups({ root: copiedRoot, now: () => start + day }), { deleted: 1, kept: 0, ignored: 0 })
+  assert.ok(existsSync(created.bundle), 'a different managed copy is not implicitly traversed')
+  assert.ok(f.store.isAppUserDeleted(f.user.userId), 'backup pruning must not alter source retention records')
+})
+
+test('backup data and retention deadlines come from one read snapshot while live deletion proceeds', async (t) => {
+  const f = fixture(t), root = backupRoot(f)
+  const creating = createAppBackup({ source: f.source, root, now: () => start })
+  f.store.deleteAppUser(f.user.userId, { now: start + 1 })
+  const created = await creating
+  const copy = new Database(join(created.bundle, 'users.sqlite'), { readonly: true, fileMustExist: true })
+  try {
+    assert.ok(copy.prepare('SELECT user_id FROM users WHERE user_id = ?').get(f.user.userId))
+    assert.equal(copy.prepare('SELECT count(*) AS n FROM app_deleted_accounts').get().n, 0)
+  } finally { copy.close() }
+  assert.equal(created.expiresAt, start + DELETED_APP_RETENTION_MS)
+  assert.equal(f.store.getUser(f.user.userId), null)
+})
+
+test('expired source records and expiry during copying never publish a usable new backup', async (t) => {
+  const f = fixture(t), root = backupRoot(f)
+  f.store.deleteAppUser(f.user.userId, { now: start - DELETED_APP_RETENTION_MS })
+  await assert.rejects(createAppBackup({ source: f.source, root, now: () => start }), /已过保留期/)
+  assert.deepEqual(readdirSync(root), ['.iwodi-app-backups.json'])
+  const other = fixture(t), otherRoot = backupRoot(other)
+  other.store.deleteAppUser(other.user.userId, { now: start - DELETED_APP_RETENTION_MS + 10 })
+  let tick = 0
+  await assert.rejects(createAppBackup({ source: other.source, root: otherRoot, now: () => start + (tick++ ? 10 : 0) }), /完成时已到期/)
+  assert.deepEqual(readdirSync(otherRoot), ['.iwodi-app-backups.json'])
+})
+
+test('foreign-key validation failure removes only its temporary bundle and leaves the source unchanged', async (t) => {
+  const f = fixture(t), root = backupRoot(f)
+  f.store.db.pragma('foreign_keys = OFF')
+  f.store.db.prepare('INSERT INTO user_identities VALUES (?,?,?,?,?,?)').run('missing-user', 'google', 'test', 'orphan', start, start)
+  await assert.rejects(createAppBackup({ source: f.source, root, now: () => start }), /外键/)
+  assert.deepEqual(readdirSync(root), ['.iwodi-app-backups.json'])
+  assert.equal(f.store.db.pragma('foreign_key_check').length, 1, 'the tool never repairs or rewrites the live database')
+})
+
+test('prune leaves unknown and WeChat files intact and validates the entire managed scope before deletion', async (t) => {
+  const f = fixture(t), root = backupRoot(f)
+  const created = await createAppBackup({ source: f.source, root, now: () => start })
+  const unknown = join(root, 'wechat-backup.sqlite')
+  writeFileSync(unknown, 'preserve-wechat', { mode: 0o600 })
+  symlinkSync(unknown, join(root, 'unknown-link'))
+  const invalid = join(root, 'iwodi-app-unknown.backup')
+  mkdirSync(invalid, { mode: 0o700 })
+  await assert.rejects(pruneAppBackups({ root, now: () => start + DELETED_APP_RETENTION_MS }), /名称格式异常/)
+  assert.ok(existsSync(created.bundle), 'a later scope failure prevents earlier candidate removal')
+  rmSync(invalid, { recursive: true })
+  assert.deepEqual(await pruneAppBackups({ root, now: () => start + DELETED_APP_RETENTION_MS }), { deleted: 1, kept: 0, ignored: 2 })
+  assert.equal(readFileSync(unknown, 'utf8'), 'preserve-wechat')
+  assert.ok(existsSync(join(root, 'unknown-link')))
+})
+
+test('prune rejects extra files but removes an authorized damaged database at its fixed deadline', async (t) => {
+  const f = fixture(t), root = backupRoot(f)
+  const created = await createAppBackup({ source: f.source, root, now: () => start })
+  const extra = join(created.bundle, 'not-owned.txt')
+  writeFileSync(extra, 'keep-this', { mode: 0o600 })
+  await assert.rejects(pruneAppBackups({ root, now: () => start + DELETED_APP_RETENTION_MS }), /未知文件/)
+  assert.equal(readFileSync(extra, 'utf8'), 'keep-this')
+  rmSync(extra)
+  const path = join(created.bundle, 'users.sqlite')
+  chmodSync(path, 0o600)
+  writeFileSync(path, 'truncated and no longer a SQLite database')
+  chmodSync(path, 0o400)
+  assert.deepEqual(await pruneAppBackups({ root, now: () => start + 1 }), { deleted: 0, kept: 1, ignored: 0 },
+    'retained snapshots are not reopened or fully read by the periodic sweep')
+  assert.deepEqual(await pruneAppBackups({ root, now: () => start + DELETED_APP_RETENTION_MS }), { deleted: 1, kept: 0, ignored: 0 },
+    'a changed size or corrupt payload cannot indefinitely extend retained personal data')
+  assert.equal(existsSync(created.bundle), false)
+})
+
+test('managed root, source and bundle symlinks are never followed; broad directory permissions are rejected', async (t) => {
+  const f = fixture(t), root = backupRoot(f)
+  const created = await createAppBackup({ source: f.source, root, now: () => start })
+  const rootLink = join(f.directory, 'root-link'), sourceLink = join(f.directory, 'source-link.sqlite')
+  symlinkSync(root, rootLink); symlinkSync(f.source, sourceLink)
+  await assert.rejects(pruneAppBackups({ root: rootLink, now: () => start }), /符号链接/)
+  await assert.rejects(createAppBackup({ source: sourceLink, root, now: () => start }), /符号链接/)
+  chmodSync(root, 0o755)
+  await assert.rejects(pruneAppBackups({ root, now: () => start }), /权限/)
+  chmodSync(root, 0o700)
+  const moved = join(f.directory, 'outside-bundle')
+  renameSync(created.bundle, moved); symlinkSync(moved, created.bundle)
+  await assert.rejects(pruneAppBackups({ root, now: () => start + DELETED_APP_RETENTION_MS }), /类型/)
+  assert.ok(existsSync(join(moved, 'users.sqlite')))
+})
+
+test('an unfinished crash bundle retains its recorded deadline and cannot be treated as completed', async (t) => {
+  const f = fixture(t), root = backupRoot(f)
+  const created = await createAppBackup({ source: f.source, root, now: () => start })
+  const partial = join(root, `.${created.bundle.split('/').at(-1)}.partial`)
+  renameSync(created.bundle, partial)
+  const path = join(partial, 'manifest.json'), metadata = manifest(partial)
+  chmodSync(path, 0o600)
+  writeFileSync(path, JSON.stringify({ ...metadata, completed: false }))
+  chmodSync(path, 0o400)
+  assert.deepEqual(await pruneAppBackups({ root, now: () => start + DELETED_APP_RETENTION_MS - 1 }), { deleted: 0, kept: 1, ignored: 0 })
+  assert.deepEqual(await pruneAppBackups({ root, now: () => start + DELETED_APP_RETENTION_MS }), { deleted: 1, kept: 0, ignored: 0 })
+})
+
+test('App mode rejects a WeChat source and cannot adopt a nonempty unmarked directory', async (t) => {
+  const f = fixture(t, 'wechat_mini_program'), root = backupRoot(f), user = f.store.getUser(f.user.userId)
+  await assert.rejects(createAppBackup({ source: f.source, root, now: () => start }), /其他渠道/)
+  assert.deepEqual(f.store.getUser(f.user.userId), user)
+  const unknownRoot = backupRoot(f, 'unknown-directory')
+  writeFileSync(join(unknownRoot, 'existing.sqlite'), 'unchanged')
+  await assert.rejects(pruneAppBackups({ root: unknownRoot, now: () => start }), /尚未受管/)
+  await assert.rejects(createAppBackup({ source: f.source, root: unknownRoot, now: () => start }), /尚未受管/)
+  assert.equal(readFileSync(join(unknownRoot, 'existing.sqlite'), 'utf8'), 'unchanged')
+})
+
+test('standalone prune CLI removes expired App bundles while the source is absent', async (t) => {
+  const f = fixture(t), root = backupRoot(f), oldStart = Date.now() - DELETED_APP_RETENTION_MS - 1000
+  const created = await createAppBackup({ source: f.source, root, now: () => oldStart })
+  const result = cli(['app-prune', root], join(f.directory, 'nonexistent-source.sqlite'), { APP_CHANNEL: 'app' })
+  assert.equal(result.status, 0, result.stderr)
+  assert.deepEqual(JSON.parse(result.stdout), { deleted: 1, kept: 0, ignored: 0 })
+  assert.equal(existsSync(created.bundle), false)
+  assert.ok(f.store.getUser(f.user.userId))
+})
+
+test('manifest expiry cannot be extended independently of the published bundle name', async (t) => {
+  const f = fixture(t), root = backupRoot(f), day = DELETED_APP_RETENTION_MS / 7
+  f.store.deleteAppUser(f.user.userId, { now: start - 6 * day })
+  const created = await createAppBackup({ source: f.source, root, now: () => start })
+  const path = join(created.bundle, 'manifest.json')
+  chmodSync(path, 0o600)
+  writeFileSync(path, JSON.stringify({ ...manifest(created.bundle), expiresAt: start + DELETED_APP_RETENTION_MS }))
+  chmodSync(path, 0o400)
+  await assert.rejects(pruneAppBackups({ root, now: () => start + day }), /元数据范围异常/)
+  assert.ok(existsSync(created.bundle), 'invalid metadata is reported instead of silently trusted or deleted')
+})
+
+test('retained financial rows independently bound expiry even when deletion markers are absent', async (t) => {
+  const f = fixture(t), root = backupRoot(f), day = DELETED_APP_RETENTION_MS / 7
+  const order = f.store.appPayments.create(f.user.userId, 'backup-financial-request', {
+    platform: 'android', environment: 'sandbox', appId: 'test.app', storeProductId: 'vip_month', productId: 'vip_month', durationDays: 30,
+  }, start - 6 * day)
+  f.store.deleteAppUser(f.user.userId, { now: start - 6 * day })
+  f.store.db.exec('DELETE FROM app_deleted_identities; DELETE FROM app_deleted_accounts')
+  const created = await createAppBackup({ source: f.source, root, now: () => start })
+  assert.equal(created.expiresAt, start + day)
+  assert.deepEqual(await pruneAppBackups({ root, now: () => start + day }), { deleted: 1, kept: 0, ignored: 0 })
+  assert.equal(f.store.appPayments.require(order.out_trade_no).deleted_at, start - 6 * day)
+})
+
+test('missing or mistaken APP_CHANNEL cannot export App identities, deletion markers or finance as unmanaged SQLite', (t) => {
+  for (const state of ['identity', 'deletion', 'finance']) {
+    const f = fixture(t)
+    if (state === 'finance') {
+      f.store.appPayments.create(f.user.userId, 'unmanaged-backup-request', { platform: 'android', environment: 'sandbox',
+        appId: 'test.app', storeProductId: 'vip_month', productId: 'vip_month', durationDays: 30 }, start)
+    }
+    if (state !== 'identity') f.store.deleteAppUser(f.user.userId, { now: start })
+    if (state === 'finance') f.store.db.exec('DELETE FROM app_deleted_identities; DELETE FROM app_deleted_accounts')
+    for (const channel of [undefined, 'wechat']) {
+      const destination = join(f.directory, `unmanaged-${String(channel)}.sqlite`)
+      const result = cli([destination], f.source, { APP_CHANNEL: channel }, f.directory)
+      assert.notEqual(result.status, 0)
+      assert.match(result.stderr, /源库包含 App 记录.*app-create/)
+      assert.equal(existsSync(destination), false)
+    }
+  }
+})
+
+test('legacy WeChat schema without App tables remains supported by the original command', (t) => {
+  const f = fixture(t, 'wechat_mini_program'), source = join(f.directory, 'old-wechat.sqlite')
+  const db = new Database(source)
+  db.exec("CREATE TABLE users(user_id TEXT PRIMARY KEY); CREATE TABLE user_identities(user_id TEXT REFERENCES users(user_id), provider TEXT); INSERT INTO users VALUES ('wechat-user'); INSERT INTO user_identities VALUES ('wechat-user','wechat_mini_program')")
+  db.close()
+  const destination = join(f.directory, 'old-wechat-copy.sqlite')
+  const result = cli([destination], source)
+  assert.equal(result.status, 0, result.stderr)
+  const copy = new Database(destination, { readonly: true, fileMustExist: true })
+  try { assert.equal(copy.prepare('SELECT provider FROM user_identities').get().provider, 'wechat_mini_program') }
+  finally { copy.close() }
+})

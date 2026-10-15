@@ -1,0 +1,12 @@
+[Unit]
+Description=iWoDi App managed backup expiry cleanup
+After=local-fs.target
+
+[Service]
+Type=oneshot
+User=qile-wodi-app
+Group=qile-wodi-app
+WorkingDirectory=/opt/qile-wodi-app/server
+ExecStart=/usr/bin/env APP_CHANNEL=app /usr/bin/node /opt/qile-wodi-app/server/scripts/backup-users.js app-prune /var/backups/qile-wodi-app
+UMask=0077
+# 不依赖 App 服务运行、用户库或认证密钥；先用 app-create 初始化此专用目录。
