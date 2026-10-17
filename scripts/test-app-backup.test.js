@@ -5,6 +5,7 @@ const { mkdtempSync, rmSync, realpathSync, existsSync, writeFileSync, readFileSy
 const { join } = require('node:path')
 const { tmpdir } = require('node:os')
 const { spawnSync } = require('node:child_process')
+const { createHash } = require('node:crypto')
 const Database = require('better-sqlite3')
 const UserStore = require('../src/user/UserStore')
 const { createAppBackup, pruneAppBackups } = require('./app-backup')
@@ -144,6 +145,71 @@ test('foreign-key validation failure removes only its temporary bundle and leave
   await assert.rejects(createAppBackup({ source: f.source, root, now: () => start }), /外键/)
   assert.deepEqual(readdirSync(root), ['.iwodi-app-backups.json'])
   assert.equal(f.store.db.pragma('foreign_key_check').length, 1, 'the tool never repairs or rewrites the live database')
+})
+
+test('published snapshots remove old deleted bytes while preserving retained rows and tied order chronology', async (t) => {
+  const f = fixture(t), root = backupRoot(f), day = DELETED_APP_RETENTION_MS / 7
+  const identityMarker = 'purged-identity-private-marker-', transactionMarker = 'purged-transaction-private-marker-'
+  f.store.db.pragma('secure_delete = OFF')
+  const createOrder = (user, requestId) => f.store.appPayments.create(user.userId, requestId, {
+    platform: 'android', environment: 'sandbox', appId: 'test.app', storeProductId: 'vip_month',
+    productId: 'vip_month', durationDays: 30,
+  }, start - DELETED_APP_RETENTION_MS)
+  const first = createOrder(f.user, 'active-order-first')
+  f.store.appPayments.cancelNative(first.out_trade_no, start)
+  const expired = f.store.findOrCreate({ provider: 'google', scope: 'backup-test', subject: identityMarker.repeat(300) })
+  const expiredOrder = createOrder(expired, 'expired-order')
+  f.store.appPayments.recordVerified(expiredOrder.out_trade_no, {
+    platform: 'android', environment: 'sandbox', appId: 'test.app', storeProductId: 'vip_month',
+    accountToken: expiredOrder.account_token, transactionId: transactionMarker.repeat(300), status: 'pending', quantity: 1,
+  })
+  f.store.deleteAppUser(expired.userId, { now: start - DELETED_APP_RETENTION_MS })
+  const recent = f.store.findOrCreate({ provider: 'apple', scope: 'backup-test', subject: 'recent-deleted-identity' })
+  const recentOrder = createOrder(recent, 'retained-order')
+  f.store.deleteAppUser(recent.userId, { now: start - 6 * day })
+  const second = createOrder(f.user, 'active-order-second')
+  f.store.appPayments.cancelNative(second.out_trade_no, start)
+  const third = createOrder(f.user, 'active-order-third')
+  assert.deepEqual(f.store.purgeDeletedAppData(start), { refunds: 0, orders: 1, identities: 1, accounts: 1 })
+  f.store.db.pragma('wal_checkpoint(TRUNCATE)')
+  const sourceBytes = readFileSync(f.source)
+  for (const marker of [identityMarker, transactionMarker]) {
+    assert.ok(sourceBytes.includes(Buffer.from(marker)), `fixture must retain old deleted bytes: ${marker}`)
+  }
+  const tables = ['users', 'user_identities', 'app_vip_orders', 'app_vip_refunds', 'app_deleted_identities', 'app_deleted_accounts']
+  const rowsBefore = tables.map((table) => f.store.db.prepare(`SELECT * FROM ${table} ORDER BY rowid`).all())
+  const created = await createAppBackup({ source: f.source, root, now: () => start })
+  assert.equal(created.expiresAt, start + day, 'compaction must retain the original earliest deletion deadline')
+  const snapshot = join(created.bundle, 'users.sqlite'), snapshotBytes = readFileSync(snapshot)
+  for (const marker of [identityMarker, transactionMarker]) {
+    assert.equal(snapshotBytes.includes(Buffer.from(marker)), false, `published backup contains deleted bytes: ${marker}`)
+  }
+  assert.deepEqual(readFileSync(f.source), sourceBytes, 'only the private copy may be compacted')
+  const copy = new Database(snapshot, { readonly: true, fileMustExist: true })
+  try {
+    assert.deepEqual(tables.map((table) => copy.prepare(`SELECT * FROM ${table} ORDER BY rowid`).all()), rowsBefore)
+    assert.deepEqual(copy.prepare('SELECT out_trade_no FROM app_vip_orders WHERE user_id = ? ORDER BY created_at DESC, rowid DESC')
+      .all(f.user.userId).map((order) => order.out_trade_no), [third.out_trade_no, second.out_trade_no, first.out_trade_no])
+    assert.equal(copy.prepare('SELECT deleted_at FROM app_vip_orders WHERE out_trade_no = ?').get(recentOrder.out_trade_no).deleted_at,
+      start - 6 * day)
+    assert.equal(copy.pragma('integrity_check', { simple: true }), 'ok')
+    assert.deepEqual(copy.pragma('foreign_key_check'), [])
+  } finally { copy.close() }
+  assert.equal(manifest(created.bundle).sizeBytes, snapshotBytes.length)
+  assert.equal(manifest(created.bundle).sha256, createHash('sha256').update(snapshotBytes).digest('hex'))
+  assert.deepEqual(readdirSync(created.bundle).sort(), ['manifest.json', 'users.sqlite'])
+})
+
+test('compaction failure removes its temporary bundle without publishing or changing the source', async (t) => {
+  const f = fixture(t), root = backupRoot(f), before = f.store.getUser(f.user.userId)
+  const exec = Database.prototype.exec
+  t.mock.method(Database.prototype, 'exec', function (sql) {
+    if (/^\s*VACUUM\b/i.test(sql)) throw new Error('snapshot compaction failed')
+    return exec.call(this, sql)
+  })
+  await assert.rejects(createAppBackup({ source: f.source, root, now: () => start }), /snapshot compaction failed/)
+  assert.deepEqual(readdirSync(root), ['.iwodi-app-backups.json'])
+  assert.deepEqual(f.store.getUser(f.user.userId), before)
 })
 
 test('prune leaves unknown and WeChat files intact and validates the entire managed scope before deletion', async (t) => {

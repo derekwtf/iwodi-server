@@ -117,8 +117,11 @@ async function createAppBackup({ source, root: input, now = Date.now }) {
     db.exec('ROLLBACK')
     const copy = new Database(snapshot, { fileMustExist: true })
     try {
+      validateDatabase(copy)
       // A self-contained backup must not depend on copied WAL/SHM files.
       if (copy.pragma('journal_mode = DELETE', { simple: true }) !== 'delete') fail('快照无法转换为独立数据库文件')
+      // Rebuild only the private copy so deleted bytes from old source pages cannot gain a new retention period.
+      copy.exec('VACUUM')
       validateDatabase(copy)
       if (appExpiry(copy, startedAt) !== expiresAt) fail('快照的保留期限不一致')
     } finally { copy.close() }
