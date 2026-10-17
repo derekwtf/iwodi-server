@@ -7,7 +7,7 @@ const scripts = [
   'test-wechat-auth-route.js', 'test-user-auth.test.js', 'test-app-auth.test.js', 'test-vip.test.js', 'test-virtual-payment.test.js', 'test-socket-flow.js', 'test-connection.js',
   'test-app-payment-ledger.test.js', 'test-app-store-client.test.js', 'test-app-payment-service.test.js', 'test-app-payment-socket.test.js',
   'test-apple-revocation.test.js', 'test-account-deletion.test.js', 'test-account-deletion-socket.test.js', 'test-app-retention.test.js', 'test-app-web.test.js',
-  'test-app-backup.test.js', 'test-app-shutdown.test.js',
+  'test-app-backup.test.js', 'test-sqlite-snapshot.test.js', 'test-app-shutdown.test.js',
 ]
 for (const script of scripts) {
   const result = spawnSync(process.execPath, [`${__dirname}/${script}`], { stdio: 'inherit' })

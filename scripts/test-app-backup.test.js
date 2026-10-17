@@ -7,6 +7,7 @@ const { tmpdir } = require('node:os')
 const { spawnSync } = require('node:child_process')
 const { createHash } = require('node:crypto')
 const Database = require('better-sqlite3')
+const fs = require('node:fs')
 const UserStore = require('../src/user/UserStore')
 const { createAppBackup, pruneAppBackups } = require('./app-backup')
 const { DELETED_APP_RETENTION_MS } = require('../src/user/app-retention')
@@ -274,6 +275,105 @@ test('an unfinished crash bundle retains its recorded deadline and cannot be tre
   chmodSync(path, 0o400)
   assert.deepEqual(await pruneAppBackups({ root, now: () => start + DELETED_APP_RETENTION_MS - 1 }), { deleted: 0, kept: 1, ignored: 0 })
   assert.deepEqual(await pruneAppBackups({ root, now: () => start + DELETED_APP_RETENTION_MS }), { deleted: 1, kept: 0, ignored: 0 })
+})
+
+test('prune retries failures at each removal step for completed and unfinished bundles', async (t) => {
+  for (const staging of [false, true]) {
+    for (const step of ['users.sqlite', 'manifest.json', 'directory']) {
+      await t.test(`${staging ? 'unfinished' : 'completed'}: ${step}`, async (t) => {
+        const f = fixture(t), root = backupRoot(f), at = start + DELETED_APP_RETENTION_MS + 1
+        const created = await createAppBackup({ source: f.source, root, now: () => start })
+        let bundle = created.bundle
+        if (staging) {
+          bundle = join(root, `.${bundle.split('/').at(-1)}.partial`)
+          renameSync(created.bundle, bundle)
+          const metadata = manifest(bundle), path = join(bundle, 'manifest.json')
+          chmodSync(path, 0o600)
+          writeFileSync(path, JSON.stringify({ ...metadata, completed: false }))
+          for (const name of ['.manifest-next.json', 'users.sqlite-wal', 'users.sqlite-shm', 'users.sqlite-journal']) {
+            writeFileSync(join(bundle, name), 'partial-write', { mode: 0o600 })
+          }
+        }
+        const other = await createAppBackup({ source: f.source, root, now: () => start + 1 })
+        const retained = await createAppBackup({ source: f.source, root, now: () => start + 2 })
+        const method = step === 'directory' ? 'rmdirSync' : 'unlinkSync'
+        const original = fs[method], failedPath = step === 'directory' ? bundle : join(bundle, step)
+        const injected = t.mock.method(fs, method, function (path, ...args) {
+          if (path === failedPath) throw new Error(`injected removal failure: ${step}`)
+          return original.call(this, path, ...args)
+        })
+        await assert.rejects(pruneAppBackups({ root, now: () => at }), /injected removal failure/)
+        injected.mock.restore()
+        assert.ok(existsSync(other.bundle), 'failure leaves the other expired bundle available for the retry')
+        if (step !== 'directory') {
+          assert.ok(existsSync(join(bundle, 'manifest.json')), 'metadata must survive until payload removal succeeds')
+        }
+        if (step !== 'users.sqlite') {
+          assert.deepEqual(readdirSync(bundle), step === 'manifest.json' ? ['manifest.json'] : [],
+            'all payload and temporary files must be removed before metadata')
+        }
+        assert.deepEqual(await pruneAppBackups({ root, now: () => at }), { deleted: 2, kept: 1, ignored: 0 })
+        assert.equal(existsSync(bundle), false)
+        assert.equal(existsSync(other.bundle), false)
+        assert.ok(existsSync(join(retained.bundle, 'users.sqlite')))
+      })
+    }
+  }
+})
+
+test('a completed bundle missing its database is removable only at its bound deadline', async (t) => {
+  const f = fixture(t), root = backupRoot(f)
+  const created = await createAppBackup({ source: f.source, root, now: () => start })
+  rmSync(join(created.bundle, 'users.sqlite'))
+  await assert.rejects(pruneAppBackups({ root, now: () => start + DELETED_APP_RETENTION_MS - 1 }), /完整校验/)
+  const path = join(created.bundle, 'manifest.json'), metadata = manifest(created.bundle)
+  chmodSync(path, 0o600)
+  await assert.rejects(pruneAppBackups({ root, now: () => start + DELETED_APP_RETENTION_MS }), /只读/)
+  writeFileSync(path, JSON.stringify({ ...metadata, sha256: 'invalid' }))
+  chmodSync(path, 0o400)
+  await assert.rejects(pruneAppBackups({ root, now: () => start + DELETED_APP_RETENTION_MS }), /完整校验/)
+  chmodSync(path, 0o600)
+  writeFileSync(path, JSON.stringify(metadata))
+  chmodSync(path, 0o400)
+  assert.deepEqual(await pruneAppBackups({ root, now: () => start + DELETED_APP_RETENTION_MS }), { deleted: 1, kept: 0, ignored: 0 })
+})
+
+test('empty removal remnants use validated names and deadlines without relaxing scope checks', async (t) => {
+  for (const staging of [false, true]) {
+    await t.test(staging ? 'unfinished' : 'completed', async (t) => {
+      const f = fixture(t), root = backupRoot(f)
+      const created = await createAppBackup({ source: f.source, root, now: () => start })
+      let bundle = created.bundle
+      if (staging) {
+        bundle = join(root, `.${bundle.split('/').at(-1)}.partial`)
+        renameSync(created.bundle, bundle)
+      }
+      for (const name of readdirSync(bundle)) rmSync(join(bundle, name))
+      const at = start + DELETED_APP_RETENTION_MS
+      assert.deepEqual(await pruneAppBackups({ root, now: () => at - 1 }), { deleted: 0, kept: 1, ignored: 0 })
+      chmodSync(bundle, 0o755)
+      await assert.rejects(pruneAppBackups({ root, now: () => at }), /权限/)
+      chmodSync(bundle, 0o700)
+      for (const [startedAt, expiresAt] of [[start, at + 1], [start, start], [at + 1, at + 2], ['0' + start, at], [start, '9007199254740992']]) {
+        const invalid = bundle.replace(`${start}-${at}`, `${startedAt}-${expiresAt}`)
+        renameSync(bundle, invalid)
+        await assert.rejects(pruneAppBackups({ root, now: () => at }), /范围|时间/)
+        assert.ok(existsSync(invalid))
+        renameSync(invalid, bundle)
+      }
+      writeFileSync(join(bundle, 'users.sqlite'), 'legacy partial cleanup', { mode: 0o400 })
+      await assert.rejects(pruneAppBackups({ root, now: () => at }), /缺少元数据/)
+      rmSync(join(bundle, 'users.sqlite'))
+      writeFileSync(join(bundle, 'unknown.txt'), 'preserve', { mode: 0o600 })
+      await assert.rejects(pruneAppBackups({ root, now: () => at }), /未知文件/)
+      rmSync(join(bundle, 'unknown.txt'))
+      symlinkSync(f.source, join(bundle, 'users.sqlite'))
+      await assert.rejects(pruneAppBackups({ root, now: () => at }), /类型/)
+      rmSync(join(bundle, 'users.sqlite'))
+      assert.deepEqual(await pruneAppBackups({ root, now: () => at }), { deleted: 1, kept: 0, ignored: 0 })
+      assert.ok(f.store.getUser(f.user.userId))
+    })
+  }
 })
 
 test('App mode rejects a WeChat source and cannot adopt a nonempty unmarked directory', async (t) => {

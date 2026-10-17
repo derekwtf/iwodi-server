@@ -3,6 +3,7 @@ const fs = require('node:fs')
 const { resolve, parse, join, isAbsolute, relative, sep } = require('node:path')
 const { createHash, randomUUID } = require('node:crypto')
 const { DELETED_APP_RETENTION_MS } = require('../src/user/app-retention')
+const { compactSnapshot } = require('./sqlite-snapshot')
 
 const ROOT_MARKER = '.iwodi-app-backups.json'
 const ROOT_FORMAT = { format: 'iwodi-app-backup-directory', version: 1 }
@@ -62,11 +63,6 @@ function appExpiry(db, startedAt) {
   }
   return time(expiresAt)
 }
-function validateDatabase(db) {
-  if (db.pragma('integrity_check', { simple: true }) !== 'ok' || db.pragma('foreign_key_check').length) {
-    fail('快照完整性或外键检查失败')
-  }
-}
 async function digest(path) {
   const hash = createHash('sha256')
   for await (const chunk of fs.createReadStream(path)) hash.update(chunk)
@@ -88,8 +84,10 @@ function entries(directory, staging) {
 }
 function remove(directory, staging) {
   // Only known regular files are unlinked. No recursive removal or symlink traversal.
-  const names = entries(directory, staging)
-  for (const name of names) fs.unlinkSync(join(directory, name))
+  const names = entries(directory, staging).sort()
+  // Preserve the deletion authorization until every payload/temporary file is gone.
+  for (const name of names.filter((name) => name !== 'manifest.json')) fs.unlinkSync(join(directory, name))
+  if (names.includes('manifest.json')) fs.unlinkSync(join(directory, 'manifest.json'))
   fs.rmdirSync(directory)
 }
 
@@ -117,12 +115,7 @@ async function createAppBackup({ source, root: input, now = Date.now }) {
     db.exec('ROLLBACK')
     const copy = new Database(snapshot, { fileMustExist: true })
     try {
-      validateDatabase(copy)
-      // A self-contained backup must not depend on copied WAL/SHM files.
-      if (copy.pragma('journal_mode = DELETE', { simple: true }) !== 'delete') fail('快照无法转换为独立数据库文件')
-      // Rebuild only the private copy so deleted bytes from old source pages cannot gain a new retention period.
-      copy.exec('VACUUM')
-      validateDatabase(copy)
+      compactSnapshot(copy)
       if (appExpiry(copy, startedAt) !== expiresAt) fail('快照的保留期限不一致')
     } finally { copy.close() }
     fs.chmodSync(snapshot, 0o400)
@@ -140,6 +133,8 @@ async function createAppBackup({ source, root: input, now = Date.now }) {
   } finally {
     if (db.inTransaction) db.exec('ROLLBACK')
     db.close()
+    // Ordinary failures remove staging. SIGKILL/power loss bypasses this cleanup;
+    // prune keeps its recorded deadline, and operators handle abandoned raw copies.
     if (staging && fs.existsSync(staging)) remove(staging, true)
   }
 }
@@ -148,20 +143,24 @@ function inspect(root, name, now) {
   const staging = name.startsWith('.') && name.endsWith('.partial')
   const match = (staging ? name.slice(1, -8) : name).match(BUNDLE)
   if (!match) fail('受管名称格式异常，停止清理')
+  const startedAt = time(Number(match[1])), expiresAt = time(Number(match[2]))
+  if (String(startedAt) !== match[1] || String(expiresAt) !== match[2] || expiresAt <= startedAt ||
+      expiresAt > startedAt + DELETED_APP_RETENTION_MS || startedAt > now) fail('受管名称时间范围异常，停止清理')
   const directory = join(root, name)
   const files = entries(directory, staging)
+  // A failed final rmdir (or interrupted creation) can leave an empty private directory.
+  if (!files.length) return { directory, staging, expiresAt }
   if (!files.includes('manifest.json')) fail('受管包缺少元数据，停止清理')
   const manifest = json(join(directory, 'manifest.json'))
   if (manifest.format !== FORMAT || manifest.version !== 1 || manifest.id !== match[3] ||
-      String(time(manifest.startedAt)) !== match[1] || typeof manifest.completed !== 'boolean' ||
-      String(time(manifest.expiresAt)) !== match[2] || manifest.expiresAt <= manifest.startedAt ||
-      manifest.expiresAt > manifest.startedAt + DELETED_APP_RETENTION_MS || manifest.startedAt > now ||
+      manifest.startedAt !== startedAt || manifest.expiresAt !== expiresAt || typeof manifest.completed !== 'boolean' ||
       (!staging && !manifest.completed)) fail('受管元数据范围异常，停止清理')
   if (manifest.completed) {
-    if (!files.includes('users.sqlite') || !Number.isSafeInteger(manifest.sizeBytes) || manifest.sizeBytes <= 0 ||
+    const hasSnapshot = files.includes('users.sqlite')
+    if ((!hasSnapshot && expiresAt > now) || !Number.isSafeInteger(manifest.sizeBytes) || manifest.sizeBytes <= 0 ||
         !/^[a-f0-9]{64}$/.test(manifest.sha256 || '')) fail('受管快照缺少完整校验信息')
     const snapshot = join(directory, 'users.sqlite')
-    if ((owned(snapshot).mode & 0o222) || (owned(join(directory, 'manifest.json')).mode & 0o222)) fail('已完成快照和元数据必须只读')
+    if ((hasSnapshot && (owned(snapshot).mode & 0o222)) || (owned(join(directory, 'manifest.json')).mode & 0o222)) fail('已完成快照和元数据必须只读')
     // Creation already verified the snapshot. Retention authorization comes from the private
     // managed scope and bound deadline, not whether an expired database remains readable.
   }

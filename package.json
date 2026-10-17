@@ -21,7 +21,7 @@
     "test:app-auth": "node --test scripts/test-app-auth.test.js",
     "test:app-payment": "node --test scripts/test-app-payment-ledger.test.js scripts/test-app-store-client.test.js scripts/test-app-payment-service.test.js scripts/test-app-payment-socket.test.js",
     "test:app-account": "node --test scripts/test-apple-revocation.test.js scripts/test-account-deletion.test.js scripts/test-account-deletion-socket.test.js scripts/test-app-retention.test.js scripts/test-app-web.test.js",
-    "test:app-operations": "node --test scripts/test-app-backup.test.js scripts/test-app-shutdown.test.js",
+    "test:app-operations": "node --test scripts/test-app-backup.test.js scripts/test-sqlite-snapshot.test.js scripts/test-app-shutdown.test.js",
     "test": "node scripts/test-regressions.js"
   },
   "dependencies": {

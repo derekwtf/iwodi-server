@@ -1,8 +1,9 @@
-// 对运行中的 SQLite 使用在线备份 API，备份后检查完整性与身份外键。
+// 在线复制运行中的 SQLite，仅整理私有副本，校验后发布。
 require('dotenv').config({ quiet: true })
 const Database = require('better-sqlite3')
-const { existsSync } = require('fs')
-const { resolve } = require('path')
+const fs = require('node:fs')
+const { resolve, dirname, join } = require('node:path')
+const { compactSnapshot } = require('./sqlite-snapshot')
 
 function containsAppRecords(db) {
   const tables = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all().map((row) => row.name))
@@ -27,24 +28,35 @@ async function main() {
     return
   }
   if (process.env.APP_CHANNEL === 'app') throw new Error('App 备份请使用 app-create 创建带有效期的受管备份包')
-  if (!source || !destination || resolve(source) === resolve(destination) || existsSync(destination)) {
+  if (!source || !destination || resolve(source) === resolve(destination) || fs.existsSync(destination)) {
     throw new Error('用法：USER_DB_PATH=/绝对路径/users.sqlite node scripts/backup-users.js /新备份路径.sqlite（不可覆盖已有文件）')
   }
-  const db = new Database(source, { readonly: true, fileMustExist: true })
+  let staging
   try {
-    db.exec('BEGIN')
-    if (containsAppRecords(db)) throw new Error('源库包含 App 记录，请使用 APP_CHANNEL=app 和 app-create 创建带有效期的备份')
-    await db.backup(destination)
-  } finally {
-    if (db.inTransaction) db.exec('ROLLBACK')
-    db.close()
-  }
-  const backup = new Database(destination, { readonly: true, fileMustExist: true })
-  try {
-    if (backup.pragma('integrity_check', { simple: true }) !== 'ok' || backup.pragma('foreign_key_check').length) {
-      throw new Error('备份完整性检查未通过')
+    const db = new Database(source, { readonly: true, fileMustExist: true })
+    let snapshot
+    try {
+      // Classification and online copying must observe the same read snapshot.
+      db.exec('BEGIN')
+      if (containsAppRecords(db)) throw new Error('源库包含 App 记录，请使用 APP_CHANNEL=app 和 app-create 创建带有效期的备份')
+      staging = fs.mkdtempSync(join(dirname(resolve(destination)), '.iwodi-snapshot-'))
+      snapshot = join(staging, 'users.sqlite')
+      fs.closeSync(fs.openSync(snapshot, 'wx', 0o600))
+      await db.backup(snapshot)
+    } finally {
+      try { if (db.inTransaction) db.exec('ROLLBACK') }
+      finally { db.close() }
     }
-    console.log('用户库在线备份及完整性检查通过')
-  } finally { backup.close() }
+    const backup = new Database(snapshot, { fileMustExist: true })
+    try { compactSnapshot(backup) }
+    finally { backup.close() }
+    // Same-filesystem hard-link creation publishes atomically and refuses any existing target.
+    fs.linkSync(snapshot, destination)
+  } finally {
+    // SIGKILL/power loss bypasses finally. Operators remove abandoned .iwodi-snapshot-*
+    // directories after confirming the backup process has exited; see deploy.md section 9.1.
+    if (staging) fs.rmSync(staging, { recursive: true, force: true })
+  }
+  console.log('用户库在线备份及完整性检查通过')
 }
 main().catch((error) => { console.error(error.message); process.exitCode = 1 })
