@@ -120,6 +120,61 @@ test(`${reason || 'native_cancelled'} closes only an unbound order; a late verif
 })
 }
 
+for (const reason of [null, 'native_cancelled', 'purchase_not_started']) {
+test(`platform cancellation after ${reason || 'pending'} is terminal for late purchases and pending events`, (t) => {
+  const f = fixture(t), order = f.create()
+  if (reason) f.ledger.cancelNative(order.out_trade_no, start, reason)
+  const cancelled = verified(order, { status: 'cancelled' })
+  f.ledger.recordVerified(order.out_trade_no, cancelled)
+  assert.equal(f.ledger.close(order.out_trade_no), true)
+  const assertCancelled = () => {
+    const current = f.ledger.require(order.out_trade_no)
+    assert.equal(current.status, 'closed')
+    assert.equal(current.closure_reason, 'platform_cancelled')
+    assert.equal(current.platform_status, 'cancelled')
+    assert.equal(current.granted_at, null)
+    assert.equal(current.platform_ack_at, null)
+    assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, 0)
+  }
+  assertCancelled()
+  for (let attempt = 0; attempt < 2; attempt++) {
+    f.ledger.recordVerified(order.out_trade_no, verified(order, { status: 'pending' }))
+    assertCancelled()
+    f.ledger.recordVerified(order.out_trade_no, verified(order))
+    assertCancelled()
+    assert.equal(f.ledger.grantVerified(order.out_trade_no, verified(order), start + DAY_MS), false)
+    f.ledger.recordVerified(order.out_trade_no, cancelled)
+    f.ledger.close(order.out_trade_no)
+    assertCancelled()
+  }
+  assert.equal(f.ledger.refundVerified(order.out_trade_no, refund(order, 'after-cancellation'), start + DAY_MS), true)
+  assert.equal(f.ledger.require(order.out_trade_no).status, 'refunded')
+  assert.equal(f.ledger.require(order.out_trade_no).platform_status, 'refunded')
+  assert.equal(f.ledger.require(order.out_trade_no).revoked_ms, 0)
+  assert.equal(f.ledger.grantVerified(order.out_trade_no, verified(order), start + 2 * DAY_MS), false)
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, 0)
+})
+}
+
+test('a recorded platform cancellation blocks delivery before closing the order', (t) => {
+  const f = fixture(t), order = f.create()
+  f.ledger.recordVerified(order.out_trade_no, verified(order, { status: 'cancelled' }))
+  assert.equal(f.ledger.grantVerified(order.out_trade_no, verified(order), start), false)
+  assert.equal(f.ledger.require(order.out_trade_no).platform_status, 'cancelled')
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, 0)
+})
+
+test('platform cancellation of a granted order refunds only its remaining interval once', (t) => {
+  const f = fixture(t), first = f.grant(f.create()), next = f.grant(f.create('renewal'))
+  assert.equal(f.ledger.close(first.out_trade_no), false)
+  const cancelled = verified(first, { status: 'cancelled' })
+  assert.equal(f.ledger.refundVerified(first.out_trade_no, cancelled, start + 10 * DAY_MS), true)
+  assert.equal(f.ledger.refundVerified(first.out_trade_no, cancelled, start + 11 * DAY_MS), false)
+  assert.equal(f.ledger.require(first.out_trade_no).revoked_ms, 20 * DAY_MS)
+  assert.equal(f.ledger.require(next.out_trade_no).starts_at, start + 10 * DAY_MS)
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, start + 40 * DAY_MS)
+})
+
 test('grant failure rolls back store identifiers and entitlement together; retry delivers exactly once', (t) => {
   const f = fixture(t), order = f.create()
   f.store.db.exec("CREATE TRIGGER fail_grant BEFORE UPDATE OF vip_expires_at ON users BEGIN SELECT RAISE(ABORT, 'test grant failure'); END")
@@ -338,18 +393,15 @@ test('detached financial records retain transaction deduplication but cannot gra
   assert.equal(f.store.getUser(recreated.userId).vipExpiresAt, 0)
 })
 
-test('the deleted-order fingerprint migration is repeatable and preserves live order data before detachment', (t) => {
+test('current schema initialization is repeatable and preserves live order data before detachment', (t) => {
   const f = fixture(t), order = f.create()
-  // Recreate the immediately preceding schema without the new optional column/index.
-  f.store.db.exec('DROP INDEX app_vip_orders_deleted_token; ALTER TABLE app_vip_orders DROP COLUMN account_token_hash')
-  let migrated = new AppPaymentLedger(f.store.db)
-  migrated = new AppPaymentLedger(f.store.db)
+  new AppPaymentLedger(f.store.db)
+  const reopened = new AppPaymentLedger(f.store.db)
   assert.equal(f.store.db.pragma('table_info(app_vip_orders)').filter((column) => column.name === 'account_token_hash').length, 1)
-  assert.equal(migrated.require(order.out_trade_no).account_token, order.account_token)
-  assert.equal(migrated.require(order.out_trade_no).account_token_hash, null)
-  assert.equal(migrated.detachUserOrders(f.user.userId, start), 1)
-  assert.equal(migrated.detachUserOrders(f.user.userId, start), 0)
-  const retained = migrated.findDeletedByAccountToken(order.platform, order.environment, order.account_token)
+  assert.deepEqual(reopened.require(order.out_trade_no), order)
+  assert.equal(reopened.detachUserOrders(f.user.userId, start), 1)
+  assert.equal(reopened.detachUserOrders(f.user.userId, start), 0)
+  const retained = reopened.findDeletedByAccountToken(order.platform, order.environment, order.account_token)
   assert.equal(retained.out_trade_no, order.out_trade_no)
   assert.equal(retained.user_id, null)
   assert.equal(retained.account_token, null)
@@ -359,7 +411,7 @@ test('the deleted-order fingerprint migration is repeatable and preserves live o
   assert.deepEqual(f.store.db.pragma('foreign_key_check'), [])
 })
 
-test('deleted financial recording requires the fingerprint and explicit permission; legacy rows use only existing locators', (t) => {
+test('deleted financial recording requires the fingerprint and explicit permission even with matching locators', (t) => {
   const f = fixture(t), order = f.create(), payment = verified(order)
   f.ledger.detachUserOrders(f.user.userId, start)
   assert.throws(() => f.ledger.recordVerified(order.out_trade_no, payment), { code: 'APP_ACCOUNT_DELETED' })
@@ -372,11 +424,22 @@ test('deleted financial recording requires the fingerprint and explicit permissi
   assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, 0)
   assert.throws(() => f.ledger.recordVerified(order.out_trade_no,
     { ...payment, accountToken: 'other-account-token' }, { allowDeleted: true }), { code: 'PAYMENT_IDENTITY_MISMATCH' })
-  // Rows detached by the old implementation cannot have their erased token reconstructed.
+  // An invalid retained row cannot substitute a matching transaction for account ownership.
   f.store.db.prepare('UPDATE app_vip_orders SET account_token_hash = NULL WHERE out_trade_no = ?').run(order.out_trade_no)
   assert.equal(f.ledger.findDeletedByAccountToken(order.platform, order.environment, order.account_token), undefined)
-  f.ledger.recordVerified(order.out_trade_no, payment, { allowDeleted: true })
+  assert.throws(() => f.ledger.recordVerified(order.out_trade_no, payment, { allowDeleted: true }), { code: 'PAYMENT_IDENTITY_MISMATCH' })
   assert.throws(() => f.ledger.recordVerified(order.out_trade_no,
     { ...payment, transactionId: 'different-transaction' }, { allowDeleted: true }), { code: 'PAYMENT_IDENTITY_MISMATCH' })
   assert.equal(f.ledger.require(order.out_trade_no).granted_at, null)
+})
+
+test('detachment rolls back when a live order has no account token instead of reusing a stored hash', (t) => {
+  const f = fixture(t)
+  const first = f.grant(f.create())
+  f.create('next')
+  f.store.db.prepare('UPDATE app_vip_orders SET account_token = NULL, account_token_hash = ? WHERE out_trade_no = ?')
+    .run('a'.repeat(64), first.out_trade_no)
+  const before = f.ledger.byUser.all(f.user.userId)
+  assert.throws(() => f.ledger.detachUserOrders(f.user.userId, start), { code: 'PAYMENT_IDENTITY_MISMATCH' })
+  assert.deepEqual(f.ledger.byUser.all(f.user.userId), before)
 })

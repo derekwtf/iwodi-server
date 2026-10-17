@@ -42,6 +42,8 @@ class AppPaymentLedger {
       CREATE INDEX IF NOT EXISTS app_vip_orders_user ON app_vip_orders(user_id, created_at);
       CREATE UNIQUE INDEX IF NOT EXISTS app_vip_orders_pending ON app_vip_orders(user_id)
         WHERE status = 'pending' AND deleted_at IS NULL;
+      CREATE UNIQUE INDEX IF NOT EXISTS app_vip_orders_deleted_token
+        ON app_vip_orders(platform, environment, account_token_hash) WHERE account_token_hash IS NOT NULL;
       CREATE TABLE IF NOT EXISTS app_vip_refunds (
         platform TEXT NOT NULL, environment TEXT NOT NULL, refund_id TEXT NOT NULL,
         out_trade_no TEXT NOT NULL REFERENCES app_vip_orders(out_trade_no),
@@ -51,11 +53,6 @@ class AppPaymentLedger {
         PRIMARY KEY(platform, environment, refund_id)
       );
     `)
-    if (!db.pragma('table_info(app_vip_orders)').some((column) => column.name === 'account_token_hash')) {
-      db.exec('ALTER TABLE app_vip_orders ADD COLUMN account_token_hash TEXT')
-    }
-    db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS app_vip_orders_deleted_token
-      ON app_vip_orders(platform, environment, account_token_hash) WHERE account_token_hash IS NOT NULL`)
     this.byId = db.prepare('SELECT * FROM app_vip_orders WHERE out_trade_no = ?')
     this.byRequest = db.prepare('SELECT * FROM app_vip_orders WHERE user_id = ? AND request_id = ?')
     this.byAccountToken = db.prepare('SELECT * FROM app_vip_orders WHERE platform = ? AND environment = ? AND account_token = ?')
@@ -83,6 +80,7 @@ class AppPaymentLedger {
       currency = COALESCE(currency, @currency), amount_micros = COALESCE(amount_micros, @amountMicros),
       paid_at = COALESCE(paid_at, @purchasedAt), platform_status = CASE
         WHEN status = 'refunded' THEN 'refunded'
+        WHEN platform_status = 'cancelled' AND @status IN ('pending','purchased') THEN platform_status
         WHEN (status = 'granted' OR platform_status = 'purchased') AND @status = 'pending' THEN platform_status
         ELSE @status END WHERE out_trade_no = @id`)
     this.setGrant = db.prepare(`UPDATE app_vip_orders SET status = 'granted', granted_at = ?, starts_at = ?, ends_at = ?,
@@ -91,7 +89,7 @@ class AppPaymentLedger {
       WHERE out_trade_no = ? AND status = 'granted' AND platform_ack_at IS NULL`)
     this.checked = db.prepare('UPDATE app_vip_orders SET last_checked_at = ?, next_check_at = ?, last_error = ? WHERE out_trade_no = ?')
     this.closeOrder = db.prepare(`UPDATE app_vip_orders SET status = 'closed', closure_reason = 'platform_cancelled'
-      WHERE out_trade_no = ? AND status = 'pending'`)
+      WHERE out_trade_no = ? AND status IN ('pending','closed')`)
     this.nativeCancellation = db.prepare(`UPDATE app_vip_orders SET status = 'closed', client_cancelled_at = ?, closure_reason = ?
       WHERE out_trade_no = ? AND status = 'pending' AND transaction_id IS NULL AND purchase_token IS NULL`)
     this.review = db.prepare('UPDATE app_vip_orders SET review_reason = ? WHERE out_trade_no = ?')
@@ -111,7 +109,8 @@ class AppPaymentLedger {
     this.detachTransaction = db.transaction((userId, now) => {
       let changed = 0
       for (const order of this.byUser.all(userId)) {
-        const fingerprint = order.account_token ? accountTokenHash(order.account_token) : order.account_token_hash
+        if (!order.account_token) throw paymentError('PAYMENT_IDENTITY_MISMATCH')
+        const fingerprint = accountTokenHash(order.account_token)
         changed += this.detach.run(fingerprint, now, order.out_trade_no, userId).changes
       }
       return changed
@@ -148,7 +147,8 @@ class AppPaymentLedger {
       const order = this.require(id)
       this.bindVerified(order, info)
       if (!info.transactionId || info.status !== 'purchased') throw paymentError('PAYMENT_NOT_CONFIRMED')
-      if (order.status === 'refunded' || order.granted_at !== null || order.review_reason) return false
+      if (order.status === 'refunded' || order.platform_status === 'cancelled' ||
+          order.closure_reason === 'platform_cancelled' || order.granted_at !== null || order.review_reason) return false
       const user = this.readExpiry.get(order.user_id)
       if (!user) throw paymentError('VIP_USER_NOT_FOUND')
       const startsAt = Math.max(now, user.vip_expires_at)
@@ -229,14 +229,8 @@ class AppPaymentLedger {
   }
 
   matchesDeletedAccount(order, info) {
-    if (order.account_token_hash) {
-      return typeof info.accountToken === 'string' && Boolean(info.accountToken) &&
-        accountTokenHash(info.accountToken) === order.account_token_hash
-    }
-    // Older detached rows have no recoverable account token. Only an already-recorded
-    // platform transaction can identify those records; no identity is reconstructed.
-    return Boolean(order.transaction_id && order.transaction_id === info.transactionId ||
-      order.purchase_token && order.purchase_token === info.purchaseToken)
+    return typeof info.accountToken === 'string' && Boolean(info.accountToken) &&
+      accountTokenHash(info.accountToken) === order.account_token_hash
   }
 
   findDeletedByAccountToken(platform, environment, token) {

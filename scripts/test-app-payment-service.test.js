@@ -130,6 +130,40 @@ test('native cancellation releases only an unlocated attempt and a later verifie
   assert.equal((await f.service.queryOwn(f.user.userId, { outTradeNo: newer.out_trade_no, nativeCancelled: true })).order.status, 'pending')
 })
 
+test('platform cancellation blocks late success, pending replays and completion even when later queries fail', async (t) => {
+  for (const marker of [null, 'nativeCancelled', 'purchaseNotStarted']) {
+    await t.test(marker || 'pending', async (t) => {
+      const f = fixture(t), order = await f.create(), paid = f.register(f.paid(order))
+      if (marker) await f.service.queryOwn(f.user.userId, { outTradeNo: order.out_trade_no, [marker]: true })
+      const verify = f.platform.verify
+      let resolveLate
+      f.platform.verify = () => new Promise((resolve) => { resolveLate = resolve })
+      const confirming = f.confirm(order, paid)
+      f.platform.verify = verify
+      f.register({ ...paid, status: 'cancelled', purchasedAt: null })
+      const locator = { platform: order.platform, purchaseToken: paid.purchaseToken }
+      await f.service.notification(order.platform, locator, {})
+      resolveLate(paid)
+      assert.equal((await confirming).order.status, 'closed')
+      const pending = f.register({ ...paid, status: 'pending', transactionId: null, purchasedAt: null })
+      assert.equal((await f.confirm(order, pending)).order.status, 'closed')
+      f.register(paid)
+      await f.service.notification(order.platform, locator, {})
+      await f.service.notification(order.platform, locator, {})
+      f.platform.verify = async () => { throw Object.assign(new Error('unavailable'), { code: 'APP_STORE_UNAVAILABLE' }) }
+      f.tick(3000)
+      assert.equal((await f.service.queryOwn(f.user.userId, { outTradeNo: order.out_trade_no })).order.status, 'closed')
+      const final = f.store.appPayments.require(order.out_trade_no)
+      assert.equal(final.platform_status, 'cancelled')
+      assert.equal(final.closure_reason, 'platform_cancelled')
+      assert.equal(final.granted_at, null)
+      assert.equal(final.platform_ack_at, null)
+      assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, 0)
+      assert.equal(f.completed.length, 0)
+    })
+  }
+})
+
 test('finish failure preserves one durable grant and restart retries completion without extending VIP', async (t) => {
   const dir = mkdtempSync(join(tmpdir(), 'iwodi-app-service-'))
   t.after(() => rmSync(dir, { recursive: true, force: true }))
