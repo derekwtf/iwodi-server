@@ -193,7 +193,9 @@ test('Apple notification validates both signed envelopes and app scope before re
   const payload = { notificationUUID: 'notification-1', notificationType: 'REFUND', version: '2.0',
     data: { bundleId: 'com.test.app', environment: 'Sandbox', signedTransactionInfo: appleJws(appleTransaction()) } }
   const result = await client.verifyNotification('ios', { body: { signedPayload: appleJws(payload) } })
-  assert.deepEqual(result, { notificationId: 'notification-1', locator: { platform: 'ios', transactionId: '10000001' } })
+  assert.deepEqual(result, { notificationId: 'notification-1', notificationType: 'REFUND', signedDate: now,
+    locator: { platform: 'ios', transactionId: '10000001', environment: 'sandbox', appId: 'com.test.app',
+      storeProductId: 'vip.30.days', accountToken } })
   assert.equal(result.status, undefined)
   for (const changed of [{ ...payload, data: { ...payload.data, bundleId: 'wrong' } },
     { ...payload, data: { ...payload.data, signedTransactionInfo: 'fake' } },
@@ -201,6 +203,61 @@ test('Apple notification validates both signed envelopes and app scope before re
     await assert.rejects(client.verifyNotification('ios', { body: { signedPayload: appleJws(changed) } }),
       { code: 'PAYMENT_NOTIFICATION_INVALID', statusCode: 403 })
   }
+})
+
+test('Apple refund reversal retains only signed event metadata and rechecks transaction ownership', async () => {
+  let current = appleTransaction(), queries = 0
+  const client = new AppStoreClient({ config: config(), now: () => now, fetchImpl: async (url) => {
+    queries += 1
+    assert.equal(url, 'https://api.storekit-sandbox.apple.com/inApps/v1/transactions/10000001')
+    return json({ signedTransactionInfo: appleJws(current) })
+  } })
+  const payload = { notificationUUID: 'reversal-1', notificationType: 'REFUND_REVERSED', signedDate: now - 1000,
+    version: '2.0', data: { bundleId: 'com.test.app', environment: 'Sandbox',
+      signedTransactionInfo: appleJws(appleTransaction({ appAccountToken: accountToken.toUpperCase() })) } }
+  const notification = await client.verifyNotification('ios', { body: { signedPayload: appleJws(payload),
+    notificationType: 'REFUND', signedDate: now + 1000 } })
+  assert.equal(notification.notificationType, 'REFUND_REVERSED')
+  assert.equal(notification.signedDate, now - 1000)
+  assert.equal(notification.status, undefined)
+  assert.equal(queries, 0)
+  assert.equal((await client.verify(notification.locator)).status, 'purchased')
+  assert.equal(queries, 1)
+  for (const changed of [{ transactionId: 'other-transaction' }, { appAccountToken: 'another-owner' },
+    { bundleId: 'another-app' }, { productId: 'another-product' }, { environment: 'Production' }]) {
+    current = appleTransaction(changed)
+    await assert.rejects(client.verify(notification.locator), { code: 'APP_STORE_PROOF_INVALID' })
+  }
+  const signedPayload = appleJws(payload)
+  const parts = signedPayload.split('.')
+  const forged = JSON.parse(Buffer.from(parts[1], 'base64url'))
+  forged.signedDate += 1
+  parts[1] = Buffer.from(JSON.stringify(forged)).toString('base64url')
+  await assert.rejects(client.verifyNotification('ios', { body: { signedPayload: parts.join('.') } }),
+    { code: 'PAYMENT_NOTIFICATION_INVALID', statusCode: 403 })
+})
+
+test('Apple notification rejects missing type, invalid signed dates and missing transaction owner', async () => {
+  const client = new AppStoreClient({ config: config(), now: () => now })
+  const payload = { notificationUUID: 'reversal-1', notificationType: 'REFUND_REVERSED', version: '2.0',
+    data: { bundleId: 'com.test.app', environment: 'Sandbox', signedTransactionInfo: appleJws(appleTransaction()) } }
+  for (const changed of [
+    ...[undefined, '', ' ', 42, 'x'.repeat(129)].map((notificationType) => ({ ...payload, notificationType })),
+    ...[undefined, null, 0, -1, 1.5, String(now), now + 60_001].map((signedDate) => ({ ...payload, signedDate })),
+    { ...payload, data: { ...payload.data,
+      signedTransactionInfo: appleJws(appleTransaction({ appAccountToken: undefined })) } },
+  ]) {
+    await assert.rejects(client.verifyNotification('ios', { body: { signedPayload: appleJws(changed) } }),
+      { code: 'PAYMENT_NOTIFICATION_INVALID', statusCode: 403 })
+  }
+})
+
+test('Apple TEST notifications preserve verified metadata without requiring a transaction', async () => {
+  const client = new AppStoreClient({ config: config(), now: () => now })
+  const payload = { notificationUUID: 'test-1', notificationType: 'TEST', version: '2.0', signedDate: now + 60_000,
+    data: { bundleId: 'com.test.app', environment: 'Sandbox' } }
+  assert.deepEqual(await client.verifyNotification('ios', { body: { signedPayload: appleJws(payload) } }),
+    { notificationId: 'test-1', notificationType: 'TEST', signedDate: now + 60_000, test: true })
 })
 
 function googleOidc(overrides = {}) {

@@ -194,17 +194,23 @@ class AppStoreClient {
       const config = this.platformConfig(platform)
       if (platform === 'ios') {
         const notification = verifyAppleSignedData(body?.signedPayload, config.rootCertificates, this.now())
-        if (!nonempty(notification.notificationUUID, 128) || notification.version !== '2.0' ||
+        if (!nonempty(notification.notificationUUID, 128) || !nonempty(notification.notificationType, 128) ||
+            notification.version !== '2.0' ||
             notification.data?.bundleId !== config.appId ||
             notification.data?.environment !== (config.environment === 'sandbox' ? 'Sandbox' : 'Production') ||
             (config.environment === 'production' && (!Number.isSafeInteger(config.appAppleId) ||
               notification.data.appAppleId !== config.appAppleId))) throw storeError()
-        if (notification.notificationType === 'TEST') return { notificationId: notification.notificationUUID, test: true }
+        const event = { notificationId: notification.notificationUUID,
+          notificationType: notification.notificationType, signedDate: notification.signedDate }
+        if (notification.notificationType === 'TEST') return { ...event, test: true }
         const transaction = verifyAppleSignedData(notification.data.signedTransactionInfo, config.rootCertificates, this.now())
         if (transaction.bundleId !== config.appId || transaction.environment !== notification.data.environment ||
-            transaction.productId !== config.storeProductId || !nonempty(transaction.transactionId, 128)) throw storeError()
-        return { notificationId: notification.notificationUUID,
-          locator: { platform, transactionId: transaction.transactionId } }
+            transaction.productId !== config.storeProductId || !nonempty(transaction.transactionId, 128) ||
+            !nonempty(transaction.appAccountToken, 128)) throw storeError()
+        return { ...event,
+          locator: { platform, transactionId: transaction.transactionId, environment: config.environment,
+            appId: config.appId, storeProductId: transaction.productId,
+            accountToken: transaction.appAccountToken.toLowerCase() } }
       }
       if (!config.notificationAudience || !config.notificationEmail) throw storeError('APP_STORE_NOT_CONFIGURED', '商店通知尚未配置', 503)
       const authorization = headers.authorization || headers.Authorization
