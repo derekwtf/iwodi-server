@@ -201,7 +201,7 @@ test('late grants use confirmation time and renewals extend from the existing ex
   assert.equal(next.ends_at, start + 62 * DAY_MS)
 })
 
-test('full refund before delivery is terminal across duplicate and out-of-order purchase events', (t) => {
+test('full refund before delivery stays refunded across duplicate and ordinary purchase events', (t) => {
   const f = fixture(t), order = f.create()
   assert.equal(f.ledger.refundVerified(order.out_trade_no, refund(order, 'refund-first'), start + DAY_MS), true)
   assert.equal(f.ledger.refundVerified(order.out_trade_no, refund(order, 'refund-first'), start + 2 * DAY_MS), false)
@@ -211,6 +211,139 @@ test('full refund before delivery is terminal across duplicate and out-of-order 
   assert.equal(f.ledger.require(order.out_trade_no).granted_at, null)
   assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, 0)
   assert.equal(f.store.db.prepare('SELECT count(*) AS n FROM app_vip_refunds').get().n, 1)
+})
+
+for (const renewal of [false, true]) {
+test(`refund reversal restores the withdrawn interval after ${renewal ? 'current renewal expiry' : 'recovery time'}`, (t) => {
+  const f = fixture(t), order = f.grant(f.create())
+  const next = renewal ? f.grant(f.create('renewal')) : null
+  const refundedAt = start + 10 * DAY_MS, reversedAt = start + 11 * DAY_MS
+  const info = refund(order, 'reversible', { refundedAt })
+  f.ledger.refundVerified(order.out_trade_no, info, refundedAt)
+  assert.equal(f.ledger.require(order.out_trade_no).revoked_ms, 20 * DAY_MS)
+  const expiry = renewal ? start + 60 * DAY_MS : start + 31 * DAY_MS
+  assert.equal(f.ledger.reverseRefundVerified(order.out_trade_no, verified(order), reversedAt, reversedAt), true)
+  const restored = f.ledger.require(order.out_trade_no)
+  assert.equal(restored.status, 'granted')
+  assert.equal(restored.platform_status, 'purchased')
+  assert.equal(restored.granted_at, order.granted_at)
+  assert.equal(restored.platform_ack_at, order.platform_ack_at)
+  assert.equal(restored.starts_at, expiry - 20 * DAY_MS)
+  assert.equal(restored.ends_at, expiry)
+  assert.equal(restored.refunded_at, null)
+  assert.equal(restored.refund_reversed_at, reversedAt)
+  assert.equal(restored.revoked_ms, 0)
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, expiry)
+  const receipt = f.ledger.refundById.get('ios', 'sandbox', 'reversible')
+  assert.equal(receipt.result, 'completed')
+  assert.equal(receipt.completed_at, refundedAt)
+  assert.equal(receipt.reversed_at, reversedAt)
+  if (next) assert.equal(f.ledger.require(next.out_trade_no).ends_at, restored.starts_at)
+  assert.equal(f.ledger.reverseRefundVerified(order.out_trade_no, verified(order), reversedAt, reversedAt + DAY_MS), false)
+  // Stale refunds must be ignored before either platform status or entitlement changes.
+  f.ledger.recordVerified(order.out_trade_no, info)
+  assert.equal(f.ledger.refundVerified(order.out_trade_no, info, reversedAt + DAY_MS), false)
+  assert.deepEqual(f.ledger.require(order.out_trade_no), restored)
+})
+}
+
+test('a fresh refund revokes only the restored interval and old reversals cannot revive it', (t) => {
+  const f = fixture(t), order = f.grant(f.create())
+  f.ledger.refundVerified(order.out_trade_no, refund(order, 'first', { refundedAt: start + 10 * DAY_MS }), start + 10 * DAY_MS)
+  f.ledger.reverseRefundVerified(order.out_trade_no, verified(order), start + 11 * DAY_MS, start + 11 * DAY_MS)
+  const renewal = f.grant(f.create('renewal'), start + 12 * DAY_MS)
+  const second = refund(order, 'second', { refundedAt: start + 15 * DAY_MS })
+  f.ledger.refundVerified(order.out_trade_no, second, start + 15 * DAY_MS)
+  assert.equal(f.ledger.require(order.out_trade_no).revoked_ms, 16 * DAY_MS)
+  assert.equal(f.ledger.require(renewal.out_trade_no).starts_at, start + 15 * DAY_MS)
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, start + 45 * DAY_MS)
+  assert.equal(f.ledger.reverseRefundVerified(order.out_trade_no, verified(order), start + 14 * DAY_MS, start + 16 * DAY_MS), false)
+  assert.equal(f.ledger.grantVerified(order.out_trade_no, verified(order), start + 16 * DAY_MS), false)
+  assert.equal(f.ledger.reverseRefundVerified(order.out_trade_no, verified(order), start + 16 * DAY_MS, start + 16 * DAY_MS), true)
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, start + 61 * DAY_MS)
+  assert.equal(f.ledger.refundById.get('ios', 'sandbox', 'first').reversed_at, start + 11 * DAY_MS)
+  assert.equal(f.ledger.refundById.get('ios', 'sandbox', 'second').reversed_at, start + 16 * DAY_MS)
+})
+
+test('refund reversal grants an undelivered purchase once but adds nothing for consumed time', (t) => {
+  const f = fixture(t), order = f.create()
+  f.ledger.refundVerified(order.out_trade_no, refund(order, 'before-delivery'), start + DAY_MS)
+  assert.equal(f.ledger.reverseRefundVerified(order.out_trade_no, verified(order), start + 2 * DAY_MS, start + 3 * DAY_MS), true)
+  const granted = f.ledger.require(order.out_trade_no)
+  assert.equal(granted.granted_at, start + 3 * DAY_MS)
+  assert.equal(granted.starts_at, start + 3 * DAY_MS)
+  assert.equal(granted.ends_at, start + 33 * DAY_MS)
+  f.ledger.refundVerified(order.out_trade_no, refund(order, 'consumed', { refundedAt: start + 34 * DAY_MS }), start + 34 * DAY_MS)
+  assert.equal(f.ledger.require(order.out_trade_no).revoked_ms, 0)
+  assert.equal(f.ledger.reverseRefundVerified(order.out_trade_no, verified(order), start + 35 * DAY_MS, start + 36 * DAY_MS), true)
+  assert.equal(f.ledger.require(order.out_trade_no).status, 'granted')
+  assert.equal(f.ledger.require(order.out_trade_no).ends_at, granted.ends_at)
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, granted.ends_at)
+})
+
+test('reversal arriving before a refund records platform time without extending a delivered order', (t) => {
+  const f = fixture(t), order = f.grant(f.create())
+  const reversedAt = start + 11 * DAY_MS
+  assert.equal(f.ledger.reverseRefundVerified(order.out_trade_no, verified(order), reversedAt, start + 12 * DAY_MS), false)
+  assert.equal(f.ledger.require(order.out_trade_no).refund_reversed_at, reversedAt)
+  assert.equal(f.ledger.refundVerified(order.out_trade_no,
+    refund(order, 'delayed', { refundedAt: start + 10 * DAY_MS }), start + 13 * DAY_MS), false)
+  assert.equal(f.ledger.require(order.out_trade_no).platform_status, 'purchased')
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, order.ends_at)
+})
+
+test('refund ordering uses the platform revocation time even when processing is delayed', (t) => {
+  const f = fixture(t), order = f.grant(f.create())
+  f.ledger.refundVerified(order.out_trade_no, refund(order, 'delayed', { refundedAt: start + 10 * DAY_MS }), start + 12 * DAY_MS)
+  assert.equal(f.ledger.require(order.out_trade_no).refunded_at, start + 10 * DAY_MS)
+  assert.equal(f.ledger.require(order.out_trade_no).revoked_ms, 18 * DAY_MS)
+  assert.equal(f.ledger.reverseRefundVerified(order.out_trade_no, verified(order), start + 11 * DAY_MS, start + 13 * DAY_MS), true)
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, start + 31 * DAY_MS)
+})
+
+test('reversal validates ownership and rolls back financial history and entitlement on write failure', (t) => {
+  const f = fixture(t), order = f.grant(f.create())
+  f.ledger.refundVerified(order.out_trade_no, refund(order, 'atomic-reversal'), start + DAY_MS)
+  const before = f.ledger.require(order.out_trade_no)
+  const receipt = f.ledger.refundById.get('ios', 'sandbox', 'atomic-reversal')
+  for (const info of [verified(order, { accountToken: 'foreign' }), verified(order, { transactionId: 'foreign' }),
+    verified(order, { platform: 'android' }), verified(order, { storeProductId: 'foreign' })]) {
+    assert.throws(() => f.ledger.reverseRefundVerified(order.out_trade_no, info, start + 2 * DAY_MS, start + 2 * DAY_MS))
+    assert.deepEqual(f.ledger.require(order.out_trade_no), before)
+  }
+  for (const table of ['users', 'app_vip_refunds']) {
+    f.store.db.exec(`CREATE TRIGGER fail_reversal BEFORE UPDATE ON ${table} BEGIN SELECT RAISE(ABORT, 'reversal failed'); END`)
+    assert.throws(() => f.ledger.reverseRefundVerified(order.out_trade_no, verified(order), start + 2 * DAY_MS, start + 2 * DAY_MS), /reversal failed/)
+    assert.deepEqual(f.ledger.require(order.out_trade_no), before)
+    assert.deepEqual(f.ledger.refundById.get('ios', 'sandbox', 'atomic-reversal'), receipt)
+    assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, start + DAY_MS)
+    f.store.db.exec('DROP TRIGGER fail_reversal')
+  }
+  assert.equal(f.ledger.reverseRefundVerified(order.out_trade_no, verified(order), start + 2 * DAY_MS, start + 2 * DAY_MS), true)
+})
+
+test('reversal preserves failed and pending refund attempts while marking completed refunds', (t) => {
+  const f = fixture(t), order = f.grant(f.create())
+  for (const result of ['failed', 'pending', 'completed']) {
+    f.ledger.refundVerified(order.out_trade_no, refund(order, result, { refundResult: result }), start + DAY_MS)
+  }
+  f.ledger.reverseRefundVerified(order.out_trade_no, verified(order), start + 2 * DAY_MS, start + 2 * DAY_MS)
+  for (const result of ['failed', 'pending', 'completed']) {
+    const receipt = f.ledger.refundById.get('ios', 'sandbox', result)
+    assert.equal(receipt.result, result)
+    assert.equal(receipt.reversed_at, result === 'completed' ? start + 2 * DAY_MS : null)
+  }
+})
+
+test('a later refund while still refunded advances event ordering without withdrawing twice', (t) => {
+  const f = fixture(t), order = f.grant(f.create())
+  f.ledger.refundVerified(order.out_trade_no, refund(order, 'first', { refundedAt: start + 10 * DAY_MS }), start + 10 * DAY_MS)
+  f.ledger.refundVerified(order.out_trade_no, refund(order, 'newest', { refundedAt: start + 12 * DAY_MS }), start + 13 * DAY_MS)
+  assert.equal(f.ledger.require(order.out_trade_no).refunded_at, start + 12 * DAY_MS)
+  assert.equal(f.ledger.require(order.out_trade_no).revoked_ms, 20 * DAY_MS)
+  assert.equal(f.ledger.reverseRefundVerified(order.out_trade_no, verified(order), start + 11 * DAY_MS, start + 13 * DAY_MS), false)
+  assert.equal(f.ledger.reverseRefundVerified(order.out_trade_no, verified(order), start + 14 * DAY_MS, start + 14 * DAY_MS), true)
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, start + 34 * DAY_MS)
 })
 
 test('failed and partial refunds do not revoke or accidentally deliver a full order', (t) => {
@@ -292,6 +425,8 @@ function concurrentOperations(filename, inputs) {
         try {
           const value = workerData.input.kind === 'grant'
             ? ledger.grantVerified(...workerData.input.args)
+            : workerData.input.kind === 'reverse'
+            ? ledger.reverseRefundVerified(...workerData.input.args)
             : ledger.create(...workerData.input.args).out_trade_no
           parentPort.postMessage({ value })
         } catch (error) { parentPort.postMessage({ error: error.code || error.message }) }
@@ -330,6 +465,52 @@ test('independent SQLite connections race duplicate create and grant without dou
   const distinct = await concurrentOperations(filename, ['one', 'two'].map((request) => ({ kind: 'create', args: [f.user.userId, request, config, start] })))
   assert.equal(distinct.filter((result) => result.value).length, 1)
   assert.equal(distinct.filter((result) => result.error === 'VIP_ORDER_PENDING').length, 1)
+})
+
+test('independent SQLite connections restore a refund once and persisted replays do not extend it', async (t) => {
+  const filename = join(directory(t), 'reversal.sqlite'), f = fixture(t, filename)
+  const order = f.grant(f.create()), refundedAt = start + 10 * DAY_MS, reversedAt = start + 11 * DAY_MS
+  f.ledger.refundVerified(order.out_trade_no, refund(order, 'concurrent', { refundedAt }), refundedAt)
+  const args = [order.out_trade_no, verified(order), reversedAt, reversedAt]
+  const results = await concurrentOperations(filename, [1, 2].map(() => ({ kind: 'reverse', args })))
+  assert.deepEqual(results.map((result) => result.value).sort(), [false, true])
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, start + 31 * DAY_MS)
+  f.store.close()
+  const reopened = new UserStore(filename)
+  t.after(() => reopened.close())
+  assert.equal(reopened.appPayments.reverseRefundVerified(...args), false)
+  assert.equal(reopened.getUser(f.user.userId).vipExpiresAt, start + 31 * DAY_MS)
+  assert.equal(reopened.appPayments.refundById.get('ios', 'sandbox', 'concurrent').reversed_at, reversedAt)
+})
+
+test('legacy App refunds migrate platform timestamps and reversal columns once without losing history', (t) => {
+  const filename = join(directory(t), 'legacy-refunds.sqlite'), f = fixture(t, filename)
+  const order = f.grant(f.create()), refundedAt = start + 10 * DAY_MS, processedAt = start + 12 * DAY_MS
+  f.ledger.refundVerified(order.out_trade_no, refund(order, 'legacy', { refundedAt }), processedAt)
+  // Recreate the previous schema, whose order timestamp used local processing time.
+  f.store.db.exec(`ALTER TABLE app_vip_orders DROP COLUMN refund_reversed_at;
+    ALTER TABLE app_vip_refunds DROP COLUMN reversed_at;
+    DROP INDEX app_vip_refunds_order;`)
+  f.store.db.prepare('UPDATE app_vip_orders SET refunded_at = ? WHERE out_trade_no = ?').run(processedAt, order.out_trade_no)
+  f.store.close()
+  const store = new UserStore(filename), ledger = store.appPayments
+  t.after(() => store.close())
+  new AppPaymentLedger(store.db)
+  assert.equal(store.db.pragma('table_info(app_vip_orders)').filter((c) => c.name === 'refund_reversed_at').length, 1)
+  assert.equal(store.db.pragma('table_info(app_vip_refunds)').filter((c) => c.name === 'reversed_at').length, 1)
+  assert.equal(store.db.pragma('index_info(app_vip_refunds_order)')[0].name, 'out_trade_no')
+  assert.equal(ledger.require(order.out_trade_no).refunded_at, refundedAt)
+  assert.equal(ledger.refundById.get('ios', 'sandbox', 'legacy').recorded_at, processedAt)
+  assert.equal(ledger.reverseRefundVerified(order.out_trade_no, verified(order), start + 11 * DAY_MS, start + 13 * DAY_MS), true)
+  assert.equal(store.getUser(f.user.userId).vipExpiresAt, start + 31 * DAY_MS)
+  ledger.refundVerified(order.out_trade_no, refund(order, 'after-migration', { refundedAt: start + 14 * DAY_MS }), start + 14 * DAY_MS)
+  assert.equal(ledger.refundById.get('ios', 'sandbox', 'after-migration').reversed_at, null)
+  assert.equal(ledger.refundById.get('ios', 'sandbox', 'legacy').reversed_at, start + 11 * DAY_MS)
+  new AppPaymentLedger(store.db)
+  assert.equal(store.db.prepare('SELECT count(*) AS n FROM app_vip_refunds').get().n, 2)
+  assert.equal(ledger.require(order.out_trade_no).refunded_at, start + 14 * DAY_MS)
+  assert.equal(store.db.pragma('integrity_check', { simple: true }), 'ok')
+  assert.deepEqual(store.db.pragma('foreign_key_check'), [])
 })
 
 test('pre-migration and post-grant backups restore safely; repeated initialization preserves the old ledger and retries', async (t) => {

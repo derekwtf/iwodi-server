@@ -159,35 +159,32 @@ class AppPaymentService extends EventEmitter {
       throw paymentError('PAYMENT_ORDER_MISMATCH', '商店交易与当前订单不一致')
     }
   }
-  async applyVerified(order, verified, { allowDeleted = false } = {}) {
+  async applyVerified(order, verified, { allowDeleted = false, refundReversedAt = null } = {}) {
     // A network query may overlap account deletion. Re-read before deciding whether delivery is allowed.
     order = this.ledger.require(order.out_trade_no)
     const deleted = order.deleted_at != null || !order.user_id
     if (deleted && !allowDeleted) throw paymentError('APP_ACCOUNT_DELETED')
     this.validate(order, verified)
-    if (deleted) {
-      if (verified.status === 'refunded' || verified.status === 'cancelled' && order.paid_at != null) {
-        this.ledger.refundVerified(order.out_trade_no, { ...verified,
-          refundId: verified.refundId || `${verified.platform}:${verified.transactionId}:revoked`,
-          refundedAt: verified.refundedAt || this.now(), source: 'platform' }, this.now())
-      } else {
-        this.ledger.recordVerified(order.out_trade_no, verified, { allowDeleted: true })
-        if (verified.status === 'cancelled') this.ledger.close(order.out_trade_no)
-      }
-      // Deleted orders retain financial facts only. Never grant, consume, or recreate a user.
-      return this.ledger.require(order.out_trade_no)
-    }
     let changed = false
-    if (verified.status === 'refunded' || verified.status === 'cancelled' && order.granted_at != null) {
-      changed = this.ledger.refundVerified(order.out_trade_no, { ...verified,
+    const refund = verified.status === 'refunded' ||
+      verified.status === 'cancelled' && (deleted ? order.paid_at : order.granted_at) != null
+    if (refund) {
+      verified = { ...verified,
         refundId: verified.refundId || `${verified.platform}:${verified.transactionId}:revoked`,
-        refundedAt: verified.refundedAt || this.now(), source: 'platform' }, this.now())
-    } else if (verified.status === 'purchased') {
+        refundedAt: verified.refundedAt || this.now(), source: 'platform' }
+    }
+    if (refundReversedAt !== null) {
+      changed = this.ledger.reverseRefundVerified(order.out_trade_no, verified, refundReversedAt, this.now())
+    } else if (refund) {
+      changed = this.ledger.refundVerified(order.out_trade_no, verified, this.now())
+    } else if (verified.status === 'purchased' && !deleted) {
       changed = this.ledger.grantVerified(order.out_trade_no, verified, this.now())
     } else {
-      this.ledger.recordVerified(order.out_trade_no, verified)
+      this.ledger.recordVerified(order.out_trade_no, verified, { allowDeleted })
       if (verified.status === 'cancelled') this.ledger.close(order.out_trade_no)
     }
+    // Deleted orders retain financial facts only. Never grant, consume, or recreate a user.
+    if (deleted) return this.ledger.require(order.out_trade_no)
     if (changed && order.user_id) this.emit('changed', order.user_id)
     const latest = this.ledger.require(order.out_trade_no)
     if (verified.status === 'purchased' && latest.status === 'granted' && !latest.platform_ack_at) {
@@ -271,7 +268,12 @@ class AppPaymentService extends EventEmitter {
       if (this.stopped) throw paymentError('PAYMENT_STOPPED')
       const current = this.ledger.byId.get(order.out_trade_no)
       if (!current) return // Retention may have purged it while waiting for another operation.
-      try { await this.applyVerified(current, verified, { allowDeleted: true }); this.scheduleCheck(order.out_trade_no) }
+      try {
+        await this.applyVerified(current, verified, { allowDeleted: true,
+          refundReversedAt: platform === 'ios' && notification.notificationType === 'REFUND_REVERSED'
+            ? notification.signedDate : null })
+        this.scheduleCheck(order.out_trade_no)
+      }
       catch (error) { this.scheduleCheck(order.out_trade_no, error.code || 'PAYMENT_ERROR'); throw error }
     })
   }

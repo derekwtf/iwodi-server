@@ -59,7 +59,7 @@ test('App orders use authenticated Socket actions, synchronize rooms, restore on
     complete: async (verified) => ({ finished: verified.platform === 'android' }),
     verifyNotification: async (_platform, { body, headers }) => {
       if (headers.authorization !== 'Bearer fixture-notification') throw Object.assign(new Error('invalid source'), { code: 'PAYMENT_NOTIFICATION_INVALID' })
-      return { locator: body }
+      return { locator: body, notificationType: body.notificationType, signedDate: body.signedDate }
     },
   }
   const fixture = await createFixture(':memory:', { channel: 'app', appPayment: { config, client: platform, logger: { warn() {} } },
@@ -119,13 +119,34 @@ test('App orders use authenticated Socket actions, synchronize rooms, restore on
     assert.equal(fixture.manager.getRoomState(createdRoom.room.roomId).players.find((player) => player.id === a.playerId).isVip, false)
 
     const apple = await request(a.socket, 'user:createVipOrder', { platform: 'ios', productId: 'vip_month', requestId: 'apple-order-fixture-1' })
-    transactions.set('apple-tx', { platform: 'ios', environment: 'sandbox', appId: 'fixture.ios', storeProductId: 'vip.ios',
-      transactionId: 'apple-tx', accountToken: apple.payment.accountToken, purchasedAt: Date.now(), quantity: 1, status: 'purchased' })
+    const appleProof = { platform: 'ios', environment: 'sandbox', appId: 'fixture.ios', storeProductId: 'vip.ios',
+      transactionId: 'apple-tx', accountToken: apple.payment.accountToken, purchasedAt: Date.now(), quantity: 1, status: 'purchased' }
+    transactions.set('apple-tx', appleProof)
     const applePaid = await request(a.socket, 'user:confirmVipPurchase', { platform: 'ios', transactionId: 'apple-tx' })
     assert.equal(applePaid.order.status, 'granted')
     assert.equal(applePaid.order.finishedAt, null)
     const appleFinished = await request(a.socket, 'user:queryVipOrder', { outTradeNo: apple.order.outTradeNo, nativeFinished: true })
     assert.ok(appleFinished.order.finishedAt)
     assert.equal(appleFinished.membership.vipExpiresAt, applePaid.membership.vipExpiresAt)
+
+    const appleRefundedAt = Date.now()
+    transactions.set('apple-tx', { ...appleProof, status: 'refunded', refundId: 'apple-socket-refund', refundedAt: appleRefundedAt })
+    const applePush = (event) => fetch(`${fixture.url}/app/store/events/apple`, { method: 'POST', headers: {
+      'content-type': 'application/json', authorization: 'Bearer fixture-notification',
+    }, body: JSON.stringify({ platform: 'ios', transactionId: 'apple-tx', ...event }) })
+    assert.equal((await applePush({ notificationType: 'REFUND', signedDate: appleRefundedAt })).status, 204)
+    const withdrawn = fixture.userStore.appPayments.require(apple.order.outTradeNo).revoked_ms
+    assert.ok(withdrawn > 0)
+    assert.equal(fixture.manager.getRoomState(createdRoom.room.roomId).players.find((player) => player.id === a.playerId).isVip, false)
+    transactions.set('apple-tx', appleProof)
+    const reversal = { notificationType: 'REFUND_REVERSED', signedDate: Math.max(Date.now(), appleRefundedAt + 1) }
+    for (let repeat = 0; repeat < 2; repeat++) assert.equal((await applePush(reversal)).status, 204)
+    const reversed = await request(a.socket, 'user:queryVipOrder', { outTradeNo: apple.order.outTradeNo })
+    assert.equal(reversed.order.status, 'granted')
+    assert.equal(reversed.order.endsAt - reversed.order.startsAt, withdrawn)
+    assert.equal(reversed.order.finishedAt, appleFinished.order.finishedAt)
+    assert.equal(reversed.membership.vipExpiresAt, reversed.order.endsAt)
+    assert.equal(reversed.membership.isVip, true)
+    assert.equal(fixture.manager.getRoomState(createdRoom.room.roomId).players.find((player) => player.id === a.playerId).isVip, true)
   } finally { await fixture.close() }
 })

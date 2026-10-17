@@ -27,7 +27,7 @@ function fixture(t, filename = ':memory:') {
       return { ...result }
     },
     complete: async (info) => { completed.push(info.transactionId); return { finished: true } },
-    verifyNotification: async (_platform, { body }) => ({ locator: body }),
+    verifyNotification: async (_platform, { body }) => body.locator ? body : ({ locator: body }),
   }
   const service = new AppPaymentService({ userStore: store, config: config(), client: platform,
     now: () => time, logger: { warn: (...args) => log.push(args) } })
@@ -43,7 +43,11 @@ function fixture(t, filename = ':memory:') {
   const register = (info) => { if (info.transactionId) responses.set(info.transactionId, info); if (info.purchaseToken) responses.set(info.purchaseToken, info); return info }
   const confirm = (order, info = register(paid(order)), uid = user.userId) => service.confirmPurchase(uid,
     { platform: order.platform, outTradeNo: order.out_trade_no, transactionId: info.transactionId, purchaseToken: info.purchaseToken })
-  return { store, user, service, platform, responses, completed, log, create, paid, register, confirm,
+  const notify = (info, notificationType, signedDate = time) => service.notification(info.platform, {
+    locator: { platform: info.platform, transactionId: info.transactionId, purchaseToken: info.purchaseToken },
+    notificationType, signedDate,
+  }, {})
+  return { store, user, service, platform, responses, completed, log, create, paid, register, confirm, notify,
     get now() { return time }, tick(ms) { time += ms } }
 }
 
@@ -187,7 +191,7 @@ test('finish failure preserves one durable grant and restart retries completion 
   assert.equal(restored.store.getUser(restored.user.userId).vipExpiresAt, expiry)
 })
 
-test('verified refunds, out-of-order payment notifications and restore never duplicate or revive entitlement', async (t) => {
+test('verified refunds remain effective after ordinary payment notifications and purchase restore', async (t) => {
   const f = fixture(t)
   const order = await f.create(), purchased = f.register(f.paid(order))
   const refunded = f.register({ ...purchased, status: 'refunded', refundId: 'refund-1', refundedAt: f.now })
@@ -198,6 +202,188 @@ test('verified refunds, out-of-order payment notifications and restore never dup
   const restored = await f.service.queryOwn(f.user.userId, { restore: true })
   assert.equal(restored.orders.length, 1)
   assert.equal(restored.orders[0].status, 'refunded')
+  assert.equal(f.completed.length, 0)
+})
+
+test('Apple REFUND_REVERSED restores only withdrawn time after current entitlement and broadcasts once', async (t) => {
+  for (const renewed of [false, true]) {
+    await t.test(renewed ? 'with a renewal' : 'without a renewal', async (t) => {
+      const f = fixture(t), start = f.now
+      const order = await f.create('apple-reversal-request', 'ios'), paid = f.register(f.paid(order))
+      await f.confirm(order, paid)
+      const delivered = f.store.appPayments.require(order.out_trade_no)
+      if (renewed) await f.confirm(await f.create('apple-renewal-request', 'ios'))
+      f.tick(10 * DAY_MS)
+      f.register({ ...paid, status: 'refunded', refundId: 'apple-refund', refundedAt: f.now })
+      await f.notify(paid, 'REFUND')
+      assert.equal(f.store.appPayments.require(order.out_trade_no).revoked_ms, 20 * DAY_MS)
+      f.tick(DAY_MS)
+      f.register(paid)
+      let changes = 0
+      f.service.on('changed', (userId) => { assert.equal(userId, f.user.userId); changes++ })
+      await Promise.all(Array.from({ length: 5 }, () => f.notify(paid, 'REFUND_REVERSED')))
+      const restored = f.store.appPayments.require(order.out_trade_no)
+      assert.equal(restored.status, 'granted')
+      assert.equal(restored.starts_at, start + (renewed ? 40 : 11) * DAY_MS)
+      assert.equal(restored.ends_at, start + (renewed ? 60 : 31) * DAY_MS)
+      assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, restored.ends_at)
+      assert.equal(restored.granted_at, delivered.granted_at)
+      assert.equal(restored.platform_ack_at, delivered.platform_ack_at)
+      assert.equal(restored.refunded_at, null)
+      assert.equal(restored.revoked_ms, 0)
+      assert.equal(restored.refund_reversed_at, f.now)
+      assert.equal(changes, 1)
+      assert.equal(f.completed.length, renewed ? 2 : 1)
+    })
+  }
+})
+
+test('Apple REFUND_REVERSED survives restart without replaying its entitlement grant', async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'iwodi-apple-reversal-'))
+  t.after(() => rmSync(dir, { recursive: true, force: true }))
+  const filename = join(dir, 'users.sqlite'), f = fixture(t, filename)
+  const order = await f.create('apple-reversal-restart', 'ios'), paid = f.register(f.paid(order))
+  await f.confirm(order, paid)
+  f.tick(10 * DAY_MS)
+  f.register({ ...paid, status: 'refunded', refundId: 'restart-refund', refundedAt: f.now })
+  await f.notify(paid, 'REFUND')
+  f.tick(DAY_MS)
+  f.register(paid)
+  const signedDate = f.now
+  await f.notify(paid, 'REFUND_REVERSED', signedDate)
+  const expiry = f.store.getUser(f.user.userId).vipExpiresAt
+  assert.equal(expiry, signedDate + 20 * DAY_MS)
+  await f.service.stop()
+  f.store.close()
+  const restored = fixture(t, filename)
+  restored.register(paid)
+  restored.tick(12 * DAY_MS)
+  let changes = 0
+  restored.service.on('changed', () => changes++)
+  await restored.notify(paid, 'REFUND_REVERSED', signedDate)
+  assert.equal(restored.store.getUser(restored.user.userId).vipExpiresAt, expiry)
+  assert.equal(restored.store.appPayments.require(order.out_trade_no).refund_reversed_at, signedDate)
+  assert.equal(changes, 0)
+  assert.equal(restored.completed.length, 0)
+})
+
+test('Apple REFUND_REVERSED retries an old refund snapshot but acknowledges a newer refund', async (t) => {
+  const f = fixture(t), order = await f.create('apple-reversal-retry', 'ios'), paid = f.register(f.paid(order))
+  await f.confirm(order, paid)
+  f.tick(10 * DAY_MS)
+  f.register({ ...paid, status: 'refunded', refundId: 'old-refund', refundedAt: f.now })
+  await f.notify(paid, 'REFUND')
+  f.tick(DAY_MS)
+  const signedDate = f.now, expiry = f.store.getUser(f.user.userId).vipExpiresAt
+  const router = require('../src/payment/createAppEventsRouter')(f.service)
+  const apple = router.stack.find((layer) => layer.route.path === '/apple').route.stack[0].handle
+  const req = { body: { locator: { platform: 'ios', transactionId: paid.transactionId },
+    notificationType: 'REFUND_REVERSED', signedDate }, headers: {} }
+  let status
+  await apple(req, { sendStatus: (value) => { status = value } })
+  assert.equal(status, 503)
+  assert.equal(f.store.appPayments.require(order.out_trade_no).refund_reversed_at, null)
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, expiry)
+  f.tick(DAY_MS)
+  f.register({ ...paid, status: 'refunded', refundId: 'new-refund', refundedAt: f.now })
+  await apple(req, { sendStatus: (value) => { status = value } })
+  assert.equal(status, 204)
+  assert.equal(f.store.appPayments.require(order.out_trade_no).refunded_at, f.now)
+  f.register(paid)
+  await f.notify(paid, 'REFUND_REVERSED', signedDate)
+  assert.equal(f.store.appPayments.require(order.out_trade_no).status, 'refunded')
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, expiry)
+})
+
+test('Apple REFUND_REVERSED arriving first prevents a late older refund from changing platform status or VIP', async (t) => {
+  const f = fixture(t), order = await f.create('apple-reversal-first', 'ios'), paid = f.register(f.paid(order))
+  await f.confirm(order, paid)
+  const expiry = f.store.getUser(f.user.userId).vipExpiresAt
+  f.tick(11 * DAY_MS)
+  const signedDate = f.now
+  await f.notify(paid, 'REFUND_REVERSED', signedDate)
+  f.tick(DAY_MS)
+  f.register({ ...paid, status: 'refunded', refundId: 'late-old-refund', refundedAt: signedDate - DAY_MS })
+  await f.notify(paid, 'REFUND')
+  const recorded = f.store.appPayments.require(order.out_trade_no)
+  assert.equal(recorded.status, 'granted')
+  assert.equal(recorded.platform_status, 'purchased')
+  assert.equal(recorded.refund_reversed_at, signedDate)
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, expiry)
+})
+
+test('Apple REFUND_REVERSED requires authenticated notification and matching transaction ownership', async (t) => {
+  const f = fixture(t), order = await f.create('apple-reversal-boundary', 'ios'), paid = f.register(f.paid(order))
+  await f.confirm(order, paid)
+  f.tick(10 * DAY_MS)
+  f.register({ ...paid, status: 'refunded', refundId: 'boundary-refund', refundedAt: f.now })
+  await f.notify(paid, 'REFUND')
+  f.tick(DAY_MS)
+  f.register(paid)
+  const expiry = f.store.getUser(f.user.userId).vipExpiresAt
+  const forged = await f.service.confirmPurchase(f.user.userId, {
+    platform: 'ios', outTradeNo: order.out_trade_no, transactionId: paid.transactionId,
+    notificationType: 'REFUND_REVERSED', signedDate: f.now, refundReversedAt: f.now,
+  })
+  assert.equal(forged.order.status, 'refunded')
+  const verifyNotification = f.platform.verifyNotification
+  f.platform.verifyNotification = async () => { throw Object.assign(new Error('forged'), { code: 'PAYMENT_NOTIFICATION_INVALID' }) }
+  await assert.rejects(f.notify(paid, 'REFUND_REVERSED'), { code: 'PAYMENT_NOTIFICATION_INVALID' })
+  f.platform.verifyNotification = verifyNotification
+  for (const override of [{ accountToken: 'foreign-account' }, { transactionId: 'foreign-transaction' },
+    { storeProductId: 'foreign-product' }]) {
+    f.responses.set(paid.transactionId, { ...paid, ...override })
+    await assert.rejects(f.notify(paid, 'REFUND_REVERSED'),
+      { code: override.transactionId ? 'PLATFORM_ORDER_MISMATCH' : 'PAYMENT_ORDER_MISMATCH' })
+  }
+  assert.equal(f.store.appPayments.require(order.out_trade_no).status, 'refunded')
+  assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, expiry)
+})
+
+test('Apple REFUND_REVERSED racing account deletion records financial reversal without delivery or consume', async (t) => {
+  const f = fixture(t), order = await f.create('apple-reversal-delete', 'ios'), paid = f.register(f.paid(order))
+  f.platform.complete = async () => ({ finished: false })
+  await f.confirm(order, paid)
+  f.tick(10 * DAY_MS)
+  f.register({ ...paid, status: 'refunded', refundId: 'deleted-reversal', refundedAt: f.now })
+  await f.notify(paid, 'REFUND')
+  f.tick(DAY_MS)
+  let beginVerify, resolveVerify, changes = 0, consumes = 0
+  const started = new Promise((resolve) => { beginVerify = resolve })
+  f.platform.verify = () => { beginVerify(); return new Promise((resolve) => { resolveVerify = resolve }) }
+  f.platform.complete = async () => { consumes++; return { finished: true } }
+  f.service.on('changed', () => changes++)
+  const reversing = f.notify(paid, 'REFUND_REVERSED')
+  await started
+  f.store.deleteAppUser(f.user.userId, { now: f.now })
+  resolveVerify(paid)
+  await reversing
+  const recorded = f.store.appPayments.require(order.out_trade_no)
+  assert.equal(recorded.status, 'closed')
+  assert.equal(recorded.user_id, null)
+  assert.equal(recorded.refund_reversed_at, f.now)
+  assert.equal(recorded.platform_ack_at, null)
+  assert.equal(f.store.getUser(f.user.userId), null)
+  assert.equal(consumes, 0)
+  assert.equal(changes, 0)
+  const history = f.store.db.prepare('SELECT * FROM app_vip_refunds WHERE out_trade_no = ?').get(order.out_trade_no)
+  assert.equal(history.reversed_at, f.now)
+})
+
+test('Apple REFUND_REVERSED after retention purge is verified and acknowledged without recreating data', async (t) => {
+  const { DELETED_APP_RETENTION_MS } = require('../src/user/app-retention')
+  const f = fixture(t), order = await f.create('apple-reversal-purged', 'ios'), paid = f.register(f.paid(order))
+  f.store.deleteAppUser(f.user.userId, { now: f.now })
+  f.tick(DELETED_APP_RETENTION_MS)
+  f.store.purgeDeletedAppData(f.now)
+  let verifies = 0
+  const verify = f.platform.verify
+  f.platform.verify = async (input) => { verifies++; return verify(input) }
+  await f.notify(paid, 'REFUND_REVERSED')
+  assert.equal(verifies, 1)
+  assert.equal(f.store.appPayments.byId.get(order.out_trade_no), undefined)
+  assert.equal(f.store.db.prepare('SELECT COUNT(*) AS count FROM app_vip_refunds').get().count, 0)
+  assert.equal(f.store.getUser(f.user.userId), null)
   assert.equal(f.completed.length, 0)
 })
 

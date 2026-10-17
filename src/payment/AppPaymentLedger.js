@@ -30,7 +30,7 @@ class AppPaymentLedger {
         status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','granted','refunded','closed')),
         platform_status TEXT, created_at INTEGER NOT NULL, paid_at INTEGER,
         granted_at INTEGER, starts_at INTEGER, ends_at INTEGER,
-        platform_ack_at INTEGER, refunded_at INTEGER, revoked_ms INTEGER NOT NULL DEFAULT 0,
+        platform_ack_at INTEGER, refunded_at INTEGER, refund_reversed_at INTEGER, revoked_ms INTEGER NOT NULL DEFAULT 0,
         client_cancelled_at INTEGER, closure_reason TEXT,
         review_reason TEXT, last_error TEXT, last_checked_at INTEGER, next_check_at INTEGER NOT NULL,
         deleted_at INTEGER,
@@ -49,10 +49,23 @@ class AppPaymentLedger {
         out_trade_no TEXT NOT NULL REFERENCES app_vip_orders(out_trade_no),
         amount_micros TEXT, currency TEXT,
         result TEXT NOT NULL CHECK(result IN ('pending','failed','completed')),
-        source TEXT NOT NULL, completed_at INTEGER, recorded_at INTEGER NOT NULL,
+        source TEXT NOT NULL, completed_at INTEGER, recorded_at INTEGER NOT NULL, reversed_at INTEGER,
         PRIMARY KEY(platform, environment, refund_id)
       );
+      CREATE INDEX IF NOT EXISTS app_vip_refunds_order ON app_vip_refunds(out_trade_no);
     `)
+    db.transaction(() => {
+      if (!db.pragma('table_info(app_vip_orders)').some((column) => column.name === 'refund_reversed_at')) {
+        db.exec(`ALTER TABLE app_vip_orders ADD COLUMN refund_reversed_at INTEGER;
+          UPDATE app_vip_orders SET refunded_at = COALESCE((
+            SELECT MAX(completed_at) FROM app_vip_refunds
+            WHERE out_trade_no = app_vip_orders.out_trade_no AND result = 'completed'
+          ), refunded_at) WHERE status = 'refunded';`)
+      }
+      if (!db.pragma('table_info(app_vip_refunds)').some((column) => column.name === 'reversed_at')) {
+        db.exec('ALTER TABLE app_vip_refunds ADD COLUMN reversed_at INTEGER')
+      }
+    }).immediate()
     this.byId = db.prepare('SELECT * FROM app_vip_orders WHERE out_trade_no = ?')
     this.byRequest = db.prepare('SELECT * FROM app_vip_orders WHERE user_id = ? AND request_id = ?')
     this.byAccountToken = db.prepare('SELECT * FROM app_vip_orders WHERE platform = ? AND environment = ? AND account_token = ?')
@@ -93,7 +106,8 @@ class AppPaymentLedger {
     this.nativeCancellation = db.prepare(`UPDATE app_vip_orders SET status = 'closed', client_cancelled_at = ?, closure_reason = ?
       WHERE out_trade_no = ? AND status = 'pending' AND transaction_id IS NULL AND purchase_token IS NULL`)
     this.review = db.prepare('UPDATE app_vip_orders SET review_reason = ? WHERE out_trade_no = ?')
-    this.putRefund = db.prepare(`INSERT INTO app_vip_refunds VALUES
+    this.putRefund = db.prepare(`INSERT INTO app_vip_refunds
+      (platform,environment,refund_id,out_trade_no,amount_micros,currency,result,source,completed_at,recorded_at) VALUES
       (@platform,@environment,@refundId,@id,@amountMicros,@currency,@result,@source,@completedAt,@now)
       ON CONFLICT(platform,environment,refund_id) DO UPDATE SET
         result = excluded.result, completed_at = excluded.completed_at,
@@ -102,6 +116,10 @@ class AppPaymentLedger {
       WHERE app_vip_refunds.result != 'completed'`)
     this.revoke = db.prepare(`UPDATE app_vip_orders SET status = 'refunded', refunded_at = ?, revoked_ms = ?, ends_at = ?
       WHERE out_trade_no = ?`)
+    this.reverseRefunds = db.prepare(`UPDATE app_vip_refunds SET reversed_at = ?
+      WHERE out_trade_no = ? AND result = 'completed' AND reversed_at IS NULL AND completed_at <= ?`)
+    this.setReversal = db.prepare(`UPDATE app_vip_orders SET refund_reversed_at = ?, refunded_at = NULL, revoked_ms = 0,
+      platform_status = 'purchased', status = ?, closure_reason = ?, review_reason = NULL WHERE out_trade_no = ?`)
     this.shiftLater = db.prepare(`UPDATE app_vip_orders SET starts_at = starts_at - ?, ends_at = ends_at - ?
       WHERE user_id = ? AND status = 'granted' AND out_trade_no != ? AND starts_at >= ?`)
     this.detach = db.prepare(`UPDATE app_vip_orders SET user_id = NULL, account_token = NULL,
@@ -159,7 +177,7 @@ class AppPaymentLedger {
     })
     this.refundTransaction = db.transaction((id, info, now) => {
       const order = this.require(id)
-      this.bindVerified(order, info, true)
+      if (!this.bindVerified(order, info, true)) return false
       if (!info.transactionId || !['refunded', 'cancelled'].includes(info.status)) throw paymentError('REFUND_MISMATCH')
       const refundId = info.refundId || `transaction:${info.transactionId}`
       const amount = micros(info.refundAmountMicros ?? info.amountMicros)
@@ -173,10 +191,15 @@ class AppPaymentLedger {
       this.putRefund.run({ id, platform: order.platform, environment: order.environment, refundId,
         amountMicros: amount, currency: info.currency ?? order.currency, result,
         source: info.source || 'query', completedAt: info.refundedAt ?? now, now })
-      if (result !== 'completed' || order.status === 'refunded') return false
+      if (result !== 'completed') return false
       const paidAmount = order.amount_micros ?? info.amountMicros ?? null
       if (info.partialRefund || (paidAmount !== null && amount !== null && BigInt(amount) !== BigInt(paidAmount))) {
         this.review.run('PARTIAL_REFUND', id)
+        return false
+      }
+      const refundedAt = info.refundedAt ?? now
+      if (order.status === 'refunded') {
+        this.revoke.run(Math.max(order.refunded_at, refundedAt), order.revoked_ms, order.ends_at, id)
         return false
       }
       // Only this order's unused interval is removed. Later App orders shift by
@@ -188,8 +211,35 @@ class AppPaymentLedger {
         if (!user) throw paymentError('VIP_USER_NOT_FOUND')
         this.setExpiry.run(Math.max(0, user.vip_expires_at - remaining), now, order.user_id)
       }
-      this.revoke.run(now, remaining, order.ends_at === null ? null : order.ends_at - remaining, id)
+      this.revoke.run(refundedAt, remaining, order.ends_at === null ? null : order.ends_at - remaining, id)
       return true
+    })
+    this.reverseRefundTransaction = db.transaction((id, info, signedDate, now) => {
+      const order = this.require(id)
+      this.assertVerified(order, info, true)
+      if (info.platform !== 'ios' || !info.transactionId || !Number.isSafeInteger(signedDate) || signedDate <= 0 ||
+          signedDate > now + 60_000) throw paymentError('REFUND_MISMATCH')
+      // A subsequent refund supersedes this reversal, even when the reversal is a replay.
+      if (info.status === 'refunded' && info.refundedAt > signedDate) return this.refundTransaction(id, info, now)
+      if (signedDate <= order.refund_reversed_at || signedDate <= order.refunded_at) return false
+      if (info.status !== 'purchased') {
+        // Apple can deliver the reversal before its transaction query reflects it.
+        throw Object.assign(paymentError('APP_STORE_UNAVAILABLE', '商店退款撤销尚未同步，请稍后重试'), { statusCode: 503 })
+      }
+      this.bindVerified(order, info, true)
+      this.reverseRefunds.run(signedDate, id, signedDate)
+      const deleted = order.deleted_at !== null || !order.user_id
+      this.setReversal.run(signedDate, deleted ? 'closed' : 'granted', deleted ? 'account_deleted' : null, id)
+      if (deleted) return false // Financial records only; never deliver to a deleted account.
+      const duration = order.granted_at === null ? DURATION_MS : order.revoked_ms
+      if (duration > 0) {
+        const user = this.readExpiry.get(order.user_id)
+        if (!user) throw paymentError('VIP_USER_NOT_FOUND')
+        const startsAt = Math.max(now, user.vip_expires_at), endsAt = startsAt + duration
+        this.setGrant.run(order.granted_at ?? now, startsAt, endsAt, id)
+        this.setExpiry.run(endsAt, now, order.user_id)
+      }
+      return duration > 0 || order.status !== 'granted'
     })
   }
 
@@ -199,7 +249,7 @@ class AppPaymentLedger {
     return order
   }
 
-  bindVerified(order, info, allowDeleted = false) {
+  assertVerified(order, info, allowDeleted = false) {
     if (order.deleted_at !== null || !order.user_id) {
       if (!allowDeleted) throw paymentError('APP_ACCOUNT_DELETED')
       if (!this.matchesDeletedAccount(order, info)) throw paymentError('PAYMENT_IDENTITY_MISMATCH')
@@ -223,9 +273,22 @@ class AppPaymentLedger {
         (order.amount_micros !== null && amountMicros !== null && order.amount_micros !== amountMicros)) {
       throw paymentError('PAYMENT_AMOUNT_MISMATCH')
     }
+    return amountMicros
+  }
+
+  bindVerified(order, info, allowDeleted = false) {
+    const amountMicros = this.assertVerified(order, info, allowDeleted)
+    // Compare platform event times before writing status or touching entitlement.
+    if (order.platform === 'ios' && info.status === 'refunded') {
+      if (order.refund_reversed_at !== null && (!Number.isSafeInteger(info.refundedAt) || info.refundedAt <= 0)) {
+        throw paymentError('REFUND_MISMATCH')
+      }
+      if (info.refundedAt <= order.refund_reversed_at || info.refundedAt < order.refunded_at) return false
+    }
     this.setPlatform.run({ id: order.out_trade_no, transactionId: info.transactionId ?? null,
       purchaseToken: info.purchaseToken ?? null, currency: info.currency ?? null, amountMicros,
       purchasedAt: info.purchasedAt ?? null, status: info.status })
+    return true
   }
 
   matchesDeletedAccount(order, info) {
@@ -242,6 +305,7 @@ class AppPaymentLedger {
   recordVerified(id, info, { allowDeleted = false } = {}) { return this.recordTransaction.immediate(id, info, allowDeleted) }
   grantVerified(id, info, now) { return this.grantTransaction.immediate(id, info, now) }
   refundVerified(id, info, now) { return this.refundTransaction.immediate(id, info, now) }
+  reverseRefundVerified(id, info, signedDate, now) { return this.reverseRefundTransaction.immediate(id, info, signedDate, now) }
   markFinished(id, now) { return this.ack.run(now, id).changes > 0 }
   markChecked(id, now, nextAt, error = null) { this.checked.run(now, nextAt, error, id) }
   close(id) { return this.closeOrder.run(id).changes > 0 }
