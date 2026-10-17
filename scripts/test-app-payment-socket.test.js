@@ -2,6 +2,48 @@ const test = require('node:test')
 const assert = require('node:assert/strict')
 const { createFixture, request } = require('./auth-fixture')
 
+test('Socket restore returns repeated historical results without waiting for store queries', async () => {
+  const config = { enabled: true, configured: true, productId: 'vip_month', durationDays: 30, platforms: {
+    ios: { enabled: true, configured: true, appId: 'fixture.ios', storeProductId: 'vip.ios', environment: 'sandbox' },
+    android: { enabled: true, configured: true, appId: 'fixture.android', storeProductId: 'vip.android', environment: 'sandbox' },
+  } }
+  let time = Date.now(), verifies = 0
+  const fixture = await createFixture(':memory:', { channel: 'app',
+    appPayment: { config, now: () => time, logger: { warn() {} }, client: {
+      verify: async () => { verifies++; throw new Error('store unavailable') },
+    } },
+    appIdentityVerifier: { requireProvider() {},
+      async verify({ identityToken }) { return { provider: 'google', scope: 'fixture.app', subject: identityToken } } } })
+  try {
+    const account = await fixture.login('', { provider: 'google', identityToken: 'history' }, 'app-login')
+    const client = await fixture.connect({ token: account.token })
+    const ids = [], ledger = fixture.userStore.appPayments
+    for (let index = 0; index < 7; index++) {
+      const created = await request(client.socket, 'user:createVipOrder', {
+        platform: 'android', productId: 'vip_month', requestId: `socket-history-${index}`,
+      })
+      assert.equal(created.ok, true)
+      ids.unshift(created.order.outTradeNo)
+      ledger.grantVerified(created.order.outTradeNo, { platform: 'android', environment: 'sandbox',
+        appId: 'fixture.android', storeProductId: 'vip.android', accountToken: created.payment.accountToken,
+        transactionId: `history-transaction-${index}`, purchaseToken: `history-purchase-${index}`,
+        purchasedAt: time, quantity: 1, status: 'purchased' }, time)
+      ledger.markFinished(created.order.outTradeNo, time)
+    }
+    const expiry = ledger.require(ids[0]).ends_at
+    for (let repeat = 0; repeat < 2; repeat++) {
+      time += 3000
+      const restored = await request(client.socket, 'user:queryVipOrder', { restore: true })
+      assert.equal(restored.ok, true)
+      assert.equal(verifies, 0)
+      assert.equal(restored.order.outTradeNo, ids[0])
+      assert.deepEqual(restored.orders.map((order) => order.outTradeNo), ids)
+      assert.equal(restored.membership.vipExpiresAt, expiry)
+      assert.equal(restored.membership.isVip, true)
+    }
+  } finally { await fixture.close() }
+})
+
 test('App orders use authenticated Socket actions, synchronize rooms, restore once and revoke only verified refunds', async () => {
   const config = { enabled: true, configured: true, productId: 'vip_month', durationDays: 30, platforms: {
     ios: { enabled: true, configured: true, appId: 'fixture.ios', storeProductId: 'vip.ios', environment: 'sandbox' },

@@ -201,6 +201,84 @@ test('verified refunds, out-of-order payment notifications and restore never dup
   assert.equal(f.completed.length, 0)
 })
 
+test('repeated restore reads settled history locally without querying the store', async (t) => {
+  const f = fixture(t)
+  assert.deepEqual(await f.service.restore(f.user.userId), { order: null, orders: [] })
+  const ids = []
+  for (let index = 0; index < 7; index++) {
+    const order = await f.create(`history-request-${index}`)
+    ids.unshift(order.out_trade_no)
+    const paid = f.register(f.paid(order))
+    await f.confirm(order, paid)
+    if (index % 2) {
+      f.register({ ...paid, status: 'refunded', refundId: `history-refund-${index}`, refundedAt: f.now })
+      await f.service.notification(order.platform, { platform: order.platform, purchaseToken: paid.purchaseToken }, {})
+    }
+  }
+  let verifies = 0
+  f.platform.verify = async () => { verifies++; throw new Error('historical restore must stay local') }
+  const expiry = f.store.getUser(f.user.userId).vipExpiresAt
+  for (let repeat = 0; repeat < 2; repeat++) {
+    f.tick(3000)
+    const response = await f.service.queryOwn(f.user.userId, { restore: true })
+    assert.equal(verifies, 0)
+    assert.deepEqual(response.orders.map((order) => order.outTradeNo), ids)
+    assert.deepEqual(response.order, response.orders[0])
+    assert.equal(f.store.getUser(f.user.userId).vipExpiresAt, expiry)
+  }
+})
+
+test('restore completes only one unfinished order and background reconciliation advances the remainder', async (t) => {
+  const f = fixture(t)
+  const old = await f.create('restore-older-request', 'ios')
+  await f.service.queryOwn(f.user.userId, { outTradeNo: old.out_trade_no, nativeCancelled: true })
+  const newer = await f.create('restore-newer-request')
+  const nextPaid = f.register(f.paid(newer))
+  f.store.appPayments.recordVerified(newer.out_trade_no, { ...nextPaid, status: 'pending', transactionId: null, purchasedAt: null })
+  f.platform.complete = async () => ({ finished: false })
+  await f.confirm(old)
+  let verifies = 0
+  const verify = f.platform.verify
+  f.platform.verify = async (input) => { verifies++; return verify(input) }
+  f.platform.complete = async () => ({ finished: true })
+  f.tick(3000)
+  const restored = await f.service.restore(f.user.userId)
+  assert.equal(verifies, 1)
+  assert.equal(restored.order.outTradeNo, newer.out_trade_no)
+  assert.equal(restored.order.status, 'pending')
+  assert.equal(restored.orders.length, 2)
+  assert.ok(restored.orders.find((order) => order.outTradeNo === old.out_trade_no).finishedAt)
+  assert.equal(f.store.appPayments.require(newer.out_trade_no).granted_at, null)
+  f.tick(6 * 60 * 1000)
+  await f.service.sweep()
+  assert.equal(verifies, 2)
+  assert.equal(f.store.appPayments.require(newer.out_trade_no).status, 'granted')
+  assert.ok(f.store.appPayments.require(newer.out_trade_no).platform_ack_at)
+})
+
+test('restore refreshes the local response after recovering a pending payment', async (t) => {
+  const f = fixture(t)
+  const order = await f.create(), paid = f.register(f.paid(order))
+  f.store.appPayments.recordVerified(order.out_trade_no, { ...paid, status: 'pending', transactionId: null, purchasedAt: null })
+  let verifies = 0
+  const verify = f.platform.verify
+  f.platform.verify = async (input) => { verifies++; return verify(input) }
+  const restored = await f.service.restore(f.user.userId)
+  assert.equal(verifies, 1)
+  assert.equal(restored.order.status, 'granted')
+  assert.ok(restored.order.finishedAt)
+  assert.deepEqual(restored.orders, [restored.order])
+})
+
+test('restore rejects a session replaced while recovery is in flight', async (t) => {
+  const f = fixture(t)
+  const order = await f.create(), paid = f.paid(order)
+  f.store.appPayments.recordVerified(order.out_trade_no, { ...paid, status: 'pending', transactionId: null, purchasedAt: null })
+  let active = true
+  f.platform.verify = async () => { active = false; return paid }
+  await assert.rejects(f.service.restore(f.user.userId, () => active), { code: 'SESSION_REPLACED' })
+})
+
 test('revoking an earlier order preserves consumed time and advances the next paid interval', async (t) => {
   const f = fixture(t)
   const first = await f.create(), firstInfo = f.register(f.paid(first))

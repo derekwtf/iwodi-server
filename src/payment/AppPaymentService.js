@@ -29,7 +29,6 @@ function checkInterval(order, now) {
 class AppPaymentService extends EventEmitter {
   constructor({ userStore, config, client, now = Date.now, logger = console }) {
     super()
-    this.store = userStore
     this.ledger = userStore.appPayments
     this.config = config
     this.client = client || new (require('./AppStoreClient').AppStoreClient)({ config })
@@ -129,12 +128,11 @@ class AppPaymentService extends EventEmitter {
   }
   async restore(userId, stillActive = () => true) {
     this.assertActive(stillActive)
-    const orders = []
-    for (const order of this.ledger.byUser.all(userId)) {
-      this.assertActive(stillActive)
-      orders.push(publicAppOrder(await this.recover(order)))
-    }
-    return { order: publicAppOrder(this.ledger.pendingForUser.get(userId) || this.ledger.latest.get(userId)), orders }
+    const pending = this.ledger.pendingForUser.get(userId)
+    if (pending) await this.recover(pending)
+    this.assertActive(stillActive)
+    return { order: publicAppOrder(this.ledger.pendingForUser.get(userId) || this.ledger.latest.get(userId)),
+      orders: this.ledger.byUser.all(userId).map(publicAppOrder) }
   }
   async recover(order) {
     try { return await this.reconcile(order.out_trade_no) }
@@ -187,7 +185,7 @@ class AppPaymentService extends EventEmitter {
     } else if (verified.status === 'purchased') {
       changed = this.ledger.grantVerified(order.out_trade_no, verified, this.now())
     } else {
-      this.ledger.recordVerified(order.out_trade_no, verified, this.now())
+      this.ledger.recordVerified(order.out_trade_no, verified)
       if (verified.status === 'cancelled') this.ledger.close(order.out_trade_no)
     }
     if (changed && order.user_id) this.emit('changed', order.user_id)
