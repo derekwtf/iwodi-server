@@ -33,7 +33,7 @@ async function createFixture(filename = ':memory:', options = {}) {
   const server = http.createServer(app)
   const io = new Server(server)
   initializeSocketServer(io, manager, { userStore, tokens, paymentService })
-  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
+  await new Promise((resolve) => server.listen(options.port ?? 0, '127.0.0.1', resolve))
   const url = `http://127.0.0.1:${server.address().port}`
   const clients = []
   async function login(code, extra = {}, route = 'wechat-login') {
