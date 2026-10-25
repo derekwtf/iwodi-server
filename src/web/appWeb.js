@@ -81,15 +81,36 @@ function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character])
 }
 
-const css = `:root{color-scheme:dark;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#10121b;color:#f5f1ec}
-*{box-sizing:border-box}body{margin:0;line-height:1.75}main{max-width:720px;margin:0 auto;padding:48px 20px 64px}
-h1{font-size:30px;line-height:1.3;margin:12px 0 28px}h2{font-size:20px;margin-top:30px}p,li{overflow-wrap:anywhere}
-a{color:#e6a080;text-underline-offset:4px}nav{display:flex;flex-wrap:wrap;gap:16px;border-top:1px solid #30323f;margin-top:36px;padding-top:20px;font-size:14px}
-.brand,.muted{color:#a5a4b1}.card{background:#1a1d28;border:1px solid #30323f;border-radius:20px;padding:24px;margin:24px 0}
-.room{font-size:42px;letter-spacing:8px;margin:8px 0 20px;font-variant-numeric:tabular-nums}.actions{display:flex;gap:12px;flex-wrap:wrap}
-button,.button{font:inherit;border:0;border-radius:12px;background:#d2603f;color:#fff;padding:12px 18px;text-decoration:none;cursor:pointer}
-button:focus-visible,a:focus-visible{outline:3px solid #dcc599;outline-offset:4px}.notice{white-space:pre-line}
-@media(max-width:360px){main{padding:30px 16px}.card{padding:18px}.room{font-size:36px;letter-spacing:6px}}`
+// App-only English copy. Configured operator details and room codes remain untouched.
+const copy = {
+  brand: 'Who’s Undercover?',
+  invitation: 'Join the Lobby',
+  invalidInvitation: 'Invalid invitation',
+  support: 'Support & reports',
+  deletion: 'Delete your account',
+  privacy: 'Privacy policy',
+  terms: 'Terms of use',
+  unavailable: 'This page is not available yet. Please try again later.',
+  associationUnavailable: 'App link association is not configured yet.',
+  copied: 'Room code copied.',
+  copyFallback: 'Touch and hold or use your system’s Copy action to copy the selected room code, then enter it in the app.',
+}
+const navigation = [
+  ['/support', copy.support], ['/account-deletion', copy.deletion],
+  ['/privacy', copy.privacy], ['/terms', copy.terms],
+]
+
+const css = `:root{color-scheme:dark;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#10121b;color:#f5f1ec;font-size:100%}
+*{box-sizing:border-box}body{margin:0;font-size:1rem;line-height:1.65}header,main,footer{width:100%;max-width:760px;margin:0 auto;padding-left:24px;padding-right:24px}
+header{padding-top:32px;padding-bottom:24px}main{padding-top:16px;padding-bottom:40px}footer{padding-bottom:40px}
+h1{font-size:2.5rem;line-height:1.2;letter-spacing:-.025em;margin:0 0 24px;font-weight:700;text-wrap:balance}h2{font-size:1.25rem;line-height:1.4;margin:32px 0 12px}p{margin:0 0 16px}p,li,h1,h2,a{overflow-wrap:anywhere}li{padding-left:4px;margin-bottom:12px}ol{padding-left:24px}
+a{color:#e6a080;text-underline-offset:4px}a:hover{text-decoration-thickness:2px}nav{display:flex;flex-wrap:wrap;gap:8px 24px;border-top:1px solid #30323f;padding-top:24px;font-size:.875rem}nav a{display:inline-flex;align-items:center;min-height:48px}nav a[aria-current="page"]{color:#f5f1ec;font-weight:600}
+.brand{color:#e6a080;font-size:1rem;font-weight:700;line-height:1.4}.muted,.details{color:#b5b3c1}.details{border-left:3px solid #e6a080;padding:4px 0 4px 16px;margin-bottom:32px}.lead{color:#d8d5df;font-size:1.125rem}
+.card{background:#1a1d28;border:1px solid #3c3e4c;border-radius:24px;padding:24px;margin:24px 0}.card p:last-child{margin-bottom:0}.room{font-size:2.5rem;line-height:1.3;letter-spacing:.125em;margin:12px 0 24px;font-variant-numeric:tabular-nums;font-weight:700}.eyebrow{font-size:.875rem;color:#b5b3c1}
+.actions{display:flex;gap:12px;flex-wrap:wrap;margin:24px 0}.actions>*{flex:1 1 200px}button,.button{font:inherit;font-weight:600;line-height:1.5;display:inline-flex;align-items:center;justify-content:center;text-align:center;min-height:52px;max-width:100%;border:1px solid transparent;border-radius:16px;background:#e6a080;color:#291c18;padding:12px 20px;text-decoration:none;cursor:pointer;touch-action:manipulation}
+button:hover,.button:hover{background:#f1b394;text-decoration:none}.button.secondary{background:#1a1d28;color:#f5f1ec;border-color:#565564}.button.secondary:hover{background:#282b38}button:focus-visible,a:focus-visible{outline:3px solid #dcc599;outline-offset:4px}.notice{white-space:pre-line}.copy-status{min-height:1.65em;margin-top:16px;font-size:.875rem}
+.skip-link{position:absolute;left:16px;top:-100px;background:#e6a080;color:#291c18;padding:12px 20px;border-radius:12px}.skip-link:focus{top:8px}
+@media(max-width:374px){header,main,footer{padding-left:16px;padding-right:16px}.card{padding:16px}h1{font-size:2rem}.room{font-size:1.75rem;letter-spacing:.025em}header{padding-top:24px}}`
 
 function secureHeaders(res, nonce) {
   res.set({
@@ -103,15 +124,16 @@ function secureHeaders(res, nonce) {
 function page(res, title, body, { status = 200, script = '' } = {}) {
   const nonce = randomBytes(18).toString('base64')
   secureHeaders(res, nonce)
-  res.status(status).type('html').send(`<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)} · 奇乐谁是卧底</title><style nonce="${nonce}">${css}</style></head><body><main><div class="brand">奇乐谁是卧底</div><h1>${escapeHtml(title)}</h1>${body}<nav aria-label="支持与政策"><a href="/support">支持与举报</a><a href="/account-deletion">账号删除申请</a><a href="/privacy">隐私政策</a><a href="/terms">用户协议</a></nav></main>${script ? `<script nonce="${nonce}">${script}</script>` : ''}</body></html>`)
+  const nav = navigation.map(([href, label]) => `<a href="${href}"${label === title ? ' aria-current="page"' : ''}>${escapeHtml(label)}</a>`).join('')
+  res.status(status).type('html').send(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)} · ${copy.brand}</title><style nonce="${nonce}">${css}</style></head><body><a class="skip-link" href="#content">Skip to content</a><header><div class="brand">${copy.brand}</div></header><main id="content" tabindex="-1" aria-labelledby="page-title"><h1 id="page-title">${escapeHtml(title)}</h1>${body}</main><footer><nav aria-label="Support and policies">${nav}</nav></footer>${script ? `<script nonce="${nonce}">${script}</script>` : ''}</body></html>`)
 }
 
 function unavailable(res, title) {
-  page(res, title, '<p>此页面尚未配置完成，暂不对外提供。请稍后重试。</p>', { status: 503 })
+  page(res, title, `<p class="lead">${copy.unavailable}</p>`, { status: 503 })
 }
 
 function retentionDisclosure() {
-  return `<p>账号删除后，去标识交易记录及交易指纹保留 ${RETENTION_DAYS} 天，用于对账、退款核对和防止重复处理。</p><p>不可逆的身份和账号指纹以及删除时间同样保留 ${RETENTION_DAYS} 天，用于拒绝删除前的旧平台证明重建账号，并确认重复删除请求的结果。上述保留记录已经去标识，但不属于完全匿名数据。</p><p>上述两类记录均在账号删除 ${RETENTION_DAYS} 天后自动清理。清理后，无法再凭旧订单找回已删除账号或向新账号认领原有 VIP 权益；商店退款仍需通过购买平台申请。</p>`
+  return `<p>After account deletion, de-identified transaction records and transaction fingerprints are retained for ${RETENTION_DAYS} days for reconciliation, refund checks and prevention of duplicate processing.</p><p>Irreversible identity and account fingerprints, together with the deletion time, are also retained for ${RETENTION_DAYS} days. These prevent old platform credentials from recreating the account and confirm the outcome of repeated deletion requests. These records are de-identified, but are not fully anonymous.</p><p>Both types of records are automatically removed ${RETENTION_DAYS} days after account deletion. After removal, old orders cannot recover the deleted account or transfer its VIP benefits to a new account. Store refunds must still be requested through the platform used for purchase.</p>`
 }
 
 function createAppWebRouter(config = readAppWebConfig()) {
@@ -120,38 +142,38 @@ function createAppWebRouter(config = readAppWebConfig()) {
 
   router.get('/join/:roomId', (req, res) => {
     if (!/^\d{6}$/.test(req.params.roomId)) {
-      return page(res, '邀请链接无效', '<p>房间号应为六位数字。请向房主获取当前房间号，再到 App 首页输入。</p>', { status: 404 })
+      return page(res, copy.invalidInvitation, '<p class="lead">Room codes have six digits. Ask the Host for the current room code, then enter it on the app’s Home screen.</p>', { status: 404 })
     }
-    const links = [config.appStoreUrl && `<a class="button" href="${escapeHtml(config.appStoreUrl)}" rel="noopener noreferrer">前往 App Store</a>`,
-      config.googlePlayUrl && `<a class="button" href="${escapeHtml(config.googlePlayUrl)}" rel="noopener noreferrer">前往 Google Play</a>`].filter(Boolean)
-    page(res, '一起加入房间', `<p>打开 App，在首页输入下面的六位房间号。</p><section class="card" aria-label="房间邀请"><div>房间号</div><p class="room" data-room>${escapeHtml(req.params.roomId)}</p><button type="button" data-copy>复制房间号</button><p class="muted" role="status" aria-live="polite" data-copy-status></p></section><div class="actions">${links.join('')}</div>${links.length ? '<p class="muted">安装后请手动输入房间号。安装应用不会自动加入房间。</p>' : '<p class="muted">商店下载入口尚未提供；已安装 App 的玩家可直接输入房间号。</p>'}<p>此页面不检查房间是否仍可加入。房间可能已满、已开局或已关闭，实际结果以 App 内提示为准。</p>`, {
-      script: `document.querySelector('[data-copy]').addEventListener('click',async()=>{const room=document.querySelector('[data-room]');const status=document.querySelector('[data-copy-status]');try{await navigator.clipboard.writeText(room.textContent);status.textContent='房间号已复制';}catch{const selection=window.getSelection();const range=document.createRange();range.selectNodeContents(room);selection.removeAllRanges();selection.addRange(range);status.textContent='请长按或使用系统复制，将选中的房间号复制后输入 App。';}});`,
+    const links = [config.appStoreUrl && `<a class="button secondary" href="${escapeHtml(config.appStoreUrl)}" rel="noopener noreferrer">Get it on the App Store</a>`,
+      config.googlePlayUrl && `<a class="button secondary" href="${escapeHtml(config.googlePlayUrl)}" rel="noopener noreferrer">Get it on Google Play</a>`].filter(Boolean)
+    page(res, copy.invitation, `<p class="lead">A face-to-face game of hidden identities. Open the app and enter this six-digit code on the Home screen.</p><section class="card" aria-label="Room invitation"><div class="eyebrow">Room code</div><p class="room" data-room>${escapeHtml(req.params.roomId)}</p><button type="button" data-copy>Copy room code</button><p class="muted copy-status" role="status" aria-live="polite" aria-atomic="true" data-copy-status></p></section><div class="actions">${links.join('')}</div>${links.length ? '<p class="muted">After installation, enter the room code manually. Installing the app does not automatically join the room.</p>' : '<p class="muted">Store downloads are not available yet. If you already have the app, enter the room code to join.</p>'}<p class="muted">This page does not check whether the room is available. It may be full, in progress or closed. The app will confirm whether you can join.</p>`, {
+      script: `document.querySelector('[data-copy]').addEventListener('click',async()=>{const room=document.querySelector('[data-room]');const status=document.querySelector('[data-copy-status]');try{await navigator.clipboard.writeText(room.textContent);status.textContent=${JSON.stringify(copy.copied)};}catch{const selection=window.getSelection();const range=document.createRange();range.selectNodeContents(room);selection.removeAllRanges();selection.addRange(range);status.textContent=${JSON.stringify(copy.copyFallback)};}});`,
     })
   })
 
   router.get('/support', (req, res) => {
-    if (!config.status.support.configured) return unavailable(res, '支持与举报')
-    page(res, '支持与举报', `<p>运营方：${escapeHtml(config.operatorName)}</p><p>请通过 ${email()} 联系我们。</p><h2>使用问题与昵称举报</h2><p>请说明问题发生时间、所在房间号和相关昵称；如有截图，请先遮住词卡、身份及其他不相关的个人信息。房主可在房间内移出玩家。</p><h2>购买与订单</h2><p>请在 App 的 VIP 页面复制业务订单号，并在邮件中附上订单号、购买平台和问题描述。订单号用于核对记录，不代表支付凭证。</p><p>不要发送登录凭证、身份令牌、purchase token、完整支付凭证或银行卡信息。我们不会通过邮件索取这些信息。</p><p>商店退款由 Apple 或 Google 按其规则审核；联系客服或删除账号不会自动申请退款。请在购买平台的订单记录或官方支持入口申请退款，我们可协助核对 App 内到账情况。</p><p><a href="/account-deletion">查看账号删除申请步骤</a></p>`)
+    if (!config.status.support.configured) return unavailable(res, copy.support)
+    page(res, copy.support, `<p class="details">Operated by ${escapeHtml(config.operatorName)}<br>Contact ${email()}</p><h2>Game help & nickname reports</h2><p>Tell us when the issue occurred, the room code and the relevant nicknames. Before sharing screenshots, hide secret words, roles and unrelated personal information. The Host can remove players from the Lobby.</p><h2>Purchases & orders</h2><p>Copy the order ID from the app’s VIP page. Include it in your email with the purchase platform and a description of the problem. An order ID helps us find the record; it is not proof of payment.</p><p>Do not send login credentials, identity tokens, purchase tokens, full payment receipts or bank card details. We will never ask for these by email.</p><p>Apple or Google reviews store refund requests under its own rules. Contacting support or deleting your account does not request a refund. Use your purchase history or the store’s official support service to request one. We can help check whether VIP was credited in the app.</p><p><a href="/account-deletion">How to request account deletion</a></p>`)
   })
 
   router.get('/account-deletion', (req, res) => {
-    if (!config.status.support.configured) return unavailable(res, '账号删除申请')
-    page(res, '账号删除申请', `<p>运营方：${escapeHtml(config.operatorName)}</p><p>可在 App「更多」中发起账号删除；无法使用 App 时，可通过下述邮件流程申请。</p><ol><li>向 ${email()} 发送主题为「账号删除申请」的邮件。</li><li>说明登录平台（Apple 或 Google）、App 内昵称及申请原因（可选）。涉及购买时可附业务订单号。</li><li>客服将回复身份核对步骤；请勿在邮件中发送密码、登录凭证或商店 purchase token。</li><li>完成身份核对后，客服处理申请并通过邮件告知结果。发送邮件不代表账号已经删除；处理期间可回复原邮件查询进度。</li></ol><h2>删除的影响</h2><p>删除后原账号资料、登录关联及未到期权益不能继续使用，再次登录不会恢复原账号。删除不等于 Apple 或 Google 商店退款；请按商店规则另行申请。</p><p>App 内完成身份验证并确认删除后会显示处理结果。网页邮件申请需要人工核验，不能视为 App 内即时删除已完成。</p>${retentionDisclosure()}`)
+    if (!config.status.support.configured) return unavailable(res, copy.deletion)
+    page(res, copy.deletion, `<p class="details">Operated by ${escapeHtml(config.operatorName)}</p><p class="lead">Open More in the app to delete your account. If you cannot use the app, follow these steps to request deletion by email.</p><ol><li>Email ${email()} with the subject “Account deletion request”.</li><li>Include your sign-in platform (Apple or Google) and your nickname in the app. A reason is optional. For purchase issues, you may include your order ID.</li><li>Support will reply with identity verification steps. Do not email passwords, login credentials or store purchase tokens.</li><li>After verifying your identity, support will process your request and email the result. Sending an email does not mean your account has been deleted. Reply to the same email to check progress.</li></ol><h2>What deletion means</h2><p>Your profile, sign-in links and remaining VIP benefits will no longer be available. Signing in again will not restore the deleted account. Deletion is not an Apple or Google store refund; request a refund separately under the store’s rules.</p><p>The app displays the result after you verify your identity and confirm deletion. Email requests require manual verification and do not count as completed in-app deletion.</p><h2>Data retained for seven days</h2>${retentionDisclosure()}`)
   })
 
   router.get('/privacy', (req, res) => {
-    if (!config.status.policy.configured) return unavailable(res, '隐私政策')
-    page(res, '隐私政策', `<p>运营方：${escapeHtml(config.operatorName)}<br>生效日期：${escapeHtml(config.policyEffectiveDate)}<br>联系邮箱：${email()}</p><h2>账号与游戏数据</h2><p>使用 Apple 或 Google 登录时，我们验证平台提供的身份凭证并保存账号标识，用于登录、恢复账号和保护交易归属。我们不要求提供该平台密码。</p><p>我们保存 App 昵称、所选头像和 VIP 到期时间；游戏期间处理房间成员、在线状态和本局发牌信息。房间成员可看到昵称、头像和会员标识，每位玩家的词卡与身份只发送给本人。</p><h2>购买与恢复</h2><p>购买由 Apple 或 Google 商店处理。服务端验证交易，并保存业务订单号、商店交易标识、商品、环境、已提供的币种金额、发放区间、退款及确认状态，用于发货、恢复、退款核对和避免重复发货；我们不接收银行卡信息。</p><h2>设备存储与网络请求</h2><p>App 在设备安全存储中保存登录凭证；普通存储用于必要偏好、订单恢复上下文和按设备日期记录的广告开局计数。退出会清除本机账号状态；设备广告计数不因更换账号而重置。网络服务为完成认证、游戏和交易处理必要请求，不提供公开聊天或通讯录上传功能。</p><h2>第三方平台与广告</h2><p>Apple 和 Google 分别按其规则处理登录与商店交易。如果当前版本启用了 Google Mobile Ads，广告请求受可用配置、会员权益和同意状态控制；需要时提供同意选择，拒绝不影响免费游戏。广告服务的数据处理说明见 <a href="https://policies.google.com/technologies/ads" rel="noopener noreferrer">Google 广告隐私说明</a>。</p><h2>保留与删除</h2><p>账号资料和登录关联用于维持账号服务。退出仅清除本机登录状态；账号删除需在 App 内确认或通过 <a href="/account-deletion">网页邮件申请</a> 完成身份核验。</p>${retentionDisclosure()}<p>删除后保留的财务记录不用于重建账号或重新授予权益。关于访问、更正、删除或隐私问题，请通过上方邮箱联系我们。</p>`)
+    if (!config.status.policy.configured) return unavailable(res, copy.privacy)
+    page(res, copy.privacy, `<p class="details">Operated by ${escapeHtml(config.operatorName)}<br>Effective date: ${escapeHtml(config.policyEffectiveDate)}<br>Contact ${email()}</p><h2>Account & game data</h2><p>When you sign in with Apple or Google, we verify the platform’s identity credentials and store account identifiers for sign-in, account recovery and purchase ownership. We do not ask for your platform password.</p><p>We store your app nickname, selected avatar and VIP expiry time. During a game, we process room membership, online status and the current round’s cards. Other players can see your nickname, avatar and VIP status. Each player’s secret word and role are sent only to that player.</p><h2>Purchases & recovery</h2><p>Apple or Google handles purchases. Our server verifies transactions and stores the app order ID, store transaction identifiers, product, environment, any supplied currency and amount, benefit periods, refund status and acknowledgement status. This supports delivery, recovery and refund checks, and prevents duplicate delivery. We do not receive bank card details.</p><h2>Device storage & network requests</h2><p>The app keeps login credentials in secure device storage. Regular storage holds necessary preferences, purchase recovery context and ad game-start counts by device date. Signing out clears local account state. Switching accounts does not reset the device’s ad count. Our network services handle requests needed for authentication, games and purchases. The app does not offer public chat or contact uploading.</p><h2>Third-party platforms & ads</h2><p>Apple and Google handle sign-in and store transactions under their own rules. If Google Mobile Ads is enabled in your version, ad requests depend on available configuration, VIP status and consent. Consent choices appear when required, and declining does not prevent free gameplay. See <a href="https://policies.google.com/technologies/ads" rel="noopener noreferrer">Google’s advertising privacy information</a> for how its ad services process data.</p><h2>Retention & deletion</h2><p>Profile data and sign-in links support your account. Signing out only clears local sign-in state. To delete your account, confirm in the app or complete identity verification through an <a href="/account-deletion">email deletion request</a>.</p>${retentionDisclosure()}<p>Financial records retained after deletion are not used to recreate accounts or grant benefits again. Contact the email address above for access, correction, deletion or privacy questions.</p>`)
   })
 
   router.get('/terms', (req, res) => {
-    if (!config.status.policy.configured) return unavailable(res, '用户协议')
-    page(res, '用户协议', `<p>运营方：${escapeHtml(config.operatorName)}<br>生效日期：${escapeHtml(config.policyEffectiveDate)}</p><h2>游戏服务</h2><p>本 App 为线下聚会提供建房、加入和发牌功能。请妥善保管房间号，不向无关人员展示本局私密词卡或身份；房主可移出房间成员。请使用适当昵称，不冒用他人身份或以昵称骚扰他人，相关问题可通过 <a href="/support">支持与举报</a> 联系我们。</p><h2>账号与设备</h2><p>账号通过受支持的 Apple 或 Google 身份登录。请使用本人有权使用的账号；同一账号建立新连接可能替换原连接。退出本机不会自动删除账号。</p><h2>VIP 与商店购买</h2><p>VIP 为单次 30 天权益，不自动续费。可售状态和本地化价格以 App 与商店付款确认内容为准；未开放购买时仍可使用免费游戏。验证到账后，自确认时间与当前到期时间中较晚者增加 30 天。</p><p>购买成功后可恢复当前账号的订单与剩余权益。退款按 Apple 或 Google 商店规则处理，获确认的退款会撤回该笔订单尚未使用的权益并调整后续权益区间，不撤回其他订单已消费的时间。</p><h2>账号删除与支持</h2><p>删除将使原账号资料及未到期权益不可继续使用，不自动产生商店退款。确认前请阅读 <a href="/account-deletion">账号删除说明</a> 和 <a href="/privacy">隐私政策</a>；需要帮助请联系 ${email()}。网页邮件申请在完成身份核验与处理后才生效。</p>${retentionDisclosure()}`)
+    if (!config.status.policy.configured) return unavailable(res, copy.terms)
+    page(res, copy.terms, `<p class="details">Operated by ${escapeHtml(config.operatorName)}<br>Effective date: ${escapeHtml(config.policyEffectiveDate)}</p><h2>Game service</h2><p>The app helps face-to-face groups create rooms, join and deal secret cards. Keep your room code private and do not expose secret words or roles to others. The Host can remove players. Use appropriate nicknames, do not impersonate others or use nicknames to harass them, and contact <a href="/support">Support & reports</a> if you need help.</p><h2>Accounts & devices</h2><p>Sign in with a supported Apple or Google identity that you are entitled to use. A new connection on the same account may replace its earlier connection. Signing out on a device does not delete your account.</p><h2>VIP & store purchases</h2><p>VIP is a one-time purchase of 30 days of benefits and does not renew automatically. Availability and local pricing are shown in the app and the store’s purchase confirmation. Free gameplay remains available when purchases are closed. Once a purchase is verified, 30 days are added from the later of the confirmation time and your current expiry time.</p><p>After a successful purchase, you can recover the current account’s orders and remaining benefits. Apple or Google handles refunds under its own rules. A confirmed refund removes unused benefits from that order and adjusts later benefit periods. Time already used from other orders is not removed.</p><h2>Account deletion & support</h2><p>Deleting your account makes its profile and remaining VIP benefits unavailable. It does not request a store refund. Before confirming, read <a href="/account-deletion">the account deletion information</a> and <a href="/privacy">Privacy policy</a>. For help, contact ${email()}. Email deletion requests take effect only after identity verification and processing.</p>${retentionDisclosure()}`)
   })
 
   const association = (res, ready, body) => {
     secureHeaders(res, randomBytes(18).toString('base64'))
-    if (!ready) return res.status(503).json({ error: { code: 'APP_WEB_NOT_CONFIGURED', message: '应用链接关联尚未配置完成' } })
+    if (!ready) return res.status(503).json({ error: { code: 'APP_WEB_NOT_CONFIGURED', message: copy.associationUnavailable } })
     return res.json(body)
   }
   router.get('/.well-known/apple-app-site-association', (req, res) => association(res,
@@ -164,7 +186,7 @@ function createAppWebRouter(config = readAppWebConfig()) {
     } }]))
   router.use((error, req, res, next) => {
     if (error instanceof URIError && error.status === 400) {
-      return page(res, '邀请链接无效', '<p>链接格式不正确。请向房主获取六位房间号，再到 App 首页输入。</p>', { status: 400 })
+      return page(res, copy.invalidInvitation, '<p class="lead">The link is malformed. Ask the Host for the six-digit room code, then enter it on the app’s Home screen.</p>', { status: 400 })
     }
     next(error)
   })

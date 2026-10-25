@@ -1,6 +1,7 @@
 const { test } = require('node:test')
 const assert = require('node:assert/strict')
 const http = require('node:http')
+const vm = require('node:vm')
 const express = require('express')
 const { readAppWebConfig, createAppWebRouter } = require('../src/web/appWeb')
 
@@ -79,22 +80,47 @@ test('unconfigured websites publish neither contacts nor policies nor associated
   for (const path of ['/support', '/account-deletion', '/privacy', '/terms']) {
     const response = await get(path), html = await response.text()
     assert.equal(response.status, 503)
-    assert.match(html, /尚未配置完成/)
-    assert.doesNotMatch(html, /mailto:|生效日期|测试运营方/)
+    assert.match(html, /This page is not available yet/)
+    assert.doesNotMatch(html, /mailto:|Effective date|测试运营方/)
     headers(response, html)
   }
   for (const path of ['/.well-known/apple-app-site-association', '/.well-known/assetlinks.json']) {
     const response = await get(path)
     assert.equal(response.status, 503)
-    assert.deepEqual(await response.json(), { error: { code: 'APP_WEB_NOT_CONFIGURED', message: '应用链接关联尚未配置完成' } })
+    assert.deepEqual(await response.json(), { error: { code: 'APP_WEB_NOT_CONFIGURED', message: 'App link association is not configured yet.' } })
     headers(response)
   }
   assert.deepEqual(await (await get('/health')).json(), { status: 'ok' })
   const invite = await get('/join/012345'), html = await invite.text()
   assert.equal(invite.status, 200)
   assert.match(html, /data-room>012345</)
-  assert.match(html, /商店下载入口尚未提供/)
+  assert.match(html, /Store downloads are not available yet/)
   assert.doesNotMatch(html, /href="https:/)
+})
+
+test('all App pages use the English brand and accessible navigation while preserving operator content', async (t) => {
+  const get = await fixture(t)
+  for (const path of ['/join/012345', '/support', '/account-deletion', '/privacy', '/terms', '/join/invalid', '/join/%E0%A4%A']) {
+    const html = await (await get(path)).text()
+    assert.match(html, /<html lang="en">/)
+    assert.match(html, /<title>[^<]+ · Who’s Undercover\?<\/title>/)
+    assert.match(html, /<div class="brand">Who’s Undercover\?<\/div>/)
+    assert.match(html, /href="#content">Skip to content/)
+    assert.match(html, /<main id="content" tabindex="-1" aria-labelledby="page-title">/)
+    assert.match(html, /<nav aria-label="Support and policies">/)
+    assert.doesNotMatch(html.replaceAll(complete.APP_OPERATOR_NAME, ''), /[\u3400-\u9fff]/)
+    if (!path.startsWith('/join/')) {
+      assert.ok(html.includes(`<a href="${path}" aria-current="page">`))
+      assert.ok(html.includes(complete.APP_OPERATOR_NAME))
+    }
+  }
+  const unavailable = await fixture(t, {})
+  for (const path of ['/support', '/account-deletion', '/privacy', '/terms']) {
+    const html = await (await unavailable(path)).text()
+    assert.match(html, /<html lang="en">/)
+    assert.match(html, /Who’s Undercover\?/)
+    assert.doesNotMatch(html, /[\u3400-\u9fff]/)
+  }
 })
 
 test('invitation displays only its six-digit room, safe official store links and a nonce-protected clipboard action', async (t) => {
@@ -105,7 +131,7 @@ test('invitation displays only its six-digit room, safe official store links and
   assert.match(html, /data-room>123456</)
   assert.match(html, /navigator\.clipboard\.writeText\(room\.textContent\)/)
   assert.match(html, /aria-live="polite"/)
-  assert.match(html, /请手动输入房间号/)
+  assert.match(html, /enter the room code manually/)
   assert.match(html, /https:\/\/apps\.apple\.com\/cn\/app\/id123456789/)
   assert.match(html, /details\?id=com\.example\.iwodi&amp;hl=zh/)
   assert.doesNotMatch(html, /onload=|alert\(|<svg|<script>/)
@@ -114,18 +140,56 @@ test('invitation displays only its six-digit room, safe official store links and
   assert.notEqual(next.headers.get('content-security-policy'), response.headers.get('content-security-policy'))
 })
 
+test('invitation clipboard copies the exact room and retains a selectable fallback when access is denied', async (t) => {
+  const get = await fixture(t)
+  const html = await (await get('/join/012345')).text()
+  const script = html.match(/<script nonce="[^"]+">([\s\S]*?)<\/script>/)[1]
+  for (const denied of [false, true]) {
+    const room = { textContent: '012345' }
+    const status = { textContent: '' }
+    let click, copied, selected, cleared = false
+    const range = { selectNodeContents: (node) => { selected = node } }
+    const selection = { removeAllRanges: () => { cleared = true }, addRange: (value) => assert.equal(value, range) }
+    vm.runInNewContext(script, {
+      document: {
+        querySelector: (selector) => ({
+          '[data-copy]': { addEventListener: (event, handler) => { assert.equal(event, 'click'); click = handler } },
+          '[data-room]': room, '[data-copy-status]': status,
+        })[selector],
+        createRange: () => range,
+      },
+      window: { getSelection: () => selection },
+      navigator: { clipboard: { writeText: async (text) => {
+        if (denied) throw new Error('Permission denied')
+        copied = text
+      } } },
+    })
+    await click()
+    assert.ok(status.textContent.length > 0)
+    assert.doesNotMatch(status.textContent, /[\u3400-\u9fff]/)
+    assert.equal(room.textContent, '012345')
+    if (denied) {
+      assert.match(status.textContent, /selected room code/)
+      assert.equal(copied, undefined); assert.equal(selected, room); assert.equal(cleared, true)
+    } else {
+      assert.equal(status.textContent, 'Room code copied.')
+      assert.equal(copied, '012345'); assert.equal(selected, undefined); assert.equal(cleared, false)
+    }
+  }
+})
+
 test('invalid rooms and malformed percent encoding return safe errors without reflecting the input', async (t) => {
   const get = await fixture(t)
   for (const path of ['/join/12345', '/join/1234567', '/join/abc123', '/join/123%2F45', '/join/%3Csvg%20onload%3Dalert(1)%3E']) {
     const response = await get(path), html = await response.text()
     assert.equal(response.status, 404)
-    assert.match(html, /邀请链接无效/)
+    assert.match(html, /Invalid invitation/)
     assert.doesNotMatch(html, /onload=|alert\(|URIError|node_modules/)
     headers(response, html)
   }
   const response = await get('/join/%E0%A4%A'), html = await response.text()
   assert.equal(response.status, 400)
-  assert.match(html, /链接格式不正确/)
+  assert.match(html, /The link is malformed/)
   assert.doesNotMatch(html, /URIError|node_modules/)
   headers(response, html)
 })
@@ -146,22 +210,22 @@ test('support and deletion explain reporting, safe order references and the manu
   const html = await response.text()
   assert.equal(response.status, 200)
   assert.match(html, /mailto:help@example\.test/)
-  assert.match(html, /昵称举报/)
-  assert.match(html, /业务订单号/)
-  assert.match(html, /不要发送登录凭证/)
+  assert.match(html, /nickname reports/)
+  assert.match(html, /order ID/)
+  assert.match(html, /Do not send login credentials/)
   assert.doesNotMatch(html, /alert\(|attacker|<script/)
   headers(response, html)
   const deletion = await get('/account-deletion'), body = await deletion.text()
   assert.equal(deletion.status, 200)
-  assert.match(body, /发送主题为「账号删除申请」/)
-  assert.match(body, /发送邮件不代表账号已经删除/)
-  assert.match(body, /网页邮件申请需要人工核验/)
-  assert.match(body, /删除不等于 Apple 或 Google 商店退款/)
-  assert.match(body, /去标识交易记录及交易指纹保留 7 天/)
-  assert.match(body, /身份和账号指纹以及删除时间同样保留 7 天/)
-  assert.match(body, /账号删除 7 天后自动清理/)
-  assert.match(body, /无法再凭旧订单找回已删除账号或向新账号认领原有 VIP 权益/)
-  assert.match(body, /不属于完全匿名数据/)
+  assert.match(body, /with the subject “Account deletion request”/)
+  assert.match(body, /Sending an email does not mean your account has been deleted/)
+  assert.match(body, /Email requests require manual verification/)
+  assert.match(body, /Deletion is not an Apple or Google store refund/)
+  assert.match(body, /de-identified transaction records and transaction fingerprints are retained for 7 days/)
+  assert.match(body, /identity and account fingerprints, together with the deletion time, are also retained for 7 days/)
+  assert.match(body, /automatically removed 7 days after account deletion/)
+  assert.match(body, /old orders cannot recover the deleted account or transfer its VIP benefits to a new account/)
+  assert.match(body, /not fully anonymous/)
 })
 
 test('policies bind both record types to the implemented seven-day retention and ignore obsolete free-text overrides', async (t) => {
@@ -176,16 +240,16 @@ test('policies bind both record types to the implemented seven-day retention and
     assert.match(html, /2026-10-14/)
     headers(response, html)
     assert.doesNotMatch(html, /alert\(2\)|alert\(3\)|需人工核对|与财务记录分别处理/)
-    assert.match(html, /去标识交易记录及交易指纹保留 7 天/)
-    assert.match(html, /用于对账、退款核对和防止重复处理/)
-    assert.match(html, /不可逆的身份和账号指纹以及删除时间/)
-    assert.match(html, /身份和账号指纹以及删除时间同样保留 7 天/)
-    assert.match(html, /拒绝删除前的旧平台证明重建账号/)
-    assert.match(html, /确认重复删除请求的结果/)
-    assert.match(html, /不属于完全匿名数据/)
-    assert.match(html, /账号删除 7 天后自动清理/)
-    assert.match(html, /无法再凭旧订单找回已删除账号或向新账号认领原有 VIP 权益/)
-    assert.doesNotMatch(html, /未启用自动清理|法定|合规已完成/)
+    assert.match(html, /de-identified transaction records and transaction fingerprints are retained for 7 days/)
+    assert.match(html, /for reconciliation, refund checks and prevention of duplicate processing/)
+    assert.match(html, /Irreversible identity and account fingerprints, together with the deletion time/)
+    assert.match(html, /identity and account fingerprints, together with the deletion time, are also retained for 7 days/)
+    assert.match(html, /prevent old platform credentials from recreating the account/)
+    assert.match(html, /confirm the outcome of repeated deletion requests/)
+    assert.match(html, /not fully anonymous/)
+    assert.match(html, /automatically removed 7 days after account deletion/)
+    assert.match(html, /old orders cannot recover the deleted account or transfer its VIP benefits to a new account/)
+    assert.doesNotMatch(html, /automatic removal is disabled|statutory|compliance complete/)
   }
   for (const key of ['INVITATION_ORIGIN', 'APP_OPERATOR_NAME', 'APP_SUPPORT_EMAIL', 'APP_POLICY_EFFECTIVE_DATE']) {
     const env = { ...complete, [key]: '' }
