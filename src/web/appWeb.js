@@ -84,16 +84,16 @@ function escapeHtml(value) {
 // App-only English copy. Configured operator details and room codes remain untouched.
 const copy = {
   brand: 'Who’s Undercover?',
-  invitation: 'Join the Lobby',
+  invitation: 'Join Lobby',
   invalidInvitation: 'Invalid invitation',
   support: 'Support & reports',
   deletion: 'Delete your account',
   privacy: 'Privacy policy',
   terms: 'Terms of use',
-  unavailable: 'This page is not available yet. Please try again later.',
+  unavailable: 'This page is unavailable. Try again later.',
   associationUnavailable: 'App link association is not configured yet.',
   copied: 'Room code copied.',
-  copyFallback: 'Touch and hold or use your system’s Copy action to copy the selected room code, then enter it in the app.',
+  copyFallback: 'Copy the selected room code using your device’s Copy option, then enter it in the app.',
 }
 const navigation = [
   ['/support', copy.support], ['/account-deletion', copy.deletion],
@@ -142,18 +142,18 @@ function createAppWebRouter(config = readAppWebConfig()) {
 
   router.get('/join/:roomId', (req, res) => {
     if (!/^\d{6}$/.test(req.params.roomId)) {
-      return page(res, copy.invalidInvitation, '<p class="lead">Room codes have six digits. Ask the Host for the current room code, then enter it on the app’s Home screen.</p>', { status: 404 })
+      return page(res, copy.invalidInvitation, '<p class="lead">Ask the Host for the six-digit room code, then enter it on the app’s Home screen.</p>', { status: 404 })
     }
     const links = [config.appStoreUrl && `<a class="button secondary" href="${escapeHtml(config.appStoreUrl)}" rel="noopener noreferrer">Get it on the App Store</a>`,
       config.googlePlayUrl && `<a class="button secondary" href="${escapeHtml(config.googlePlayUrl)}" rel="noopener noreferrer">Get it on Google Play</a>`].filter(Boolean)
-    page(res, copy.invitation, `<p class="lead">A face-to-face game of hidden identities. Open the app and enter this six-digit code on the Home screen.</p><section class="card" aria-label="Room invitation"><div class="eyebrow">Room code</div><p class="room" data-room>${escapeHtml(req.params.roomId)}</p><button type="button" data-copy>Copy room code</button><p class="muted copy-status" role="status" aria-live="polite" aria-atomic="true" data-copy-status></p></section><div class="actions">${links.join('')}</div>${links.length ? '<p class="muted">After installation, enter the room code manually. Installing the app does not automatically join the room.</p>' : '<p class="muted">Store downloads are not available yet. If you already have the app, enter the room code to join.</p>'}<p class="muted">This page does not check whether the room is available. It may be full, in progress or closed. The app will confirm whether you can join.</p>`, {
+    page(res, copy.invitation, `<p class="lead">A face-to-face party game. Enter this code on the app’s Home screen.</p><section class="card" aria-label="Room invitation"><div class="eyebrow">Room code</div><p class="room" data-room>${escapeHtml(req.params.roomId)}</p><button type="button" data-copy>Copy code</button><p class="muted copy-status" role="status" aria-live="polite" aria-atomic="true" data-copy-status></p></section><div class="actions">${links.join('')}</div>${links.length ? '<p class="muted">After installing, enter the room code manually to join.</p>' : '<p class="muted">Store downloads are unavailable. Already have the app? Enter the room code to join.</p>'}<p class="muted">The room may be full, in progress or closed. Open the app to check if you can join.</p>`, {
       script: `document.querySelector('[data-copy]').addEventListener('click',async()=>{const room=document.querySelector('[data-room]');const status=document.querySelector('[data-copy-status]');try{await navigator.clipboard.writeText(room.textContent);status.textContent=${JSON.stringify(copy.copied)};}catch{const selection=window.getSelection();const range=document.createRange();range.selectNodeContents(room);selection.removeAllRanges();selection.addRange(range);status.textContent=${JSON.stringify(copy.copyFallback)};}});`,
     })
   })
 
   router.get('/support', (req, res) => {
     if (!config.status.support.configured) return unavailable(res, copy.support)
-    page(res, copy.support, `<p class="details">Operated by ${escapeHtml(config.operatorName)}<br>Contact ${email()}</p><h2>Game help & nickname reports</h2><p>Tell us when the issue occurred, the room code and the relevant nicknames. Before sharing screenshots, hide secret words, roles and unrelated personal information. The Host can remove players from the Lobby.</p><h2>Purchases & orders</h2><p>Copy the order ID from the app’s VIP page. Include it in your email with the purchase platform and a description of the problem. An order ID helps us find the record; it is not proof of payment.</p><p>Do not send login credentials, identity tokens, purchase tokens, full payment receipts or bank card details. We will never ask for these by email.</p><p>Apple or Google reviews store refund requests under its own rules. Contacting support or deleting your account does not request a refund. Use your purchase history or the store’s official support service to request one. We can help check whether VIP was credited in the app.</p><p><a href="/account-deletion">How to request account deletion</a></p>`)
+    page(res, copy.support, `<p class="details">Operated by ${escapeHtml(config.operatorName)}<br>Contact ${email()}</p><h2>Game help & nickname reports</h2><p>Include the time, room code and relevant nicknames. Hide secret words, roles and unrelated personal information in screenshots. The Host can remove players from the Lobby.</p><h2>Purchases & orders</h2><p>Copy the order ID from the app’s VIP page. Email it with your purchase platform and a description of the issue. An order ID helps us find your order; it is not proof of payment.</p><p>Do not send login credentials, identity tokens, purchase tokens, full payment receipts or bank card details. We will never ask for these by email.</p><p>Apple or Google reviews store refund requests under its own rules. Contacting support or deleting your account does not request a refund. Use your purchase history or the store’s official support service to request one. We can help check whether VIP was credited in the app.</p><p><a href="/account-deletion">How to request account deletion</a></p>`)
   })
 
   router.get('/account-deletion', (req, res) => {
@@ -168,7 +168,7 @@ function createAppWebRouter(config = readAppWebConfig()) {
 
   router.get('/terms', (req, res) => {
     if (!config.status.policy.configured) return unavailable(res, copy.terms)
-    page(res, copy.terms, `<p class="details">Operated by ${escapeHtml(config.operatorName)}<br>Effective date: ${escapeHtml(config.policyEffectiveDate)}</p><h2>Game service</h2><p>The app helps face-to-face groups create rooms, join and deal secret cards. Keep your room code private and do not expose secret words or roles to others. The Host can remove players. Use appropriate nicknames, do not impersonate others or use nicknames to harass them, and contact <a href="/support">Support & reports</a> if you need help.</p><h2>Accounts & devices</h2><p>Sign in with a supported Apple or Google identity that you are entitled to use. A new connection on the same account may replace its earlier connection. Signing out on a device does not delete your account.</p><h2>VIP & store purchases</h2><p>VIP is a one-time purchase of 30 days of benefits and does not renew automatically. Availability and local pricing are shown in the app and the store’s purchase confirmation. Free gameplay remains available when purchases are closed. Once a purchase is verified, 30 days are added from the later of the confirmation time and your current expiry time.</p><p>After a successful purchase, you can recover the current account’s orders and remaining benefits. Apple or Google handles refunds under its own rules. A confirmed refund removes unused benefits from that order and adjusts later benefit periods. Time already used from other orders is not removed.</p><h2>Account deletion & support</h2><p>Deleting your account makes its profile and remaining VIP benefits unavailable. It does not request a store refund. Before confirming, read <a href="/account-deletion">the account deletion information</a> and <a href="/privacy">Privacy policy</a>. For help, contact ${email()}. Email deletion requests take effect only after identity verification and processing.</p>${retentionDisclosure()}`)
+    page(res, copy.terms, `<p class="details">Operated by ${escapeHtml(config.operatorName)}<br>Effective date: ${escapeHtml(config.policyEffectiveDate)}</p><h2>Game service</h2><p>Create and join rooms, then deal secret cards for face-to-face play. Keep your room code private and do not expose secret words or roles to others. The Host can remove players. Use appropriate nicknames, do not impersonate others or use nicknames to harass them, and contact <a href="/support">Support & reports</a> if you need help.</p><h2>Accounts & devices</h2><p>Sign in with a supported Apple or Google identity that you are entitled to use. A new connection on the same account may replace its earlier connection. Signing out on a device does not delete your account.</p><h2>VIP & store purchases</h2><p>Each VIP purchase adds 30 days of benefits and does not auto-renew. Availability and local pricing are shown in the app and the store’s purchase confirmation. You can still play free when purchases are unavailable. Once a purchase is verified, 30 days are added from the later of the confirmation time and your current expiry time.</p><p>After a purchase, you can restore the current account’s orders and remaining benefits. Apple or Google handles refunds under its own rules. A confirmed refund removes unused benefits from that order and adjusts later benefit periods. Time already used from other orders is not removed.</p><h2>Account deletion & support</h2><p>Deleting your account makes its profile and remaining VIP benefits unavailable. It does not request a store refund. Before confirming, read <a href="/account-deletion">the account deletion information</a> and <a href="/privacy">Privacy policy</a>. For help, contact ${email()}. Email deletion requests take effect only after identity verification and processing.</p>${retentionDisclosure()}`)
   })
 
   const association = (res, ready, body) => {
@@ -186,7 +186,7 @@ function createAppWebRouter(config = readAppWebConfig()) {
     } }]))
   router.use((error, req, res, next) => {
     if (error instanceof URIError && error.status === 400) {
-      return page(res, copy.invalidInvitation, '<p class="lead">The link is malformed. Ask the Host for the six-digit room code, then enter it on the app’s Home screen.</p>', { status: 400 })
+      return page(res, copy.invalidInvitation, '<p class="lead">This link is invalid. Ask the Host for the six-digit room code, then enter it on the app’s Home screen.</p>', { status: 400 })
     }
     next(error)
   })

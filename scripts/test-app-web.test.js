@@ -80,7 +80,7 @@ test('unconfigured websites publish neither contacts nor policies nor associated
   for (const path of ['/support', '/account-deletion', '/privacy', '/terms']) {
     const response = await get(path), html = await response.text()
     assert.equal(response.status, 503)
-    assert.match(html, /This page is not available yet/)
+    assert.match(html, /This page is unavailable/)
     assert.doesNotMatch(html, /mailto:|Effective date|测试运营方/)
     headers(response, html)
   }
@@ -94,7 +94,7 @@ test('unconfigured websites publish neither contacts nor policies nor associated
   const invite = await get('/join/012345'), html = await invite.text()
   assert.equal(invite.status, 200)
   assert.match(html, /data-room>012345</)
-  assert.match(html, /Store downloads are not available yet/)
+  assert.match(html, /Store downloads are unavailable/)
   assert.doesNotMatch(html, /href="https:/)
 })
 
@@ -189,7 +189,7 @@ test('invalid rooms and malformed percent encoding return safe errors without re
   }
   const response = await get('/join/%E0%A4%A'), html = await response.text()
   assert.equal(response.status, 400)
-  assert.match(html, /The link is malformed/)
+  assert.match(html, /This link is invalid/)
   assert.doesNotMatch(html, /URIError|node_modules/)
   headers(response, html)
 })
