@@ -28,7 +28,10 @@ const channel = process.env.APP_CHANNEL || 'wechat'
 if (!['wechat', 'app'].includes(channel)) throw new Error('APP_CHANNEL 必须为 wechat 或 app')
 const tokens = createTokenService(process.env.AUTH_TOKEN_SECRET)
 const userStore = new UserStore(process.env.USER_DB_PATH)
-if (channel === 'app') userStore.purgeDeletedAppData()
+if (channel === 'app') {
+  userStore.purgeInactiveGuests()
+  userStore.purgeDeletedAppData()
+}
 const fetchWechatSession = channel === 'wechat' ? createWechatSessionFetcher({
   appId: process.env.WECHAT_APP_ID, appSecret: process.env.WECHAT_APP_SECRET,
   timeoutMs: Number(process.env.WECHAT_LOGIN_TIMEOUT_MS || 5000),
@@ -130,7 +133,10 @@ initializeSocketServer(io, roomManager, { userStore, tokens, paymentService })
 paymentService?.start()
 // Retention applies even while payments and advertising are disabled.
 const retentionTimer = channel === 'app' ? setInterval(() => {
-  try { userStore.purgeDeletedAppData() }
+  try {
+    userStore.purgeInactiveGuests({ isActive: (userId) => roomManager.hasActiveIdentity(userId) })
+    userStore.purgeDeletedAppData()
+  }
   catch (error) { console.warn('[app-account-cleanup]', error.code || 'CLEANUP_FAILED') }
 }, 60_000) : null
 retentionTimer?.unref()

@@ -32,6 +32,7 @@ function resolveStoredProfile(profile, now = Date.now()) {
 function getUserState(user, product = {}) {
   return {
     userId: user.userId,
+    ...(user.accountType ? { accountType: user.accountType } : {}),
     profile: { nickname: user.nickname, avatar: user.avatar },
     membership: {
       isVip: user.isVip,

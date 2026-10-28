@@ -3,7 +3,7 @@ const PaymentLedger = require('../payment/PaymentLedger')
 const AppPaymentLedger = require('../payment/AppPaymentLedger')
 const { randomUUID, createHash } = require('crypto')
 const { AVATARS, createDefaultProfile, normalizeProfile, resolveStoredProfile } = require('./profile')
-const { DELETED_APP_RETENTION_MS, APP_PROOF_CLOCK_SKEW_MS } = require('./app-retention')
+const { DELETED_APP_RETENTION_MS, APP_PROOF_CLOCK_SKEW_MS, GUEST_RETENTION_MS } = require('./app-retention')
 
 function storageError() {
   return Object.assign(new Error('用户服务暂时不可用，请稍后重试'), {
@@ -61,6 +61,8 @@ class UserStore {
       this.insertUser = this.db.prepare(`INSERT INTO users
         (user_id, nickname, avatar, last_normal_avatar, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)`)
       this.insertIdentity = this.db.prepare('INSERT INTO user_identities VALUES (?, ?, ?, ?, ?, ?)')
+      this.touchSession = this.db.prepare('UPDATE user_identities SET last_login_at = ? WHERE user_id = ?')
+      this.inactiveGuests = this.db.prepare(`SELECT user_id FROM user_identities WHERE provider = 'guest' AND last_login_at <= ?`)
       this.touchLogin = this.db.prepare('UPDATE user_identities SET last_login_at = ? WHERE provider = ? AND scope = ? AND subject = ?')
       this.identitiesForUser = this.db.prepare('SELECT provider, scope, subject FROM user_identities WHERE user_id = ?')
       this.deletedIdentity = this.db.prepare('SELECT proof_cutoff_at FROM app_deleted_identities WHERE identity_hash = ?')
@@ -79,7 +81,7 @@ class UserStore {
           accounts: this.purgeDeletedAccounts.run(cutoff).changes }
       })
       this.save = this.db.prepare('UPDATE users SET nickname = ?, avatar = ?, last_normal_avatar = ?, updated_at = ? WHERE user_id = ?')
-      this.login = this.db.transaction((provider, scope, subject, issuedAt) => {
+      this.login = this.db.transaction((provider, scope, subject, issuedAt, initialProfile) => {
         const now = Date.now()
         if (provider === 'apple' || provider === 'google') {
           const deleted = this.deletedIdentity.get(identityFingerprint({ provider, scope, subject }))
@@ -93,7 +95,7 @@ class UserStore {
           return this.getUser(existing.user_id)
         }
         const userId = randomUUID()
-        const profile = createDefaultProfile()
+        const profile = initialProfile ? normalizeProfile(initialProfile) : createDefaultProfile()
         this.insertUser.run(userId, profile.nickname, profile.avatar, profile.avatar, now, now)
         this.insertIdentity.run(userId, provider, scope, subject, now, now)
         return this.getUser(userId)
@@ -111,7 +113,7 @@ class UserStore {
           if (this.deletedAccount.get(fingerprint('account', userId))) return { deleted: true }
           throw accountError('AUTH_INVALID', '登录已失效，请重新登录', 401)
         }
-        const identity = this.getAppIdentity(userId)
+        const identity = this.getAppIdentity(userId, { allowGuest: true })
         if (expectedIdentity && ['provider', 'scope', 'subject'].some((key) => identity[key] !== expectedIdentity[key])) {
           throw accountError('APP_IDENTITY_CHANGED', '账号身份已变化，请重新确认')
         }
@@ -130,12 +132,12 @@ class UserStore {
     }
   }
 
-  findOrCreate({ provider, scope, subject, issuedAt }) {
+  findOrCreate({ provider, scope, subject, issuedAt }, { initialProfile } = {}) {
     if (![provider, scope, subject].every((value) => typeof value === 'string' && value.trim())) {
       throw Object.assign(new Error('缺少已验证的登录身份'), { code: 'IDENTITY_REQUIRED' })
     }
     try {
-      return this.login.immediate(provider, scope, subject, issuedAt)
+      return this.login.immediate(provider, scope, subject, issuedAt, initialProfile)
     } catch (error) {
       if (error.code === 'APP_REAUTH_REQUIRED') throw error
       throw storageError()
@@ -149,7 +151,10 @@ class UserStore {
       if (user && (stored.avatar !== user.avatar || stored.lastNormalAvatar !== user.lastNormalAvatar)) {
         this.save.run(user.nickname, user.avatar, user.lastNormalAvatar, Date.now(), userId)
       }
-      return user || null
+      if (!user) return null
+      const identities = this.identitiesForUser.all(userId)
+      const appIdentity = identities.find((identity) => ['guest', 'apple', 'google'].includes(identity.provider))
+      return appIdentity ? { ...user, accountType: appIdentity.provider === 'guest' ? 'guest' : 'account' } : user
     } catch (_) {
       throw storageError()
     }
@@ -164,10 +169,10 @@ class UserStore {
     }
   }
 
-  getAppIdentity(userId) {
+  getAppIdentity(userId, { allowGuest = false } = {}) {
     try {
       const identities = this.identitiesForUser.all(userId)
-      if (identities.length !== 1 || !['apple', 'google'].includes(identities[0].provider)) {
+      if (identities.length !== 1 || ![...(allowGuest ? ['guest'] : []), 'apple', 'google'].includes(identities[0].provider)) {
         throw accountError('APP_ACCOUNT_REQUIRED', '此操作仅支持独立 App 账号')
       }
       return identities[0]
@@ -175,6 +180,27 @@ class UserStore {
       if (error.code === 'APP_ACCOUNT_REQUIRED') throw error
       throw storageError()
     }
+  }
+
+  createGuest() {
+    return this.findOrCreate({ provider: 'guest', scope: 'app', subject: randomUUID() })
+  }
+
+  touchSessionActivity(userId, now = Date.now()) {
+    try { this.touchSession.run(now, userId) }
+    catch (_) { throw storageError() }
+  }
+
+  purgeInactiveGuests({ now = Date.now(), isActive = () => false } = {}) {
+    try {
+      let removed = 0
+      for (const { user_id: userId } of this.inactiveGuests.all(now - GUEST_RETENTION_MS)) {
+        if (isActive(userId)) continue
+        this.deleteAppUser(userId, { now })
+        removed++
+      }
+      return removed
+    } catch (_) { throw storageError() }
   }
 
   isAppUserDeleted(userId) {

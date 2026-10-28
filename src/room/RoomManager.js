@@ -76,6 +76,41 @@ class RoomManager extends EventEmitter {
     return this.sessionRegistry.resolvePlayerIdByIdentity(identityKey, preferredPlayerId)
   }
 
+  hasActiveIdentity(identityKey) {
+    const registry = this.sessionRegistry
+    const session = registry.get(registry.identityToPlayer.get(identityKey))
+    return Boolean(session && (session.socketId || session.roomId))
+  }
+
+  preflightIdentityHandoff(guestId, accountId) {
+    const registry = this.sessionRegistry
+    const guest = registry.get(registry.identityToPlayer.get(guestId))
+    const account = registry.get(registry.identityToPlayer.get(accountId))
+    if (account?.roomId && account !== guest) {
+      throw this._createError('APP_ACCOUNT_IN_GAME', '该账号已在其他对局中，已保留当前游客对局')
+    }
+    return { guest, account }
+  }
+
+  handoffIdentity(guestId, accountId) {
+    const { guest, account } = this.preflightIdentityHandoff(guestId, accountId)
+    if (!guest) throw this._createError('APP_HANDOFF_INVALID', '游客会话已变化，请重试')
+    const socketIds = [guest.socketId, account?.socketId].filter(Boolean)
+    // Invalidate authorization before changing ownership. Normal disconnect timers
+    // keep running; an authorization sheet never pauses a room or its host grace.
+    if (guest.socketId) this.markDisconnected(guest.socketId)
+    if (account?.socketId) this.markDisconnected(account.socketId)
+    this.sessionRegistry.removeIdentity(accountId)
+    this.sessionRegistry._bindIdentity(guest, accountId)
+    for (const room of this.rooms.values()) {
+      for (const [playerId, identity] of Object.entries(room.gameState?.playerIdentities || {})) {
+        if (identity === guestId) room.gameState.playerIdentities[playerId] = accountId
+      }
+    }
+    this.emit('identity:handoff', { socketIds })
+    return guest.playerId
+  }
+
   getRoomIdForPlayer(playerId) {
     const session = this.sessionRegistry.get(playerId)
     return session ? session.roomId : null

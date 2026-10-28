@@ -54,7 +54,8 @@ function createUserSync(io, roomManager, getRoomChannel, { userStore, paymentSer
 }
 
 function requireActiveConnection(socket, roomManager) {
-  if (!socket.data.userId || roomManager.getActiveSocketId(socket.data.playerId) !== socket.id) {
+  if (!socket.data.userId || roomManager.getActiveSocketId(socket.data.playerId) !== socket.id ||
+      roomManager.sessionRegistry.get(socket.data.playerId)?.identityKey !== socket.data.userId) {
     throw Object.assign(new Error('连接已失效，请重试'), { code: 'SESSION_REPLACED' })
   }
 }

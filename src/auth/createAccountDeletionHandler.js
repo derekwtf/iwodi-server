@@ -25,7 +25,7 @@ function createAccountDeletionHandler({ userStore, tokens, appleRevocationClient
     if (typeof deleteSession !== 'function') {
       throw authError('APP_DELETE_UNAVAILABLE', '账号删除暂不可用，请稍后重试', 503)
     }
-    const identity = userStore.getAppIdentity(userId)
+    const identity = userStore.getAppIdentity(userId, { allowGuest: true })
     if (identity.provider === 'apple') {
       if (!appleRevocationClient) throw authError('APPLE_REVOCATION_NOT_CONFIGURED', 'Apple 授权撤销暂未配置，请稍后重试', 503)
       const challenge = appChallenges.get(body.nonce)
@@ -58,7 +58,7 @@ function createAccountDeletionHandler({ userStore, tokens, appleRevocationClient
         const pending = deleting.get(userId)
         if (pending) await pending.catch(() => {})
         if (!userStore.getUser(userId)) return res.json(deletedResult(userId))
-        userStore.getAppIdentity(userId)
+        userStore.getAppIdentity(userId, { allowGuest: true })
         return res.json({ deleted: false })
       }
       let work = deleting.get(userId)

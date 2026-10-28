@@ -29,6 +29,7 @@ function checkInterval(order, now) {
 class AppPaymentService extends EventEmitter {
   constructor({ userStore, config, client, now = Date.now, logger = console }) {
     super()
+    this.userStore = userStore
     this.ledger = userStore.appPayments
     this.config = config
     this.client = client || new (require('./AppStoreClient').AppStoreClient)({ config })
@@ -66,10 +67,16 @@ class AppPaymentService extends EventEmitter {
     if (!stillActive()) throw paymentError('SESSION_REPLACED', '连接已变化，请重新确认')
     if (this.stopped) throw paymentError('PAYMENT_STOPPED')
   }
+  requireAccount(userId) {
+    if (!this.userStore.getUser(userId)) throw paymentError('VIP_ORDER_NOT_FOUND', '未找到当前账号对应的订单')
+    this.userStore.getAppIdentity(userId)
+  }
   async create(userId, payload = {}, stillActive = () => true) {
+    this.requireAccount(userId)
     if (!/^[A-Za-z0-9-]{16,80}$/.test(payload.requestId || '')) throw paymentError('REQUEST_ID_INVALID', '请重新发起购买')
     return this.exclusive(`user:${userId}`, () => {
       this.assertActive(stillActive)
+      this.requireAccount(userId)
       const existing = this.ledger.byRequest.get(userId, payload.requestId)
       if (existing) return { order: publicAppOrder(existing) }
       if (!this.canSell(payload.platform)) throw paymentError('VIP_NOT_FOR_SALE', '暂未开放开通')
@@ -92,6 +99,7 @@ class AppPaymentService extends EventEmitter {
     return order
   }
   async queryOwn(userId, payload = {}, stillActive = () => true) {
+    this.requireAccount(userId)
     if (payload.restore) return this.restore(userId, stillActive)
     const creating = this.locks.get(`user:${userId}`)
     if (creating) await creating.catch(() => {})
@@ -127,6 +135,7 @@ class AppPaymentService extends EventEmitter {
     return { order: publicAppOrder(await this.recover(order)) }
   }
   async restore(userId, stillActive = () => true) {
+    this.requireAccount(userId)
     this.assertActive(stillActive)
     const pending = this.ledger.pendingForUser.get(userId)
     if (pending) await this.recover(pending)
@@ -203,6 +212,7 @@ class AppPaymentService extends EventEmitter {
     return this.ledger.require(order.out_trade_no)
   }
   async confirmPurchase(userId, payload = {}, stillActive = () => true) {
+    this.requireAccount(userId)
     this.assertActive(stillActive)
     const platform = this.platformConfig(payload.platform)
     if (!payload.transactionId && !payload.purchaseToken) throw paymentError('PAYMENT_PROOF_REQUIRED', '缺少商店交易凭证')

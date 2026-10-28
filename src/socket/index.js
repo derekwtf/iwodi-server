@@ -34,11 +34,16 @@ function initializeSocketServer(io, roomManager, { userStore, tokens, paymentSer
       if (!user) throw Object.assign(new Error('登录已失效，请重新登录'), { code: 'AUTH_INVALID' })
       socket.data.userId = userId
       socket.data.profile = user
+      userStore.touchSessionActivity(userId)
       next()
     } catch (error) {
       error.data = { code: error.code || 'USER_STORE_UNAVAILABLE' }
       next(error)
     }
+  })
+
+  roomManager.on('identity:handoff', ({ socketIds }) => {
+    for (const id of socketIds) io.sockets.sockets.get(id)?.disconnect(true)
   })
 
   roomManager.on('room:idleWarning', (payload) => {
@@ -150,6 +155,7 @@ function initializeSocketServer(io, roomManager, { userStore, tokens, paymentSer
 
     socket.on('disconnect', () => {
       clearExpiryTimer(socket.id)
+      try { userStore.touchSessionActivity(socket.data.userId) } catch (_) { /* Retry on next authentication. */ }
       const result = roomManager.markDisconnected(socket.id)
       if (!result || !result.roomId || !result.roomState) {
         return
