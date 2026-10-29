@@ -1,136 +1,136 @@
 {
   "id": "body-food",
-  "label": "饮食情境",
+  "label": "Food & Drink",
   "playMode": "body",
   "groups": [
     {
       "id": "body-food-001",
-      "sharedAction": "享用午餐",
+      "sharedAction": "Enjoy your lunch",
       "variants": [
         {
           "id": "a",
-          "text": "当你在享用午餐时，发现菜里面藏着一只蟑螂。",
+          "text": "You're enjoying lunch when you spot a cockroach hiding in your food.",
           "performanceSteps": [
-            "享用午餐",
-            "发现异物，嫌弃并推开"
+            "Enjoy your lunch",
+            "Recoil in disgust and push the food away."
           ]
         },
         {
           "id": "b",
-          "text": "当你在享用午餐时，发现菜里面藏着一只爱心煎蛋。",
+          "text": "You're enjoying lunch when you discover a heart-shaped fried egg tucked into your meal.",
           "performanceSteps": [
-            "享用午餐",
-            "发现惊喜，开心并珍惜"
+            "Enjoy your lunch",
+            "Smile at the surprise and admire it fondly."
           ]
         }
       ]
     },
     {
       "id": "body-food-002",
-      "sharedAction": "用筷子夹面条",
+      "sharedAction": "Lift noodles with chopsticks",
       "variants": [
         {
           "id": "a",
-          "text": "你正用筷子夹面条，发现面条长得怎么拉都拉不完，只好越举越高，努力寻找尽头。",
+          "text": "You lift some noodles with chopsticks, but they seem to go on forever. Raise your hand higher and higher, searching for the end.",
           "performanceSteps": [
-            "用筷子夹面条",
-            "面条拉不完，越夹越高并寻找尽头"
+            "Lift noodles with chopsticks",
+            "Keep lifting the endless noodles and look for the end."
           ]
         },
         {
           "id": "b",
-          "text": "你正用筷子夹面条，发现面条一夹就断成小碎段，只好凑近碗边，小心收集碎面。",
+          "text": "You lift some noodles with chopsticks, but they break into tiny pieces. Lean close to the bowl and carefully gather the pieces.",
           "performanceSteps": [
-            "用筷子夹面条",
-            "面条一夹就断，凑近碗边收集碎段"
+            "Lift noodles with chopsticks",
+            "Lean toward the bowl and gather the broken noodles."
           ]
         }
       ]
     },
     {
       "id": "body-food-003",
-      "sharedAction": "舀起一勺汤准备喝",
+      "sharedAction": "Raise a spoonful of soup",
       "variants": [
         {
           "id": "a",
-          "text": "你舀起一勺汤准备喝，发现汤烫得冒热气，只好缩回嘴巴，捧着勺子耐心吹凉。",
+          "text": "You raise a spoonful of soup, but it's steaming hot. Pull your mouth back and patiently blow on it.",
           "performanceSteps": [
-            "舀起一勺汤准备喝",
-            "汤太烫，缩回嘴巴并轻吹降温"
+            "Raise a spoonful of soup",
+            "Pull back from the hot soup and blow gently to cool it."
           ]
         },
         {
           "id": "b",
-          "text": "你舀起一勺汤准备喝，发现汤凉得像冰水，只好缩起肩膀，摸摸喉咙再搓手取暖。",
+          "text": "You raise a spoonful of soup, but it's as cold as ice water. Hunch your shoulders, touch your throat, and rub your hands to warm up.",
           "performanceSteps": [
-            "舀起一勺汤准备喝",
-            "汤冰凉，缩肩并搓手取暖"
+            "Raise a spoonful of soup",
+            "Shiver at the cold soup and rub your hands together."
           ]
         }
       ]
     },
     {
       "id": "body-food-004",
-      "sharedAction": "拉开饭盒盖",
+      "sharedAction": "Pull the lid off a lunch box",
       "variants": [
         {
           "id": "a",
-          "text": "你正拉开饭盒盖，盖子突然弹得很远，你愣住后用目光四处寻找，又伸手试着接住。",
+          "text": "You pull the lid off a lunch box and it suddenly flies away. Freeze in surprise, follow it with your eyes, and reach out to catch it.",
           "performanceSteps": [
-            "拉开饭盒盖",
-            "盒盖突然弹走，四处寻找并伸手接住"
+            "Pull the lid off a lunch box",
+            "Look around for the flying lid and reach out to catch it."
           ]
         },
         {
           "id": "b",
-          "text": "你正拉开饭盒盖，盖子像被吸住一样纹丝不动，你换几个方向使劲，最后停下来揉揉手腕。",
+          "text": "You try to pull the lid off a lunch box, but it won't budge. Tug from different angles, then stop to rub your wrist.",
           "performanceSteps": [
-            "拉开饭盒盖",
-            "盒盖吸得太紧，换方向拉并揉手腕"
+            "Pull the lid off a lunch box",
+            "Tug at the stuck lid from different angles, then rub your wrist."
           ]
         }
       ]
     },
     {
       "id": "body-food-005",
-      "sharedAction": "捧着玉米逐颗吃",
+      "sharedAction": "Pick kernels off an ear of corn",
       "variants": [
         {
           "id": "a",
-          "text": "你捧着玉米逐颗吃，发现玉米粒松得一碰就掉，你赶紧用另一只手接住，再一颗颗捡回来。",
+          "text": "You pick kernels off an ear of corn, but they fall off at the slightest touch. Quickly catch them in your other hand and gather the ones you missed.",
           "performanceSteps": [
-            "捧着玉米逐颗吃",
-            "玉米粒纷纷掉落，急忙接住并捡回"
+            "Pick kernels off an ear of corn",
+            "Catch the falling kernels and pick up the ones you missed."
           ]
         },
         {
           "id": "b",
-          "text": "你捧着玉米逐颗吃，发现玉米粒牢得怎么拔都不动，你捏住一颗左右摇，停下来甩甩发酸的手。",
+          "text": "You pick kernels off an ear of corn, but they won't come loose. Wiggle one from side to side, then shake out your aching hand.",
           "performanceSteps": [
-            "捧着玉米逐颗吃",
-            "玉米粒拔不动，左右摇并甩手缓解"
+            "Pick kernels off an ear of corn",
+            "Wiggle a stuck kernel, then shake out your sore hand."
           ]
         }
       ]
     },
     {
       "id": "body-food-006",
-      "sharedAction": "切开一块蛋糕",
+      "sharedAction": "Cut a slice of cake",
       "variants": [
         {
           "id": "a",
-          "text": "你正切开一块蛋糕，发现蛋糕软得一碰就塌，你急忙收手，双手从两边小心扶住。",
+          "text": "You try to cut a slice of cake, but it collapses at the slightest touch. Pull back, then gently support it with both hands.",
           "performanceSteps": [
-            "切开一块蛋糕",
-            "蛋糕一碰就塌，收手并从两边扶住"
+            "Cut a slice of cake",
+            "Pull back from the collapsing cake and gently hold up its sides."
           ]
         },
         {
           "id": "b",
-          "text": "你正切开一块蛋糕，发现蛋糕硬得切不进去，你按住顶部反复锯动，最后抬头困惑地看着它。",
+          "text": "You try to cut a slice of cake, but it's too hard to cut. Hold the top, saw back and forth, then stare at it in confusion.",
           "performanceSteps": [
-            "切开一块蛋糕",
-            "蛋糕切不进去，反复锯动并困惑打量"
+            "Cut a slice of cake",
+            "Saw at the rock-hard cake, then stare at it in confusion."
           ]
         }
       ]

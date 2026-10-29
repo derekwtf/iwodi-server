@@ -1,6 +1,33 @@
 # 词库整理记录
 
-最近整理：2026-10-07。游戏从一个词组的 `words` 中随机抽取两词，因此三词组必须保证任意两词都能形成可玩的配对。两词的平民／卧底方向随机，不以正常／离谱、正面／负面决定身份。
+最近整理：2026-10-29。游戏从一个词组的 `words` 中随机抽取两词，因此三词组必须保证任意两词都能形成可玩的配对。两词的平民／卧底方向随机，不以正常／离谱、正面／负面决定身份。
+
+## 2026-10-29 English-only branch
+
+- The English catalog has 14 language categories, 721 groups, and 1,227 distinct candidate pairs. All four body categories (24 pairs) are also English, including scenario text, shared actions, and performance steps. The legacy fallback category is `Default Words`.
+- Remove the 65-group idioms category instead of replacing Chinese idioms with English idioms. Default prompts should work for both native and non-native English speakers without requiring knowledge of figurative expressions.
+- Retire 17 further groups: four European-history/philosophy/mythology groups in `people`; seven literature, history, or idiom groups in `classical_stories`; three specialized or regional food groups; `work_school-014` (Rat Race / Arms Race); `absurd_contrasts-014` (Fish Tank / Office); and `digital_internet-052` (Face ID / Bar Tab). The last two lost their intended Chinese-language connection after translation.
+- Remove the less familiar Jeeves candidate from `people-052`. Clarify ambiguous prompts with `Menstrual Period`, `Exam Hall`, `Cow's Milk`, and `Beef Steak`; replace `Opening the Floodgates` with the concrete `Burst Water Pipe`. Keep familiar international foods, customs, fairy tales, and popular characters.
+- Add the 12 concrete pairs below to existing categories. Total change from the previous catalog: 791 - 65 - 17 + 12 = 721 groups. Favor useful shared clues and distinct details over preserving inventory size.
+- Retained category/group IDs and body variant IDs stay stable; retired IDs are not reused. New groups follow each category's previous highest ID. Selection remains uniform per group, so category frequency follows the new group counts. Role assignment and per-mode history behavior remain unchanged. This branch ships English content directly, without runtime language selection.
+- Regression checks cover English text, Chinese text remnants, case-insensitive pair uniqueness, retired-category rejection, history filtering/reset, all candidate pairs in both role directions, and the body shared-action/first-step contract.
+- Verified on Node.js 22.22.2: full `npm test` passed (356 Node test cases plus standalone regression scripts), including all 1,227 language pairs in both role directions. JavaScript syntax and `git diff --check` passed; this repository has no lint or typecheck script.
+- The Chinese examples and content counts below describe earlier revisions. They are historical design notes, not the current English prompt inventory. English difficulty and humor still need live playtesting.
+
+| New group | Prompts | Shared clue and revealing detail |
+| --- | --- | --- |
+| `food-191` | Pancake / Waffle | Batter and syrup at breakfast; flat surface or a grid pattern. |
+| `food-192` | Cupcake / Muffin | Small baked treats in wrappers; frosting and typical serving occasion. |
+| `city_travel-078` | Drive-Thru / Car Wash | Queue in a vehicle for service; collect food or clean the car. |
+| `entertainment_games-027` | Bowling / Mini Golf | Aim a ball and keep score; knock down pins or reach a hole. |
+| `entertainment_games-028` | Karaoke / Lip Syncing | Perform along with a song; produce the vocals or mime them. |
+| `social_relationships-031` | Sleepover / Camping | Spend the night together with sleeping bags; home or outdoors. |
+| `social_relationships-032` | Job Interview / First Date | Make a first impression and exchange questions; employment or romance. |
+| `tradition_nature-081` | Snowman / Sandcastle | Shape a pile of material; frozen snow or sand. |
+| `digital_internet-060` | Password / Secret Handshake | Prove you belong using a secret; typed characters or a gesture. |
+| `absurd_contrasts-034` | Photocopier / Parrot | Reproduce what is presented; printed pages or sounds. |
+| `absurd_contrasts-035` | Dog Walker / Tour Guide | Lead a group and keep it together; dogs or visitors. |
+| `work_school-028` | Group Project / Heist | Plan, divide roles, and coordinate; coursework or a robbery. |
 
 ## 选词原则
 

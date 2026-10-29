@@ -244,6 +244,20 @@ test('24 complete pairs in four categories, variants and strict schema', () => {
   assert.throws(() => new BodyPromptLibrary({ categories: [] }))
 })
 
+test('shipped body categories, prompts, and performance steps use English', () => {
+  const source = loadWordCategories(path.join(__dirname, '../src/data/body-prompts'))
+  for (const category of source.categories) {
+    const texts = [category.label, ...category.groups.flatMap((group) => [
+      group.sharedAction,
+      ...group.variants.flatMap((variant) => [variant.text, ...variant.performanceSteps]),
+    ])]
+    for (const text of texts) {
+      assert.match(text, /[A-Za-z]/, `Expected English text in ${category.id}: ${text}`)
+      assert.doesNotMatch(text, /\p{Script=Han}/u, `Untranslated text in ${category.id}: ${text}`)
+    }
+  }
+})
+
 test('stable history is independent per mode and resets only the exhausted mode', (context) => {
   const { manager, room, hostId } = fixture(context)
   manager.startGame(hostId, 'language')

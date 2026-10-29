@@ -1,136 +1,136 @@
 {
   "id": "body-travel",
-  "label": "出行情境",
+  "label": "Out & About",
   "playMode": "body",
   "groups": [
     {
       "id": "body-travel-001",
-      "sharedAction": "撑开雨伞",
+      "sharedAction": "Open an umbrella",
       "variants": [
         {
           "id": "a",
-          "text": "你正撑开雨伞，发现伞面被风吹翻，你原地稳住身体，把伞拉近，努力往回翻正。",
+          "text": "You open an umbrella, but the wind flips it inside out. Brace yourself in place, pull it closer, and try to flip it back.",
           "performanceSteps": [
-            "撑开雨伞",
-            "伞面翻转，稳住身体并拉回翻正"
+            "Open an umbrella",
+            "Brace yourself and pull the inside-out umbrella back into shape."
           ]
         },
         {
           "id": "b",
-          "text": "你正撑开雨伞，发现伞面小得遮不住肩膀，你缩起肩膀，把伞左右移动，努力遮住两边。",
+          "text": "You open an umbrella, but it's too small to cover your shoulders. Hunch up and shift it from side to side, trying to stay dry.",
           "performanceSteps": [
-            "撑开雨伞",
-            "伞面太小，缩肩并左右挪伞遮雨"
+            "Open an umbrella",
+            "Hunch your shoulders and move the tiny umbrella from side to side."
           ]
         }
       ]
     },
     {
       "id": "body-travel-002",
-      "sharedAction": "扶着方向盘开车",
+      "sharedAction": "Hold the steering wheel and drive",
       "variants": [
         {
           "id": "a",
-          "text": "你扶着方向盘开车，发现方向盘突然变得很紧，你双手一点点用力转，努力把车头摆正。",
+          "text": "You're driving when the steering wheel suddenly becomes stiff. Use both hands to turn it slowly and straighten the car.",
           "performanceSteps": [
-            "扶着方向盘开车",
-            "方向盘太紧，双手缓慢用力转正"
+            "Hold the steering wheel and drive",
+            "Strain with both hands to turn the stiff wheel."
           ]
         },
         {
           "id": "b",
-          "text": "你扶着方向盘开车，发现方向盘突然转得过于轻快，你急忙减小动作，左右微调以免转过头。",
+          "text": "You're driving when the steering wheel suddenly turns far too easily. Ease off and make tiny corrections to avoid oversteering.",
           "performanceSteps": [
-            "扶着方向盘开车",
-            "方向盘过轻，收力并左右小幅修正"
+            "Hold the steering wheel and drive",
+            "Ease your grip and make tiny steering corrections."
           ]
         }
       ]
     },
     {
       "id": "body-travel-003",
-      "sharedAction": "拉行李箱的拉杆",
+      "sharedAction": "Pull up a suitcase handle",
       "variants": [
         {
           "id": "a",
-          "text": "你正拉行李箱的拉杆，发现拉杆一节节伸得特别高，你抬头追着它，再伸手试着往回按短。",
+          "text": "You pull up a suitcase handle, but it keeps extending higher and higher. Look up after it, then reach up and try to push it down.",
           "performanceSteps": [
-            "拉行李箱的拉杆",
-            "拉杆伸得过高，抬头追看并按短"
+            "Pull up a suitcase handle",
+            "Watch the handle rise too high, then reach up and push it down."
           ]
         },
         {
           "id": "b",
-          "text": "你正拉行李箱的拉杆，发现拉杆怎么也伸不出来，你低头弯腰，一手扶箱一手小心往上拉。",
+          "text": "You pull up a suitcase handle, but it won't extend. Bend over, steady the suitcase with one hand, and carefully tug with the other.",
           "performanceSteps": [
-            "拉行李箱的拉杆",
-            "拉杆伸不出来，低头扶箱并试拉"
+            "Pull up a suitcase handle",
+            "Bend over, hold the suitcase steady, and tug at the stuck handle."
           ]
         }
       ]
     },
     {
       "id": "body-travel-004",
-      "sharedAction": "在车站找地方坐",
+      "sharedAction": "Look for a seat at the station",
       "variants": [
         {
           "id": "a",
-          "text": "你在车站找地方坐，发现座位高得双脚够不到地面，你原地比画高度，双手虚扶两边，假装双脚悬空。",
+          "text": "You find a seat at the station, but it's so high your feet won't reach the floor. Stay in place, mime its height, and pretend your feet are dangling.",
           "performanceSteps": [
-            "在车站找地方坐",
-            "座位过高，比画高度并模拟双脚悬空"
+            "Look for a seat at the station",
+            "Mime the tall seat and pretend your feet are dangling."
           ]
         },
         {
           "id": "b",
-          "text": "你在车站找地方坐，发现座位低得膝盖快碰到胸口，你原地微屈膝，比画挤在一起的腿，再扶腰慢慢伸直。",
+          "text": "You find a seat at the station, but it's so low your knees almost reach your chest. Bend your knees slightly, mime being cramped, then hold your lower back and straighten up.",
           "performanceSteps": [
-            "在车站找地方坐",
-            "座位过低，微屈膝模拟蜷腿并扶腰伸直"
+            "Look for a seat at the station",
+            "Bend slightly to mime the low seat, then support your back and straighten up."
           ]
         }
       ]
     },
     {
       "id": "body-travel-005",
-      "sharedAction": "抬头看路牌找方向",
+      "sharedAction": "Look up at a sign for directions",
       "variants": [
         {
           "id": "a",
-          "text": "你抬头看路牌找方向，发现箭头指向左右两边，你在两个方向间来回比画，挠挠头迟迟拿不定主意。",
+          "text": "You look up at a sign for directions, but the arrows point both left and right. Point back and forth, scratch your head, and struggle to choose.",
           "performanceSteps": [
-            "抬头看路牌找方向",
-            "箭头指向两边，来回比画并犹豫"
+            "Look up at a sign for directions",
+            "Point in both directions and scratch your head in confusion."
           ]
         },
         {
           "id": "b",
-          "text": "你抬头看路牌找方向，发现箭头一直指向身后，你回头确认，再转回来看牌，反复确认后原地转身。",
+          "text": "You look up at a sign for directions, but the arrow points behind you. Look over your shoulder, check the sign again, then turn around in place.",
           "performanceSteps": [
-            "抬头看路牌找方向",
-            "箭头指向身后，回头确认并原地转身"
+            "Look up at a sign for directions",
+            "Look behind you, double-check the sign, and turn around in place."
           ]
         }
       ]
     },
     {
       "id": "body-travel-006",
-      "sharedAction": "拿手机拍风景",
+      "sharedAction": "Take a photo of the scenery",
       "variants": [
         {
           "id": "a",
-          "text": "你拿手机拍风景，发现镜头拉得太近只剩一小块画面，你把手机拿远，连续比画缩小画面的动作。",
+          "text": "You take a photo of the scenery, but the camera is zoomed in so far you can only see a tiny detail. Hold the phone farther away and repeatedly pinch to zoom out.",
           "performanceSteps": [
-            "拿手机拍风景",
-            "镜头过近，拿远手机并缩小画面"
+            "Take a photo of the scenery",
+            "Move the phone away and pinch to zoom out."
           ]
         },
         {
           "id": "b",
-          "text": "你拿手机拍风景，发现镜头拉得太远景物只有一点点，你把手机凑近，连续比画放大画面的动作。",
+          "text": "You take a photo of the scenery, but the camera is zoomed out so far everything looks tiny. Bring the phone closer and repeatedly spread your fingers to zoom in.",
           "performanceSteps": [
-            "拿手机拍风景",
-            "镜头过远，凑近手机并放大画面"
+            "Take a photo of the scenery",
+            "Bring the phone closer and spread your fingers to zoom in."
           ]
         }
       ]

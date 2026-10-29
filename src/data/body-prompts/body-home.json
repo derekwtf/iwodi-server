@@ -1,136 +1,136 @@
 {
   "id": "body-home",
-  "label": "居家情境",
+  "label": "At Home",
   "playMode": "body",
   "groups": [
     {
       "id": "body-home-001",
-      "sharedAction": "抱起一个巨型快递盒",
+      "sharedAction": "Lift a huge delivery box",
       "variants": [
         {
           "id": "a",
-          "text": "你正抱起一个巨型快递盒，发现它轻得像空盒，用力过猛差点举到头顶，你赶紧收力，再疑惑地晃晃盒子。",
+          "text": "You lift a huge delivery box, but it's so light you nearly fling it over your head. Ease off and give it a puzzled shake.",
           "performanceSteps": [
-            "抱起一个巨型快递盒",
-            "盒子轻得出乎意料，收力并晃盒检查"
+            "Lift a huge delivery box",
+            "Ease off as the light box flies up, then shake it curiously."
           ]
         },
         {
           "id": "b",
-          "text": "你正抱起一个巨型快递盒，发现它重得抱不动，你反复调整抱姿，最后放下盒子揉揉手臂。",
+          "text": "You try to lift a huge delivery box, but it's far too heavy. Adjust your grip several times, then set it down and rub your arms.",
           "performanceSteps": [
-            "抱起一个巨型快递盒",
-            "盒子重得抱不动，调整抱姿并揉手臂"
+            "Lift a huge delivery box",
+            "Try different grips on the heavy box, then set it down and rub your arms."
           ]
         }
       ]
     },
     {
       "id": "body-home-002",
-      "sharedAction": "拉毯子盖住自己",
+      "sharedAction": "Pull a blanket over yourself",
       "variants": [
         {
           "id": "a",
-          "text": "你正拉毯子盖住自己，发现毯子长得拖成一大堆，你把多余部分一圈圈卷起，抱成越来越大的团。",
+          "text": "You pull a blanket over yourself, but there's a huge amount left over. Roll up the extra fabric into a bigger and bigger bundle.",
           "performanceSteps": [
-            "拉毯子盖住自己",
-            "毯子过长，一圈圈卷成大团"
+            "Pull a blanket over yourself",
+            "Roll the extra-long blanket into an enormous bundle."
           ]
         },
         {
           "id": "b",
-          "text": "你正拉毯子盖住自己，发现毯子短得只能盖一处，你轮流拉向肩膀和膝盖，最后缩成小小一团。",
+          "text": "You pull a blanket over yourself, but it's too short. Tug it between your shoulders and knees, then curl into a tiny ball.",
           "performanceSteps": [
-            "拉毯子盖住自己",
-            "毯子过短，顾此失彼并缩成一团"
+            "Pull a blanket over yourself",
+            "Try to cover your shoulders and knees, then curl up under the tiny blanket."
           ]
         }
       ]
     },
     {
       "id": "body-home-003",
-      "sharedAction": "拉上外套拉链",
+      "sharedAction": "Zip up your jacket",
       "variants": [
         {
           "id": "a",
-          "text": "你正拉上外套拉链，发现拉链一拉就滑回原处，你急忙按住下端，边拉边用手守住。",
+          "text": "You zip up your jacket, but the zipper keeps sliding back down. Hold the bottom and carefully guard it as you pull it up.",
           "performanceSteps": [
-            "拉上外套拉链",
-            "拉链不断滑回，按住下端小心拉起"
+            "Zip up your jacket",
+            "Hold the bottom of the slipping zipper and carefully pull it up."
           ]
         },
         {
           "id": "b",
-          "text": "你正拉上外套拉链，发现拉链卡在半路纹丝不动，你小幅来回试拉，再低头仔细检查卡住的地方。",
+          "text": "You zip up your jacket, but the zipper jams halfway. Tug it gently back and forth, then look down to inspect the snag.",
           "performanceSteps": [
-            "拉上外套拉链",
-            "拉链卡住，来回试拉并低头检查"
+            "Zip up your jacket",
+            "Tug the jammed zipper back and forth, then inspect it closely."
           ]
         }
       ]
     },
     {
       "id": "body-home-004",
-      "sharedAction": "往牙刷上挤牙膏",
+      "sharedAction": "Squeeze toothpaste onto a toothbrush",
       "variants": [
         {
           "id": "a",
-          "text": "你正往牙刷上挤牙膏，发现牙膏像长绳一样挤个不停，你赶紧松手，还忙着把多余的牙膏绕回去。",
+          "text": "You squeeze toothpaste onto a toothbrush, but it keeps coming out like a long rope. Let go quickly and try to coil up the excess.",
           "performanceSteps": [
-            "往牙刷上挤牙膏",
-            "牙膏挤个不停，急忙松手并绕回多余部分"
+            "Squeeze toothpaste onto a toothbrush",
+            "Let go of the tube and coil up the endless toothpaste."
           ]
         },
         {
           "id": "b",
-          "text": "你正往牙刷上挤牙膏，发现管里只剩一点点，你从尾部慢慢卷起，捏着管口努力挤出最后一小粒。",
+          "text": "You squeeze toothpaste onto a toothbrush, but the tube is almost empty. Roll it up from the bottom and squeeze out one last tiny dab.",
           "performanceSteps": [
-            "往牙刷上挤牙膏",
-            "牙膏只剩一点，卷起管尾挤最后一粒"
+            "Squeeze toothpaste onto a toothbrush",
+            "Roll up the nearly empty tube and squeeze out the last dab."
           ]
         }
       ]
     },
     {
       "id": "body-home-005",
-      "sharedAction": "给盆栽浇水",
+      "sharedAction": "Water a potted plant",
       "variants": [
         {
           "id": "a",
-          "text": "你正给盆栽浇水，发现花叶像被水压弯了，你急忙停下，托住叶片一点点把它扶起来。",
+          "text": "You water a potted plant, but the stream bends its leaves right over. Stop pouring and gently lift the leaves back up.",
           "performanceSteps": [
-            "给盆栽浇水",
-            "叶片被水压弯，停水并轻轻扶起"
+            "Water a potted plant",
+            "Stop watering and gently support the bent leaves."
           ]
         },
         {
           "id": "b",
-          "text": "你正给盆栽浇水，发现水全流到自己这边，你急忙缩回双手，避开水流并低头检查花盆。",
+          "text": "You water a potted plant, but all the water runs toward you. Pull your hands back, dodge the stream, and inspect the pot.",
           "performanceSteps": [
-            "给盆栽浇水",
-            "水流向自己，缩手避水并检查花盆"
+            "Water a potted plant",
+            "Pull back from the water and inspect the leaking pot."
           ]
         }
       ]
     },
     {
       "id": "body-home-006",
-      "sharedAction": "按台灯开关",
+      "sharedAction": "Switch on a desk lamp",
       "variants": [
         {
           "id": "a",
-          "text": "你正按台灯开关，发现灯光亮得刺眼，你遮住眼睛，小心伸手把灯头转向另一边。",
+          "text": "You switch on a desk lamp, but it's blindingly bright. Shield your eyes and carefully turn the lamp away.",
           "performanceSteps": [
-            "按台灯开关",
-            "灯光刺眼，遮眼并转开灯头"
+            "Switch on a desk lamp",
+            "Shield your eyes and turn the dazzling lamp away."
           ]
         },
         {
           "id": "b",
-          "text": "你正按台灯开关，发现灯光暗得几乎看不见，你眯眼凑近，伸手调整灯头寻找一点亮光。",
+          "text": "You switch on a desk lamp, but it's barely glowing. Squint, lean closer, and adjust the lamp to find a little light.",
           "performanceSteps": [
-            "按台灯开关",
-            "灯光太暗，眯眼凑近并寻找亮光"
+            "Switch on a desk lamp",
+            "Squint and lean closer, adjusting the dim lamp."
           ]
         }
       ]

@@ -1,136 +1,136 @@
 {
   "id": "body-social",
-  "label": "社交情境",
+  "label": "Social Situations",
   "playMode": "body",
   "groups": [
     {
       "id": "body-social-001",
-      "sharedAction": "向远处的朋友挥手",
+      "sharedAction": "Wave to a friend in the distance",
       "variants": [
         {
           "id": "a",
-          "text": "你向远处的朋友挥手，发现朋友完全没注意到，你把挥手幅度越来越大，最后双手一起挥动。",
+          "text": "You wave to a friend in the distance, but they don't notice. Make your waves bigger and bigger until you're waving both arms.",
           "performanceSteps": [
-            "向远处的朋友挥手",
-            "朋友没注意，逐渐放大挥手幅度"
+            "Wave to a friend in the distance",
+            "Wave more and more wildly to get your friend's attention."
           ]
         },
         {
           "id": "b",
-          "text": "你向远处的朋友挥手，发现周围好几个人同时回应，你突然愣住，小幅摆手，再指向真正要找的那一个。",
+          "text": "You wave to a friend in the distance, but several strangers wave back. Freeze, give a small dismissive wave, and point to your actual friend.",
           "performanceSteps": [
-            "向远处的朋友挥手",
-            "多人同时回应，摆手澄清并指向朋友"
+            "Wave to a friend in the distance",
+            "React to the strangers waving back, then point to your friend."
           ]
         }
       ]
     },
     {
       "id": "body-social-002",
-      "sharedAction": "打开朋友送的礼物盒",
+      "sharedAction": "Open a gift box from a friend",
       "variants": [
         {
           "id": "a",
-          "text": "你正打开朋友送的礼物盒，发现里面还有一层又一层盒子，你不停打开又放到一边，手边越堆越高。",
+          "text": "You open a gift box from a friend and find another box inside, then another. Keep opening them and stack the empty boxes higher and higher.",
           "performanceSteps": [
-            "打开朋友送的礼物盒",
-            "盒子套了一层又一层，反复打开并越堆越高"
+            "Open a gift box from a friend",
+            "Open box after box and build a growing pile beside you."
           ]
         },
         {
           "id": "b",
-          "text": "你正打开朋友送的礼物盒，发现里面的礼物大得塞满盒子，你张开双臂量量大小，再小心从两侧托起。",
+          "text": "You open a gift box from a friend, but the gift fills the entire box. Spread your arms to measure it, then carefully lift it from both sides.",
           "performanceSteps": [
-            "打开朋友送的礼物盒",
-            "礼物塞满盒子，张臂量大小并从两侧托起"
+            "Open a gift box from a friend",
+            "Measure the huge gift with your arms and lift it from both sides."
           ]
         }
       ]
     },
     {
       "id": "body-social-003",
-      "sharedAction": "伸手与人握手",
+      "sharedAction": "Reach out for a handshake",
       "variants": [
         {
           "id": "a",
-          "text": "你伸手与人握手，发现对方握得太紧，你表情渐渐僵住，另一只手轻托手腕，慢慢试着抽回手。",
+          "text": "You reach out for a handshake, but the other person squeezes much too hard. Your smile stiffens as you support your wrist and slowly try to pull free.",
           "performanceSteps": [
-            "伸手与人握手",
-            "对方握得太紧，托住手腕并试着抽回"
+            "Reach out for a handshake",
+            "Grimace, support your wrist, and try to escape the crushing grip."
           ]
         },
         {
           "id": "b",
-          "text": "你伸手与人握手，发现对方马上松开了，你的手还停在半空，愣一下后悄悄把手收回并整理衣袖。",
+          "text": "You reach out for a handshake, but the other person lets go immediately. Your hand hangs in midair before you quietly pull it back and straighten your sleeve.",
           "performanceSteps": [
-            "伸手与人握手",
-            "对方马上松手，停在半空后收手整理衣袖"
+            "Reach out for a handshake",
+            "Pause with your hand in midair, then pull back and straighten your sleeve."
           ]
         }
       ]
     },
     {
       "id": "body-social-004",
-      "sharedAction": "摆姿势等待合照",
+      "sharedAction": "Pose for a group photo",
       "variants": [
         {
           "id": "a",
-          "text": "你摆姿势等待合照，发现拍照的人一直没按快门，你努力维持笑脸和姿势，渐渐撑不住，只好揉揉僵硬的脸。",
+          "text": "You pose for a group photo, but the photographer takes forever. Struggle to hold your smile and pose, then rub your stiff cheeks.",
           "performanceSteps": [
-            "摆姿势等待合照",
-            "快门迟迟不按，维持姿势后揉揉僵硬的脸"
+            "Pose for a group photo",
+            "Hold your pose for too long, then rub your aching cheeks."
           ]
         },
         {
           "id": "b",
-          "text": "你摆姿势等待合照，发现快门在你还没站好时就按了，你惊讶地定住，赶紧摆好姿势，请对方再拍一次。",
+          "text": "You pose for a group photo, but the photographer snaps it before you're ready. Freeze in surprise, fix your pose, and gesture for another shot.",
           "performanceSteps": [
-            "摆姿势等待合照",
-            "快门按得太早，惊讶定住并重新摆好姿势"
+            "Pose for a group photo",
+            "Freeze at the early photo, then pose again and gesture for a retake."
           ]
         }
       ]
     },
     {
       "id": "body-social-005",
-      "sharedAction": "听朋友讲趣事",
+      "sharedAction": "Listen to a friend's story",
       "variants": [
         {
           "id": "a",
-          "text": "你正听朋友讲趣事，发现故事越讲越有意思，你从礼貌点头变成睁大眼睛，忍不住前倾追问的姿态。",
+          "text": "You listen to a friend's story and it gets more and more exciting. Your polite nods turn into wide eyes as you lean forward, eager for more.",
           "performanceSteps": [
-            "听朋友讲趣事",
-            "故事越来越精彩，睁眼并前倾表示想继续听"
+            "Listen to a friend's story",
+            "Widen your eyes and lean forward, eager to hear what happens next."
           ]
         },
         {
           "id": "b",
-          "text": "你正听朋友讲趣事，发现故事绕来绕去总回到开头，你的点头渐渐停住，手指在空中绕圈，再困惑地摊手。",
+          "text": "You listen to a friend's story, but it keeps circling back to the beginning. Stop nodding, draw circles in the air, and shrug in confusion.",
           "performanceSteps": [
-            "听朋友讲趣事",
-            "故事总绕回开头，手指绕圈并困惑摊手"
+            "Listen to a friend's story",
+            "Stop nodding, circle your finger, and shrug at the rambling story."
           ]
         }
       ]
     },
     {
       "id": "body-social-006",
-      "sharedAction": "模仿朋友的舞步",
+      "sharedAction": "Copy a friend's dance moves",
       "variants": [
         {
           "id": "a",
-          "text": "你正模仿朋友的舞步，发现节奏突然加快，你原地快速交替摆动双臂，跟不上后举手示意慢一点。",
+          "text": "You copy a friend's dance moves, but the beat suddenly speeds up. Swing your arms faster while staying in place, then gesture for them to slow down.",
           "performanceSteps": [
-            "模仿朋友的舞步",
-            "节奏突然加快，加快摆臂并示意放慢"
+            "Copy a friend's dance moves",
+            "Move your arms faster, then gesture that you can't keep up."
           ]
         },
         {
           "id": "b",
-          "text": "你正模仿朋友的舞步，发现节奏突然变慢，你原地把动作放得很慢，停在半空等下一拍，再试探着继续。",
+          "text": "You copy a friend's dance moves, but the beat suddenly slows down. Move in slow motion, pause mid-move, and wait for the next beat.",
           "performanceSteps": [
-            "模仿朋友的舞步",
-            "节奏突然变慢，慢动作停顿并等待下一拍"
+            "Copy a friend's dance moves",
+            "Slow your movements and freeze while waiting for the next beat."
           ]
         }
       ]
