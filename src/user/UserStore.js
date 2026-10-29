@@ -83,9 +83,9 @@ class UserStore {
       this.save = this.db.prepare('UPDATE users SET nickname = ?, avatar = ?, last_normal_avatar = ?, updated_at = ? WHERE user_id = ?')
       this.login = this.db.transaction((provider, scope, subject, issuedAt, initialProfile) => {
         const now = Date.now()
-        if (provider === 'apple' || provider === 'google') {
+        if (provider === 'guest' || provider === 'apple' || provider === 'google') {
           const deleted = this.deletedIdentity.get(identityFingerprint({ provider, scope, subject }))
-          if (deleted && (!Number.isSafeInteger(issuedAt) || issuedAt <= deleted.proof_cutoff_at)) {
+          if (deleted && (provider === 'guest' || !Number.isSafeInteger(issuedAt) || issuedAt <= deleted.proof_cutoff_at)) {
             throw accountError('APP_REAUTH_REQUIRED', '账号已删除，请稍后重新授权创建新账号', 401)
           }
         }
@@ -180,10 +180,6 @@ class UserStore {
       if (error.code === 'APP_ACCOUNT_REQUIRED') throw error
       throw storageError()
     }
-  }
-
-  createGuest() {
-    return this.findOrCreate({ provider: 'guest', scope: 'app', subject: randomUUID() })
   }
 
   touchSessionActivity(userId, now = Date.now()) {

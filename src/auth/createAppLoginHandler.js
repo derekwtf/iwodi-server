@@ -1,4 +1,4 @@
-const { randomBytes } = require('crypto')
+const { randomBytes, createHash } = require('crypto')
 const { getUserState } = require('../user/profile')
 const { authError } = require('./createAppIdentityVerifier')
 
@@ -53,12 +53,15 @@ function createAppLoginHandler({ roomManager, userStore, tokens, appIdentityVeri
     try {
       const body = req.body || {}
       if (body.action === 'handoff') return res.json(completeHandoff(body))
-      if (body.refreshToken !== undefined || body.token !== undefined) {
-        const payload = body.refreshToken !== undefined ? tokens.verifyRefresh(body.refreshToken) : tokens.verify(body.token)
+      if (body.refreshToken !== undefined) {
+        const payload = tokens.verifyRefresh(body.refreshToken)
         return res.json(session(requireUser(payload), { handoff: payload.handoff }))
       }
       const { provider, identityToken, nonce } = body
       if (provider === 'guest') {
+        if (typeof body.guestSecret !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(body.guestSecret)) {
+          throw authError('APP_GUEST_SECRET_INVALID', '游客凭证无效', 400)
+        }
         for (const [source, bucket] of guestSources) if (bucket.expiresAt <= now()) guestSources.delete(source)
         const source = req.ip || 'unknown'
         const bucket = guestSources.get(source)
@@ -66,7 +69,8 @@ function createAppLoginHandler({ roomManager, userStore, tokens, appIdentityVeri
           throw authError('APP_LOGIN_RATE_LIMITED', '登录请求过于频繁，请稍后重试', 429)
         }
         guestSources.set(source, { count: (bucket?.count || 0) + 1, expiresAt: bucket?.expiresAt || now() + CHALLENGE_TTL_MS })
-        return res.json(session(userStore.createGuest()))
+        const subject = createHash('sha256').update(body.guestSecret).digest('hex')
+        return res.json(session(userStore.findOrCreate({ provider: 'guest', scope: 'app', subject })))
       }
       appIdentityVerifier.requireProvider(provider)
       for (const [key, challenge] of challenges) {

@@ -1,5 +1,6 @@
 const test = require('node:test')
 const assert = require('node:assert/strict')
+const { randomUUID, createHash } = require('node:crypto')
 const { createFixture, request } = require('./auth-fixture')
 const { createTokenService, TOKEN_TTL_MS, REFRESH_TTL_MS } = require('../src/auth/tokens')
 const { readAppPaymentConfig } = require('../src/payment/app-config')
@@ -10,7 +11,7 @@ const verifier = {
 }
 const options = { channel: 'app', appIdentityVerifier: verifier }
 const login = (f, body) => f.login('', body, 'app-login')
-const guest = (f) => login(f, { provider: 'guest', userId: 'caller', deviceId: 'caller', playerId: 'caller' })
+const guest = (f, guestSecret = randomUUID()) => login(f, { provider: 'guest', guestSecret, userId: 'caller', deviceId: 'caller', playerId: 'caller' })
 const account = (f, subject, guestToken) => login(f, { provider: 'google', identityToken: subject, guestToken })
 const handoff = (f, g, a) => login(f, { action: 'handoff', guestToken: g.token, accountToken: a.token })
 
@@ -30,7 +31,7 @@ test('guest creation and session recovery never invoke a platform verifier or tr
     assert.equal(resumed.playerId, g.playerId)
     assert.equal(resumed.accountType, 'guest')
     const old = f.tokens.issue(g.userId)
-    assert.ok((await login(f, { token: old.token })).refreshToken)
+    assert.notEqual((await login(f, { token: old.token })).status, 200)
     const socket = await f.connect({ token: g.token })
     assert.equal(socket.accountType, 'guest')
     assert.equal((await request(socket.socket, 'room:create', { playMode: 'language' })).ok, true)
@@ -38,6 +39,58 @@ test('guest creation and session recovery never invoke a platform verifier or tr
     assert.equal((await login(f, { refreshToken: g.token })).error.code, 'AUTH_INVALID')
     const response = await fetch(`${f.url}/auth/account`, { method: 'DELETE', headers: { authorization: `Bearer ${g.refreshToken}`, 'content-type': 'application/json' }, body: '{}' })
     assert.equal(response.status, 401)
+  } finally { await f.close() }
+})
+
+test('guest secret is required, hashed and idempotent across lost responses and restart', async () => {
+  const { mkdtempSync, rmSync } = require('node:fs')
+  const { join } = require('node:path')
+  const { tmpdir } = require('node:os')
+  const dir = mkdtempSync(join(tmpdir(), 'wodi-guest-secret-'))
+  const filename = join(dir, 'users.sqlite'), secret = randomUUID()
+  let f = await createFixture(filename, options)
+  try {
+    assert.equal((await login(f, { provider: 'guest' })).error.code, 'APP_GUEST_SECRET_INVALID')
+    for (const bad of [null, '', 'abc', randomUUID().toUpperCase(), '00000000-0000-1000-8000-000000000000', '00000000-0000-4000-0000-000000000000']) {
+      const result = await guest(f, bad)
+      assert.equal(result.status, 400)
+      assert.equal(result.error.code, 'APP_GUEST_SECRET_INVALID')
+    }
+    const [first, repeated] = await Promise.all([guest(f, secret), guest(f, secret)])
+    assert.equal(first.userId, repeated.userId)
+    assert.equal(f.userStore.db.prepare('SELECT count(*) n FROM users').get().n, 1)
+    assert.equal(f.userStore.getAppIdentity(first.userId, { allowGuest: true }).subject,
+      createHash('sha256').update(secret).digest('hex'))
+    f.userStore.updateProfile(first.userId, { nickname: 'Guest', avatar: '/assets/avatars/avatar-2.svg' })
+    await f.close()
+    f = await createFixture(filename, options)
+    const restored = await guest(f, secret)
+    assert.equal(restored.userId, first.userId)
+    assert.equal(restored.profile.nickname, 'Guest')
+    assert.equal(f.userStore.db.prepare('SELECT count(*) n FROM users').get().n, 1)
+  } finally { await f.close(); rmSync(dir, { recursive: true, force: true }) }
+})
+
+test('deleted and inactive guest secrets cannot resurrect accounts before fingerprint expiry', async () => {
+  const { DELETED_APP_RETENTION_MS, GUEST_RETENTION_MS } = require('../src/user/app-retention')
+  const f = await createFixture(':memory:', options)
+  try {
+    for (const inactive of [false, true]) {
+      const secret = randomUUID(), first = await guest(f, secret), now = Date.now()
+      f.userStore.updateProfile(first.userId, { nickname: 'Old Guest', avatar: '/assets/avatars/avatar-2.svg' })
+      if (inactive) {
+        f.userStore.db.prepare('UPDATE user_identities SET last_login_at = ? WHERE user_id = ?').run(now - GUEST_RETENTION_MS, first.userId)
+        assert.equal(f.userStore.purgeInactiveGuests({ now }), 1)
+      } else f.userStore.deleteAppUser(first.userId, { now })
+      assert.equal((await guest(f, secret)).error.code, 'APP_REAUTH_REQUIRED')
+      f.userStore.purgeDeletedAppData(now + DELETED_APP_RETENTION_MS - 1)
+      assert.equal((await guest(f, secret)).error.code, 'APP_REAUTH_REQUIRED')
+      f.userStore.purgeDeletedAppData(now + DELETED_APP_RETENTION_MS)
+      const fresh = await guest(f, secret)
+      assert.equal(fresh.status, 200)
+      assert.notEqual(fresh.userId, first.userId)
+      assert.notEqual(fresh.profile.nickname, 'Old Guest')
+    }
   } finally { await f.close() }
 })
 
@@ -178,11 +231,11 @@ test('guest rate limit is 60 creations per IP per five minutes with bounded sour
   const createHandler = require('../src/auth/createAppLoginHandler')
   let now = Date.now(), created = 0
   const handler = createHandler({ now: () => now, userStore: {
-    createGuest: () => ({ userId: `guest-${++created}`, accountType: 'guest' }), touchSessionActivity() {},
+    findOrCreate: () => ({ userId: `guest-${++created}`, accountType: 'guest' }), touchSessionActivity() {},
   }, roomManager: { resolvePlayerIdByIdentity: (id) => id }, tokens: { issueApp: () => ({}) } })
   async function call(ip) {
     const result = { status: 200 }
-    await handler({ ip, body: { provider: 'guest' } }, {
+    await handler({ ip, body: { provider: 'guest', guestSecret: randomUUID() } }, {
       status(value) { result.status = value; return this }, json(body) { Object.assign(result, body) },
     })
     return result
@@ -257,7 +310,7 @@ test('pending handoff recovers after seven-day access expiry and server restart 
     assert.equal(result.userId, a.userId)
     assert.equal((await handoff(f, g, refreshed)).playerId, result.playerId)
     assert.equal(f.userStore.getUser(g.userId), null)
-    assert.equal((await login(f, { token: expired.token })).error.code, 'AUTH_INVALID')
+    assert.notEqual((await login(f, { token: expired.token })).status, 200)
     assert.equal((await login(f, { refreshToken: g.refreshToken })).error.code, 'AUTH_INVALID')
   } finally { await f.close(); rmSync(directory, { recursive: true, force: true }) }
 })
