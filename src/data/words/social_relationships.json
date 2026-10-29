@@ -1,218 +1,232 @@
 {
   "id": "social_relationships",
-  "label": "人情社交",
-  "description": "亲密关系、人情往来、线上相处与社交潜台词",
+  "label": "Relationships & Social Life",
+  "description": "Dating, friendship, online interactions, and the things people leave unsaid.",
   "groups": [
     {
       "id": "social_relationships-001",
       "words": [
-        "表白",
-        "自首"
+        "Confessing Your Love",
+        "Turning Yourself In"
       ]
     },
     {
       "id": "social_relationships-002",
       "words": [
-        "分手",
-        "退货"
+        "Breaking Up",
+        "Returning a Purchase"
       ]
     },
     {
       "id": "social_relationships-003",
       "words": [
-        "复合",
-        "回锅肉"
+        "Getting Back Together",
+        "Reheating Leftovers"
       ]
     },
     {
       "id": "social_relationships-004",
       "words": [
-        "暧昧",
-        "试用期"
+        "Casual Dating",
+        "Trial Subscription"
       ]
     },
     {
       "id": "social_relationships-005",
       "words": [
-        "前任",
-        "浏览记录"
+        "Ex-Partner",
+        "Browsing History"
       ]
     },
     {
       "id": "social_relationships-006",
       "words": [
-        "闺蜜",
-        "情报员"
+        "Best Friend",
+        "Secret Agent"
       ]
     },
     {
       "id": "social_relationships-007",
       "words": [
-        "伴郎",
-        "保安"
+        "Best Man",
+        "Security Guard"
       ]
     },
     {
       "id": "social_relationships-008",
       "words": [
-        "喜帖",
-        "传票"
+        "Wedding Invitation",
+        "Court Summons"
       ]
     },
     {
       "id": "social_relationships-009",
       "words": [
-        "份子钱",
-        "门票"
+        "Wedding Gift",
+        "Admission Fee"
       ]
     },
     {
       "id": "social_relationships-010",
       "words": [
-        "婚礼",
-        "发布会"
+        "Wedding",
+        "Product Launch"
       ]
     },
     {
       "id": "social_relationships-011",
       "words": [
-        "约会",
-        "接头"
+        "First Date",
+        "Undercover Meeting"
       ]
     },
     {
       "id": "social_relationships-012",
       "words": [
-        "吃醋",
-        "护食"
+        "Jealous Partner",
+        "Dog Guarding Its Food"
       ]
     },
     {
       "id": "social_relationships-013",
       "words": [
-        "敬酒",
-        "通关"
+        "Wedding Toasts",
+        "Video Game Levels"
       ]
     },
     {
       "id": "social_relationships-014",
       "words": [
-        "秒回",
-        "自动回复"
+        "Instant Reply",
+        "Automated Reply"
       ]
     },
     {
       "id": "social_relationships-015",
       "words": [
-        "断联",
-        "断网"
+        "Cutting Contact",
+        "Losing Internet"
       ]
     },
     {
       "id": "social_relationships-016",
       "words": [
-        "熟人",
-        "大数据"
+        "Old Friend",
+        "Data Broker"
       ]
     },
     {
       "id": "social_relationships-017",
       "words": [
-        "朋友圈",
-        "橱窗"
+        "Social Media Feed",
+        "Storefront Display"
       ]
     },
     {
       "id": "social_relationships-018",
       "words": [
-        "客套话",
-        "广告词"
+        "Polite Small Talk",
+        "Advertising Slogan"
       ]
     },
     {
       "id": "social_relationships-019",
       "words": [
-        "催婚",
-        "催债"
+        "Marriage Pressure",
+        "Debt Collection"
       ]
     },
     {
       "id": "social_relationships-020",
       "words": [
-        "网恋",
-        "网购"
+        "Online Dating",
+        "Online Shopping"
       ]
     },
     {
       "id": "social_relationships-021",
       "words": [
-        "红娘",
-        "猎头"
+        "Matchmaker",
+        "Recruiter"
       ]
     },
     {
       "id": "social_relationships-022",
       "words": [
-        "闹洞房",
-        "密室逃脱"
+        "Bachelor Party",
+        "Escape Room"
       ]
     },
     {
       "id": "social_relationships-023",
       "words": [
-        "投喂",
-        "打赏"
+        "Pet Treat",
+        "Livestream Tip"
       ]
     },
     {
       "id": "social_relationships-024",
       "words": [
-        "备胎",
-        "充电宝"
+        "Backup Date",
+        "Spare Charger"
       ]
     },
     {
       "id": "social_relationships-025",
       "words": [
-        "安全感",
-        "满格电量"
+        "Emotional Security",
+        "Full Battery"
       ]
     },
     {
       "id": "social_relationships-026",
       "words": [
-        "好人卡",
-        "退件通知"
+        "Friend Zone",
+        "Rejection Letter"
       ]
     },
     {
       "id": "social_relationships-027",
       "words": [
-        "合租室友",
-        "随机队友"
+        "Roommate",
+        "Random Teammate"
       ]
     },
     {
       "id": "social_relationships-028",
       "words": [
-        "朋友圈",
-        "简历"
+        "Social Media Profile",
+        "Resume"
       ]
     },
     {
       "id": "social_relationships-029",
       "words": [
-        "亲戚聚会",
-        "新闻发布会"
+        "Family Reunion",
+        "Press Conference"
       ]
     },
     {
       "id": "social_relationships-030",
       "words": [
-        "出轨",
-        "表白"
+        "Having an Affair",
+        "Confessing Your Love"
+      ]
+    },
+    {
+      "id": "social_relationships-031",
+      "words": [
+        "Sleepover",
+        "Camping"
+      ]
+    },
+    {
+      "id": "social_relationships-032",
+      "words": [
+        "Job Interview",
+        "First Date"
       ]
     }
   ],
-  "groupCount": 30
+  "groupCount": 32
 }

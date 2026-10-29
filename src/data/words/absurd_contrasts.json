@@ -1,239 +1,246 @@
 {
   "id": "absurd_contrasts",
-  "label": "荒诞错位",
-  "description": "不同对象共享动作、外形或关系，说着说着才发现不是一回事",
+  "label": "Odd Couples",
+  "description": "Unexpected pairs that share a look, an action, or a relationship until the details give them away.",
   "groups": [
     {
       "id": "absurd_contrasts-001",
       "words": [
-        "工资",
-        "月经"
+        "Payday",
+        "Menstrual Period"
       ]
     },
     {
       "id": "absurd_contrasts-002",
       "words": [
-        "老板",
-        "闹钟"
+        "Boss",
+        "Alarm Clock"
       ]
     },
     {
       "id": "absurd_contrasts-003",
       "words": [
-        "工作群",
-        "紧箍咒"
+        "Work Group Chat",
+        "Shock Collar"
       ]
     },
     {
       "id": "absurd_contrasts-004",
       "words": [
-        "画饼",
-        "烙饼"
+        "Sales Pitch",
+        "Bedtime Story"
       ]
     },
     {
       "id": "absurd_contrasts-005",
       "words": [
-        "奖状",
-        "罚单"
+        "Award Certificate",
+        "Parking Ticket"
       ]
     },
     {
       "id": "absurd_contrasts-006",
       "words": [
-        "锦旗",
-        "差评"
+        "Thank-You Card",
+        "One-Star Review"
       ]
     },
     {
       "id": "absurd_contrasts-007",
       "words": [
-        "锦鲤",
-        "许愿池"
+        "Lucky Penny",
+        "Wishing Well"
       ]
     },
     {
       "id": "absurd_contrasts-008",
       "words": [
-        "韭菜",
-        "股民"
+        "Sheep",
+        "Stock Trader"
       ]
     },
     {
       "id": "absurd_contrasts-009",
       "words": [
-        "复读机",
-        "班主任"
+        "Tape Recorder",
+        "Teacher"
       ]
     },
     {
       "id": "absurd_contrasts-010",
       "words": [
-        "监控",
-        "邻居"
+        "Security Camera",
+        "Nosy Neighbor"
       ]
     },
     {
       "id": "absurd_contrasts-011",
       "words": [
-        "宠物",
-        "甲方"
+        "Pet",
+        "Demanding Client"
       ]
     },
     {
       "id": "absurd_contrasts-012",
       "words": [
-        "孔雀",
-        "开屏广告"
+        "Peacock",
+        "Pop-Up Ad"
       ]
     },
     {
       "id": "absurd_contrasts-013",
       "words": [
-        "垃圾桶",
-        "收藏夹"
-      ]
-    },
-    {
-      "id": "absurd_contrasts-014",
-      "words": [
-        "鱼缸",
-        "办公室"
+        "Trash Can",
+        "Bookmarks Folder"
       ]
     },
     {
       "id": "absurd_contrasts-015",
       "words": [
-        "电梯",
-        "股票"
+        "Elevator",
+        "Stock Price"
       ]
     },
     {
       "id": "absurd_contrasts-016",
       "words": [
-        "充电",
-        "吃饭"
+        "Charging a Phone",
+        "Eating Dinner"
       ]
     },
     {
       "id": "absurd_contrasts-017",
       "words": [
-        "牙刷",
-        "马桶刷"
+        "Toothbrush",
+        "Toilet Brush"
       ]
     },
     {
       "id": "absurd_contrasts-018",
       "words": [
-        "马桶搋",
-        "麦克风"
+        "Toilet Plunger",
+        "Microphone"
       ]
     },
     {
       "id": "absurd_contrasts-019",
       "words": [
-        "狗链",
-        "项链"
+        "Dog Collar",
+        "Necklace"
       ]
     },
     {
       "id": "absurd_contrasts-020",
       "words": [
-        "猫",
-        "室友"
+        "Cat",
+        "Roommate"
       ]
     },
     {
       "id": "absurd_contrasts-021",
       "words": [
-        "床",
-        "充电器"
+        "Bed",
+        "Phone Charger"
       ]
     },
     {
       "id": "absurd_contrasts-022",
       "words": [
-        "手机壳",
-        "盔甲"
+        "Phone Case",
+        "Suit of Armor"
       ]
     },
     {
       "id": "absurd_contrasts-023",
       "words": [
-        "卸妆",
-        "考古"
+        "Removing Makeup",
+        "Archaeological Dig"
       ]
     },
     {
       "id": "absurd_contrasts-024",
       "words": [
-        "面膜",
-        "封条"
+        "Sheet Mask",
+        "Tamper-Proof Seal"
       ]
     },
     {
       "id": "absurd_contrasts-025",
       "words": [
-        "美颜",
-        "整容"
+        "Beauty Filter",
+        "Cosmetic Surgery"
       ]
     },
     {
       "id": "absurd_contrasts-026",
       "words": [
-        "减肥",
-        "裁员"
+        "Dieting",
+        "Downsizing"
       ]
     },
     {
       "id": "absurd_contrasts-027",
       "words": [
-        "开盲盒",
-        "相亲"
+        "Mystery Box",
+        "Blind Date"
       ]
     },
     {
       "id": "absurd_contrasts-028",
       "words": [
-        "排队",
-        "贪吃蛇"
+        "Waiting in Line",
+        "Snake Game"
       ]
     },
     {
       "id": "absurd_contrasts-029",
       "words": [
-        "追星",
-        "拜神"
+        "Celebrity Worship",
+        "Prayer"
       ]
     },
     {
       "id": "absurd_contrasts-030",
       "words": [
-        "理发店",
-        "许愿池"
+        "Hair Salon",
+        "Wishing Well"
       ]
     },
     {
       "id": "absurd_contrasts-031",
       "words": [
-        "算命",
-        "天气预报"
+        "Fortune-Telling",
+        "Weather Forecast"
       ]
     },
     {
       "id": "absurd_contrasts-032",
       "words": [
-        "导航",
-        "军师"
+        "GPS Navigator",
+        "Military Strategist"
       ]
     },
     {
       "id": "absurd_contrasts-033",
       "words": [
-        "圣旨",
-        "群公告"
+        "Royal Decree",
+        "Group Chat Announcement"
+      ]
+    },
+    {
+      "id": "absurd_contrasts-034",
+      "words": [
+        "Photocopier",
+        "Parrot"
+      ]
+    },
+    {
+      "id": "absurd_contrasts-035",
+      "words": [
+        "Dog Walker",
+        "Tour Guide"
       ]
     }
   ],
-  "groupCount": 33
+  "groupCount": 34
 }

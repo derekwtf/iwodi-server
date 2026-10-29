@@ -1,467 +1,474 @@
 {
   "id": "city_travel",
-  "label": "城市出行",
-  "description": "城市空间、公共场所、交通工具与旅行体验",
+  "label": "City & Travel",
+  "description": "City spaces, public places, transportation, and travel experiences",
   "groups": [
     {
       "id": "city_travel-001",
       "words": [
-        "攀岩馆",
-        "蹦床馆",
-        "滑冰场"
+        "Climbing Gym",
+        "Trampoline Park",
+        "Ice Rink"
       ]
     },
     {
       "id": "city_travel-002",
       "words": [
-        "科技馆",
-        "天文馆",
-        "海洋馆"
+        "Science Museum",
+        "Planetarium",
+        "Aquarium"
       ]
     },
     {
       "id": "city_travel-003",
       "words": [
-        "温泉",
-        "桑拿"
+        "Hot Spring",
+        "Sauna"
       ]
     },
     {
       "id": "city_travel-004",
       "words": [
-        "直升机",
-        "热气球"
+        "Helicopter",
+        "Hot Air Balloon"
       ]
     },
     {
       "id": "city_travel-007",
       "words": [
-        "交通卡",
-        "乘车码"
+        "Transit Card",
+        "Mobile Ticket"
       ]
     },
     {
       "id": "city_travel-008",
       "words": [
-        "青旅",
-        "客栈"
+        "Hostel",
+        "Bed and Breakfast"
       ]
     },
     {
       "id": "city_travel-009",
       "words": [
-        "水果店",
-        "蛋糕店",
-        "甜品店"
+        "Fruit Stand",
+        "Bakery",
+        "Ice Cream Shop"
       ]
     },
     {
       "id": "city_travel-010",
       "words": [
-        "寺庙",
-        "道观",
-        "教堂"
+        "Temple",
+        "Mosque",
+        "Church"
       ]
     },
     {
       "id": "city_travel-011",
       "words": [
-        "地铁",
-        "公交",
-        "轻轨"
+        "Subway",
+        "Bus",
+        "Monorail"
       ]
     },
     {
       "id": "city_travel-016",
       "words": [
-        "过街天桥",
-        "地下通道",
-        "人行横道"
+        "Pedestrian Bridge",
+        "Pedestrian Tunnel",
+        "Crosswalk"
       ]
     },
     {
       "id": "city_travel-017",
       "words": [
-        "羽毛球馆",
-        "乒乓球馆",
-        "台球厅"
+        "Badminton Court",
+        "Table Tennis Club",
+        "Pool Hall"
       ]
     },
     {
       "id": "city_travel-018",
       "words": [
-        "便利店",
-        "小卖部",
-        "杂货店"
+        "Convenience Store",
+        "Roadside Kiosk",
+        "Grocery Store"
       ]
     },
     {
       "id": "city_travel-020",
       "words": [
-        "音乐厅",
-        "歌剧院",
-        "话剧院"
+        "Concert Hall",
+        "Opera House",
+        "Playhouse"
       ]
     },
     {
       "id": "city_travel-021",
       "words": [
-        "电玩城",
-        "密室逃脱"
+        "Arcade",
+        "Escape Room"
       ]
     },
     {
       "id": "city_travel-023",
       "words": [
-        "有轨电车",
-        "无轨电车"
+        "Streetcar",
+        "Trolleybus"
       ]
     },
     {
       "id": "city_travel-025",
       "words": [
-        "高铁",
-        "特快"
+        "Bullet Train",
+        "Sleeper Train"
       ]
     },
     {
       "id": "city_travel-026",
       "words": [
-        "扶梯",
-        "直梯",
-        "货梯"
+        "Escalator",
+        "Passenger Elevator",
+        "Freight Elevator"
       ]
     },
     {
       "id": "city_travel-031",
       "words": [
-        "商场",
-        "集市",
-        "庙会"
+        "Shopping Mall",
+        "Flea Market",
+        "County Fair"
       ]
     },
     {
       "id": "city_travel-032",
       "words": [
-        "早市",
-        "夜市",
-        "菜场"
+        "Farmers Market",
+        "Night Market",
+        "Fish Market"
       ]
     },
     {
       "id": "city_travel-033",
       "words": [
-        "城墙",
-        "城门",
-        "城楼"
+        "Castle Wall",
+        "Castle Gate",
+        "Castle Tower"
       ]
     },
     {
       "id": "city_travel-034",
       "words": [
-        "博物馆",
-        "美术馆",
-        "展览馆"
+        "History Museum",
+        "Art Gallery",
+        "Exhibition Hall"
       ]
     },
     {
       "id": "city_travel-035",
       "words": [
-        "酒店",
-        "民宿"
+        "Hotel",
+        "Vacation Rental"
       ]
     },
     {
       "id": "city_travel-036",
       "words": [
-        "美食街",
-        "大排档"
+        "Food Court",
+        "Food Truck"
       ]
     },
     {
       "id": "city_travel-037",
       "words": [
-        "电影院",
-        "私人影院"
+        "Movie Theater",
+        "Drive-In Theater"
       ]
     },
     {
       "id": "city_travel-038",
       "words": [
-        "滑梯",
-        "秋千",
-        "木马"
+        "Slide",
+        "Swing",
+        "Rocking Horse"
       ]
     },
     {
       "id": "city_travel-039",
       "words": [
-        "过山车",
-        "碰碰车",
-        "摩天轮"
+        "Roller Coaster",
+        "Bumper Cars",
+        "Ferris Wheel"
       ]
     },
     {
       "id": "city_travel-040",
       "words": [
-        "动物园",
-        "植物园",
-        "水族馆"
+        "Zoo",
+        "Botanical Garden",
+        "Aquarium"
       ]
     },
     {
       "id": "city_travel-041",
       "words": [
-        "书报亭",
-        "文具店",
-        "玩具店"
+        "Newsstand",
+        "Stationery Store",
+        "Toy Store"
       ]
     },
     {
       "id": "city_travel-042",
       "words": [
-        "公园",
-        "广场",
-        "操场"
+        "Park",
+        "Town Square",
+        "School Playground"
       ]
     },
     {
       "id": "city_travel-044",
       "words": [
-        "拱桥",
-        "吊桥",
-        "浮桥"
+        "Arch Bridge",
+        "Suspension Bridge",
+        "Floating Bridge"
       ]
     },
     {
       "id": "city_travel-045",
       "words": [
-        "火车站",
-        "汽车站",
-        "飞机场"
+        "Train Station",
+        "Bus Station",
+        "Airport"
       ]
     },
     {
       "id": "city_travel-046",
       "words": [
-        "码头",
-        "渡口",
-        "港口"
+        "Fishing Pier",
+        "Ferry Terminal",
+        "Cargo Port"
       ]
     },
     {
       "id": "city_travel-048",
       "words": [
-        "钟楼",
-        "鼓楼",
-        "角楼"
+        "Clock Tower",
+        "Lighthouse",
+        "Watchtower"
       ]
     },
     {
       "id": "city_travel-049",
       "words": [
-        "驿站",
-        "酒楼",
-        "茶馆"
+        "Inn",
+        "Tavern",
+        "Tea Room"
       ]
     },
     {
       "id": "city_travel-050",
       "words": [
-        "渡船",
-        "游船",
-        "帆船"
+        "Ferry",
+        "Sightseeing Boat",
+        "Sailboat"
       ]
     },
     {
       "id": "city_travel-051",
       "words": [
-        "网约车",
-        "出租车"
+        "Rideshare",
+        "Taxi"
       ]
     },
     {
       "id": "city_travel-052",
       "words": [
-        "共享单车",
-        "共享电动车"
+        "Bike Share",
+        "Scooter Share"
       ]
     },
     {
       "id": "city_travel-053",
       "words": [
-        "登机口",
-        "检票口"
+        "Boarding Gate",
+        "Train Ticket Barrier"
       ]
     },
     {
       "id": "city_travel-054",
       "words": [
-        "候机厅",
-        "候车室"
+        "Airport Lounge",
+        "Train Waiting Room"
       ]
     },
     {
       "id": "city_travel-055",
       "words": [
-        "红眼航班",
-        "早班飞机"
+        "Red-Eye Flight",
+        "Early Morning Flight"
       ]
     },
     {
       "id": "city_travel-056",
       "words": [
-        "直飞",
-        "中转"
+        "Nonstop Flight",
+        "Connecting Flight"
       ]
     },
     {
       "id": "city_travel-057",
       "words": [
-        "跟团游",
-        "自驾游"
+        "Guided Tour",
+        "Road Trip"
       ]
     },
     {
       "id": "city_travel-058",
       "words": [
-        "露营地",
-        "房车营地"
+        "Tent Campsite",
+        "RV Park"
       ]
     },
     {
       "id": "city_travel-059",
       "words": [
-        "观景台",
-        "瞭望塔"
+        "Observation Deck",
+        "Fire Lookout Tower"
       ]
     },
     {
       "id": "city_travel-060",
       "words": [
-        "博物馆",
-        "纪念馆"
+        "Museum",
+        "Memorial"
       ]
     },
     {
       "id": "city_travel-061",
       "words": [
-        "体育场",
-        "体育馆"
+        "Outdoor Stadium",
+        "Indoor Arena"
       ]
     },
     {
       "id": "city_travel-062",
       "words": [
-        "海洋馆",
-        "水族馆"
+        "Marine Theme Park",
+        "Aquarium"
       ]
     },
     {
       "id": "city_travel-063",
       "words": [
-        "高铁站",
-        "地铁站"
+        "High-Speed Rail Station",
+        "Subway Station"
       ]
     },
     {
       "id": "city_travel-064",
       "words": [
-        "行李托运",
-        "行李寄存"
+        "Baggage Check-In",
+        "Luggage Storage"
       ]
     },
     {
       "id": "city_travel-065",
       "words": [
-        "城市漫步",
-        "徒步旅行"
+        "City Walk",
+        "Mountain Hike"
       ]
     },
     {
       "id": "city_travel-066",
       "words": [
-        "机场大巴",
-        "旅游大巴"
+        "Airport Shuttle",
+        "Tour Bus"
       ]
     },
     {
       "id": "city_travel-067",
       "words": [
-        "登机牌",
-        "火车票"
+        "Boarding Pass",
+        "Train Ticket"
       ]
     },
     {
       "id": "city_travel-068",
       "words": [
-        "机场",
-        "鸟巢"
+        "Airport",
+        "Bird's Nest"
       ]
     },
     {
       "id": "city_travel-069",
       "words": [
-        "青旅",
-        "宿舍"
+        "Hostel",
+        "Dorm Room"
       ]
     },
     {
       "id": "city_travel-070",
       "words": [
-        "导游旗",
-        "军旗"
+        "Tour Guide Flag",
+        "Military Flag"
       ]
     },
     {
       "id": "city_travel-071",
       "words": [
-        "高铁",
-        "过山车"
+        "Bullet Train",
+        "Roller Coaster"
       ]
     },
     {
       "id": "city_travel-072",
       "words": [
-        "环岛",
-        "旋转木马"
+        "Roundabout",
+        "Carousel"
       ]
     },
     {
       "id": "city_travel-073",
       "words": [
-        "地铁",
-        "地鼠"
+        "Subway",
+        "Mole"
       ]
     },
     {
       "id": "city_travel-074",
       "words": [
-        "旅游攻略",
-        "小抄"
+        "Travel Guidebook",
+        "Cheat Sheet"
       ]
     },
     {
       "id": "city_travel-075",
       "words": [
-        "机场广播",
-        "寻人启事"
+        "Airport Announcement",
+        "Missing Person Poster"
       ]
     },
     {
       "id": "city_travel-076",
       "words": [
-        "导游",
-        "牧羊犬"
+        "Tour Guide",
+        "Sheepdog"
       ]
     },
     {
       "id": "city_travel-077",
       "words": [
-        "行李箱",
-        "蜗牛壳"
+        "Suitcase",
+        "Snail Shell"
+      ]
+    },
+    {
+      "id": "city_travel-078",
+      "words": [
+        "Drive-Thru",
+        "Car Wash"
       ]
     }
   ],
-  "groupCount": 62
+  "groupCount": 63
 }

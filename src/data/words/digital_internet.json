@@ -1,368 +1,368 @@
 {
   "id": "digital_internet",
-  "label": "数码互联网",
-  "description": "数码设备、网络交流与线上使用场景",
+  "label": "Tech & Internet",
+  "description": "Gadgets, online conversations, and the quirks of digital life.",
   "groups": [
     {
       "id": "digital_internet-001",
       "words": [
-        "朋友圈",
-        "说说"
+        "Social Media Feed",
+        "Group Chat"
       ]
     },
     {
       "id": "digital_internet-002",
       "words": [
-        "有线耳机",
-        "蓝牙耳机"
+        "Wired Earbuds",
+        "Wireless Earbuds"
       ]
     },
     {
       "id": "digital_internet-003",
       "words": [
-        "自拍杆",
-        "三脚架"
+        "Selfie Stick",
+        "Tripod"
       ]
     },
     {
       "id": "digital_internet-004",
       "words": [
-        "手机壳",
-        "手机膜"
+        "Phone Case",
+        "Screen Protector"
       ]
     },
     {
       "id": "digital_internet-005",
       "words": [
-        "美颜",
-        "滤镜",
-        "特效"
+        "Face Smoothing",
+        "Color Filter",
+        "Animated Ears"
       ]
     },
     {
       "id": "digital_internet-006",
       "words": [
-        "快充",
-        "无线充"
+        "Fast Charging",
+        "Wireless Charging"
       ]
     },
     {
       "id": "digital_internet-008",
       "words": [
-        "充电宝",
-        "充电头"
+        "Power Bank",
+        "Wall Charger"
       ]
     },
     {
       "id": "digital_internet-009",
       "words": [
-        "智能音箱",
-        "蓝牙音箱"
+        "Smart Speaker",
+        "Bluetooth Speaker"
       ]
     },
     {
       "id": "digital_internet-010",
       "words": [
-        "指纹锁",
-        "密码锁"
+        "Fingerprint Lock",
+        "Keypad Lock"
       ]
     },
     {
       "id": "digital_internet-011",
       "words": [
-        "运动手表",
-        "智能手环"
+        "Sports Watch",
+        "Fitness Band"
       ]
     },
     {
       "id": "digital_internet-012",
       "words": [
-        "人脸识别",
-        "指纹解锁"
+        "Facial Recognition",
+        "Fingerprint Unlock"
       ]
     },
     {
       "id": "digital_internet-016",
       "words": [
-        "公众号",
-        "视频号"
+        "Newsletter",
+        "Video Channel"
       ]
     },
     {
       "id": "digital_internet-017",
       "words": [
-        "电纸书",
-        "平板电脑"
+        "E-Reader",
+        "Tablet"
       ]
     },
     {
       "id": "digital_internet-018",
       "words": [
-        "打印机",
-        "复印机",
-        "扫描仪"
+        "Printer",
+        "Photocopier",
+        "Scanner"
       ]
     },
     {
       "id": "digital_internet-022",
       "words": [
-        "游戏本",
-        "轻薄本",
-        "台式机"
+        "Gaming Laptop",
+        "Ultrabook",
+        "Desktop Computer"
       ]
     },
     {
       "id": "digital_internet-023",
       "words": [
-        "智能灯",
-        "声控灯",
-        "感应灯"
+        "App-Controlled Light",
+        "Clap-Activated Light",
+        "Motion-Sensor Light"
       ]
     },
     {
       "id": "digital_internet-024",
       "words": [
-        "自拍",
-        "合影",
-        "抓拍"
+        "Selfie",
+        "Group Photo",
+        "Candid Photo"
       ]
     },
     {
       "id": "digital_internet-025",
       "words": [
-        "弹幕",
-        "评论"
+        "Live Chat",
+        "Comment Section"
       ]
     },
     {
       "id": "digital_internet-026",
       "words": [
-        "U盘",
-        "移动硬盘"
+        "USB Flash Drive",
+        "External Hard Drive"
       ]
     },
     {
       "id": "digital_internet-027",
       "words": [
-        "短视频",
-        "直播"
+        "Short Video",
+        "Livestream"
       ]
     },
     {
       "id": "digital_internet-029",
       "words": [
-        "表情包",
-        "贴纸"
+        "Reaction GIF",
+        "Digital Sticker"
       ]
     },
     {
       "id": "digital_internet-030",
       "words": [
-        "耳机",
-        "音箱"
+        "Headphones",
+        "Speakers"
       ]
     },
     {
       "id": "digital_internet-031",
       "words": [
-        "鼠标",
-        "触控板"
+        "Mouse",
+        "Trackpad"
       ]
     },
     {
       "id": "digital_internet-032",
       "words": [
-        "聊天机器人",
-        "搜索引擎"
+        "Chatbot",
+        "Search Engine"
       ]
     },
     {
       "id": "digital_internet-033",
       "words": [
-        "语音输入",
-        "语音消息"
+        "Voice Typing",
+        "Voice Message"
       ]
     },
     {
       "id": "digital_internet-034",
       "words": [
-        "群公告",
-        "置顶消息"
+        "Group Announcement",
+        "Calendar Invite"
       ]
     },
     {
       "id": "digital_internet-035",
       "words": [
-        "收藏夹",
-        "稍后再看"
+        "Bookmarks",
+        "Watch Later List"
       ]
     },
     {
       "id": "digital_internet-036",
       "words": [
-        "已读回执",
-        "输入中"
+        "Read Receipt",
+        "Typing Indicator"
       ]
     },
     {
       "id": "digital_internet-037",
       "words": [
-        "免密支付",
-        "扫码支付"
+        "Contactless Payment",
+        "QR Code Payment"
       ]
     },
     {
       "id": "digital_internet-038",
       "words": [
-        "云盘",
-        "手机相册"
+        "Cloud Storage",
+        "Photo Gallery"
       ]
     },
     {
       "id": "digital_internet-039",
       "words": [
-        "屏幕共享",
-        "远程控制"
+        "Screen Sharing",
+        "Remote Access"
       ]
     },
     {
       "id": "digital_internet-040",
       "words": [
-        "二维码",
-        "小程序码"
+        "QR Code",
+        "Barcode"
       ]
     },
     {
       "id": "digital_internet-041",
       "words": [
-        "表情包",
-        "颜文字"
+        "Meme",
+        "Emoticon"
       ]
     },
     {
       "id": "digital_internet-042",
       "words": [
-        "云游戏",
-        "游戏直播"
+        "Cloud Gaming",
+        "Game Livestream"
       ]
     },
     {
       "id": "digital_internet-043",
       "words": [
-        "网购订单",
-        "外卖订单"
+        "Online Shopping Order",
+        "Food Delivery Order"
       ]
     },
     {
       "id": "digital_internet-044",
       "words": [
-        "短视频",
-        "微短剧"
+        "Short Video",
+        "TV Episode"
       ]
     },
     {
       "id": "digital_internet-045",
       "words": [
-        "电子书",
-        "有声书"
+        "E-Book",
+        "Audiobook"
       ]
     },
     {
       "id": "digital_internet-046",
       "words": [
-        "验证码",
-        "动态口令"
+        "CAPTCHA",
+        "One-Time Password"
       ]
     },
     {
       "id": "digital_internet-047",
       "words": [
-        "直播连麦",
-        "视频会议"
+        "Livestream Call-In",
+        "Video Meeting"
       ]
     },
     {
       "id": "digital_internet-048",
       "words": [
-        "长截图",
-        "录屏"
+        "Scrolling Screenshot",
+        "Screen Recording"
       ]
     },
     {
       "id": "digital_internet-049",
       "words": [
-        "AI绘画",
-        "图片修图"
+        "AI Art",
+        "Photo Retouching"
       ]
     },
     {
       "id": "digital_internet-050",
       "words": [
-        "点赞",
-        "收藏"
+        "Like Button",
+        "Save Button"
       ]
     },
     {
       "id": "digital_internet-051",
       "words": [
-        "防盗门",
-        "防火墙"
-      ]
-    },
-    {
-      "id": "digital_internet-052",
-      "words": [
-        "人脸识别",
-        "刷脸赊账"
+        "Security Door",
+        "Firewall"
       ]
     },
     {
       "id": "digital_internet-053",
       "words": [
-        "隐身",
-        "装睡"
+        "Appearing Offline",
+        "Pretending to Sleep"
       ]
     },
     {
       "id": "digital_internet-054",
       "words": [
-        "撤回消息",
-        "吃后悔药"
+        "Unsend Message",
+        "Time Machine"
       ]
     },
     {
       "id": "digital_internet-055",
       "words": [
-        "已读不回",
-        "假装没听见"
+        "Leaving Someone on Read",
+        "Pretending Not to Hear"
       ]
     },
     {
       "id": "digital_internet-056",
       "words": [
-        "恢复出厂设置",
-        "失忆"
+        "Factory Reset",
+        "Amnesia"
       ]
     },
     {
       "id": "digital_internet-057",
       "words": [
-        "系统更新",
-        "装修"
+        "Software Update",
+        "Home Renovation"
       ]
     },
     {
       "id": "digital_internet-058",
       "words": [
-        "弹窗广告",
-        "小传单"
+        "Pop-Up Ad",
+        "Advertising Flyer"
       ]
     },
     {
       "id": "digital_internet-059",
       "words": [
-        "卸载",
-        "断舍离"
+        "Uninstalling",
+        "Decluttering"
+      ]
+    },
+    {
+      "id": "digital_internet-060",
+      "words": [
+        "Password",
+        "Secret Handshake"
       ]
     }
   ],

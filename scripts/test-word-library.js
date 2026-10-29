@@ -11,6 +11,7 @@ function testLegacyCompatibility() {
   ])
 
   assert.strictEqual(library.size, 2)
+  assert.strictEqual(library.getCategories()[0].label, 'Default Words')
   const pair = library.getRandomPair()
   assert.notStrictEqual(pair.civilian, pair.spy)
   assert.ok(['苹果', '香蕉', '猫', '狗'].includes(pair.civilian))
@@ -21,7 +22,7 @@ function testCategorizedDataset() {
   const library = new WordLibrary(dataset)
   const categories = library.getCategories()
 
-  assert.ok(categories.length >= 15)
+  assert.ok(categories.length >= 14)
   assert.ok(categories.some((category) => category.id === 'food'))
   assert.ok(categories.some((category) => category.id === 'people'))
   assert.ok(library.size >= 700)
@@ -31,7 +32,7 @@ function testDefaultDirectoryLoading() {
   const library = new WordLibrary()
 
   assert.ok(library.size >= 700)
-  assert.ok(library.getCategories().length >= 15)
+  assert.ok(library.getCategories().length >= 14)
 }
 
 function testMultiWordSelection() {
@@ -90,6 +91,27 @@ function testCategoryFiltering() {
   assert.ok(['杭州', '苏州'].includes(pair.spy))
 }
 
+function testCategoryHistorySurvivesCatalogCleanup() {
+  const library = new WordLibrary()
+  const category = dataset.categories.find((item) => item.id === 'food')
+  const pendingGroup = category.groups[category.groups.length - 1]
+  const excludeKeys = [
+    'language:retired:retired-001',
+    ...category.groups.slice(0, -1).map((group) => `language:${category.id}:${group.id}`),
+  ]
+  const pair = library.getRandomPair({ categories: [category.id], excludeKeys })
+
+  assert.strictEqual(pair.groupId, pendingGroup.id)
+  assert.strictEqual(pair.historyReset, false)
+
+  excludeKeys.push(`language:${category.id}:${pendingGroup.id}`)
+  const repeated = library.getRandomPair({ categories: [category.id], excludeKeys })
+  assert.strictEqual(repeated.categoryId, category.id)
+  assert.strictEqual(repeated.historyReset, true)
+  assert.ok(category.groups.some((group) => group.id === repeated.groupId))
+  assert.throws(() => library.getRandomPair({ categories: ['retired'], excludeKeys }))
+}
+
 function testDatasetCandidatePairsAreUnique() {
   const categoryIds = new Set()
   const groupIds = new Set()
@@ -108,7 +130,7 @@ function testDatasetCandidatePairsAreUnique() {
       groupIds.add(group.id)
       assert.ok(Array.isArray(group.words), `候选词格式异常: ${group.id}`)
       assert.ok(group.words.length >= 2 && group.words.length <= 3, `候选词数量异常: ${group.id}`)
-      assert.strictEqual(new Set(group.words).size, group.words.length, `组内词语重复: ${group.id}`)
+      assert.strictEqual(new Set(group.words.map((word) => word.toLowerCase())).size, group.words.length, `组内词语重复: ${group.id}`)
       group.words.forEach((word) => {
         assert.ok(typeof word === 'string' && word && word === word.trim(), `词语为空或含首尾空格: ${group.id}`)
       })
@@ -116,11 +138,23 @@ function testDatasetCandidatePairsAreUnique() {
       for (let first = 0; first < group.words.length; first += 1) {
         const firstWord = group.words[first]
         for (let second = first + 1; second < group.words.length; second += 1) {
-          const pair = [firstWord, group.words[second]].sort().join(' / ')
+          const pair = [firstWord, group.words[second]].map((word) => word.toLowerCase()).sort().join(' / ')
           assert.ok(!candidatePairs.has(pair), `重复可抽取词对: ${candidatePairs.get(pair)} 和 ${group.id} (${pair})`)
           candidatePairs.set(pair, group.id)
         }
       }
+    })
+  })
+}
+
+function testEnglishDataset() {
+  assert.ok(!dataset.categories.some((category) => category.id === 'idioms'), 'The idioms category is retired')
+  assert.throws(() => new WordLibrary().getRandomPair({ categories: ['idioms'] }))
+  dataset.categories.forEach((category) => {
+    const texts = [category.label, category.description, ...category.groups.flatMap((group) => group.words)]
+    texts.forEach((text) => {
+      assert.match(text, /[A-Za-z]/, `Expected English text in ${category.id}: ${text}`)
+      assert.doesNotMatch(text, /\p{Script=Han}/u, `Untranslated text in ${category.id}: ${text}`)
     })
   })
 }
@@ -197,7 +231,9 @@ function main() {
   testDefaultDirectoryLoading()
   testMultiWordSelection()
   testCategoryFiltering()
+  testCategoryHistorySurvivesCatalogCleanup()
   testDatasetCandidatePairsAreUnique()
+  testEnglishDataset()
   testEveryCategoryCanBeSelected()
   testDatasetPairsCanBeDealtInBothDirections()
   console.log('Word library tests passed.')

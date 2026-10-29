@@ -1,458 +1,425 @@
 {
   "id": "people",
-  "label": "人物",
-  "description": "历史人物、流行角色与现实身份的跨界错位",
+  "label": "People & Characters",
+  "description": "Famous figures, fictional characters, and unexpected connections to everyday roles.",
   "groups": [
     {
       "id": "people-001",
       "words": [
-        "孙悟空",
-        "哪吒",
-        "二郎神"
+        "Superman",
+        "Thor",
+        "Hercules"
       ]
     },
     {
       "id": "people-002",
       "words": [
-        "猪八戒",
-        "沙僧",
-        "唐僧"
+        "Shrek",
+        "Donkey",
+        "Puss in Boots"
       ]
     },
     {
       "id": "people-003",
       "words": [
-        "白骨精",
-        "蜘蛛精",
-        "铁扇公主"
+        "Maleficent",
+        "Ursula",
+        "The Wicked Witch"
       ]
     },
     {
       "id": "people-004",
       "words": [
-        "刘备",
-        "曹操",
-        "孙权"
+        "Julius Caesar",
+        "Alexander the Great",
+        "Napoleon"
       ]
     },
     {
       "id": "people-005",
       "words": [
-        "关羽",
-        "张飞",
-        "赵云"
+        "Lancelot",
+        "Robin Hood",
+        "Zorro"
       ]
     },
     {
       "id": "people-006",
       "words": [
-        "诸葛亮",
-        "周瑜",
-        "司马懿"
+        "Gandalf",
+        "Dumbledore",
+        "Merlin"
       ]
     },
     {
       "id": "people-007",
       "words": [
-        "贾宝玉",
-        "林黛玉",
-        "薛宝钗"
+        "Harry Potter",
+        "Ron Weasley",
+        "Hermione Granger"
       ]
     },
     {
       "id": "people-008",
       "words": [
-        "王熙凤",
-        "贾母",
-        "刘姥姥"
+        "Fairy Godmother",
+        "Mary Poppins",
+        "Nanny McPhee"
       ]
     },
     {
       "id": "people-009",
       "words": [
-        "武松",
-        "林冲",
-        "鲁智深"
+        "Tarzan",
+        "Hercules",
+        "Conan the Barbarian"
       ]
     },
     {
       "id": "people-015",
       "words": [
-        "包拯",
-        "狄仁杰",
-        "宋慈"
+        "Sherlock Holmes",
+        "Hercule Poirot",
+        "Miss Marple"
       ]
     },
     {
       "id": "people-016",
       "words": [
-        "姜子牙",
-        "申公豹",
-        "元始天尊"
+        "Zeus",
+        "Odin",
+        "Poseidon"
       ]
     },
     {
       "id": "people-017",
       "words": [
-        "李白",
-        "杜甫",
-        "白居易"
+        "William Shakespeare",
+        "Charles Dickens",
+        "Mark Twain"
       ]
     },
     {
       "id": "people-018",
       "words": [
-        "苏轼",
-        "辛弃疾",
-        "李清照"
+        "Jane Austen",
+        "Agatha Christie",
+        "J. K. Rowling"
       ]
     },
     {
       "id": "people-019",
       "words": [
-        "王昭君",
-        "西施",
-        "貂蝉"
-      ]
-    },
-    {
-      "id": "people-020",
-      "words": [
-        "秦始皇",
-        "汉武帝",
-        "唐太宗"
-      ]
-    },
-    {
-      "id": "people-021",
-      "words": [
-        "孔子",
-        "孟子",
-        "老子"
+        "Cleopatra",
+        "Helen of Troy",
+        "Queen Guinevere"
       ]
     },
     {
       "id": "people-022",
       "words": [
-        "岳飞",
-        "文天祥",
-        "戚继光"
+        "Joan of Arc",
+        "William Wallace",
+        "Spartacus"
       ]
     },
     {
       "id": "people-023",
       "words": [
-        "韩信",
-        "项羽",
-        "刘邦"
+        "George Washington",
+        "Abraham Lincoln",
+        "Winston Churchill"
       ]
     },
     {
       "id": "people-024",
       "words": [
-        "花木兰",
-        "穆桂英",
-        "梁红玉"
+        "Mulan",
+        "Wonder Woman",
+        "Katniss Everdeen"
       ]
     },
     {
       "id": "people-027",
       "words": [
-        "司马光",
-        "孔融",
-        "曹冲"
+        "Matilda",
+        "Alice in Wonderland",
+        "Peter Pan"
       ]
     },
     {
       "id": "people-028",
       "words": [
-        "张衡",
-        "祖冲之",
-        "毕昇"
+        "Isaac Newton",
+        "Albert Einstein",
+        "Galileo"
       ]
     },
     {
       "id": "people-029",
       "words": [
-        "华佗",
-        "扁鹊",
-        "李时珍"
+        "Florence Nightingale",
+        "Marie Curie",
+        "Louis Pasteur"
       ]
     },
     {
       "id": "people-030",
       "words": [
-        "鲁班",
-        "墨子",
-        "蔡伦"
+        "Leonardo da Vinci",
+        "Thomas Edison",
+        "Nikola Tesla"
       ]
     },
     {
       "id": "people-031",
       "words": [
-        "王羲之",
-        "颜真卿",
-        "柳公权"
+        "Pablo Picasso",
+        "Salvador Dali",
+        "Andy Warhol"
       ]
     },
     {
       "id": "people-034",
       "words": [
-        "陆游",
-        "陶渊明",
-        "王维"
-      ]
-    },
-    {
-      "id": "people-037",
-      "words": [
-        "大禹",
-        "后羿",
-        "夸父"
+        "Edgar Allan Poe",
+        "Dr. Seuss",
+        "Roald Dahl"
       ]
     },
     {
       "id": "people-038",
       "words": [
-        "女娲",
-        "嫦娥",
-        "精卫"
+        "Athena",
+        "Aphrodite",
+        "Artemis"
       ]
     },
     {
       "id": "people-039",
       "words": [
-        "神农",
-        "伏羲",
-        "盘古"
+        "Mother Nature",
+        "Father Time",
+        "Jack Frost"
       ]
     },
     {
       "id": "people-043",
       "words": [
-        "太白金星",
-        "土地公",
-        "阎王"
+        "Santa Claus",
+        "The Easter Bunny",
+        "The Tooth Fairy"
       ]
     },
     {
       "id": "people-044",
       "words": [
-        "钟馗",
-        "财神",
-        "妈祖"
+        "Dracula",
+        "Frankenstein's Monster",
+        "The Wolfman"
       ]
     },
     {
       "id": "people-046",
       "words": [
-        "孟姜女",
-        "白娘子",
-        "祝英台"
+        "Rapunzel",
+        "Sleeping Beauty",
+        "The Little Mermaid"
       ]
     },
     {
       "id": "people-047",
       "words": [
-        "牛郎",
-        "许仙",
-        "梁山伯"
+        "Prince Charming",
+        "Aladdin",
+        "The Beast"
       ]
     },
     {
       "id": "people-049",
       "words": [
-        "郑和",
-        "张骞",
-        "玄奘"
+        "Marco Polo",
+        "Christopher Columbus",
+        "Amelia Earhart"
       ]
     },
     {
       "id": "people-052",
       "words": [
-        "纪晓岚",
-        "刘墉",
-        "和珅"
-      ]
-    },
-    {
-      "id": "people-054",
-      "words": [
-        "武则天",
-        "孝庄",
-        "慈禧"
+        "Alfred Pennyworth",
+        "Mary Poppins"
       ]
     },
     {
       "id": "people-055",
       "words": [
-        "郑成功",
-        "林则徐",
-        "邓世昌"
+        "Blackbeard",
+        "Captain Hook",
+        "Jack Sparrow"
       ]
     },
     {
       "id": "people-057",
       "words": [
-        "鲁迅",
-        "老舍",
-        "冰心"
+        "George Orwell",
+        "J. R. R. Tolkien",
+        "C. S. Lewis"
       ]
     },
     {
       "id": "people-058",
       "words": [
-        "甄嬛",
-        "武媚娘"
+        "Elsa",
+        "Anna"
       ]
     },
     {
       "id": "people-059",
       "words": [
-        "福尔摩斯",
-        "工藤新一"
+        "Sherlock Holmes",
+        "Nancy Drew"
       ]
     },
     {
       "id": "people-062",
       "words": [
-        "成龙",
-        "甄子丹"
+        "Jackie Chan",
+        "Bruce Lee"
       ]
     },
     {
       "id": "people-063",
       "words": [
-        "哪吒",
-        "红孩儿"
+        "The Human Torch",
+        "Fire Mario"
       ]
     },
     {
       "id": "people-064",
       "words": [
-        "灰太狼",
-        "光头强"
+        "Tom the Cat",
+        "Wile E. Coyote"
       ]
     },
     {
       "id": "people-065",
       "words": [
-        "贝多芬",
-        "莫扎特"
+        "Beethoven",
+        "Mozart"
       ]
     },
     {
       "id": "people-066",
       "words": [
-        "梵高",
-        "莫奈"
+        "Vincent van Gogh",
+        "Claude Monet"
       ]
     },
     {
       "id": "people-067",
       "words": [
-        "白雪公主",
-        "灰姑娘"
+        "Snow White",
+        "Cinderella"
       ]
     },
     {
       "id": "people-068",
       "words": [
-        "蜘蛛侠",
-        "蝙蝠侠"
+        "Spider-Man",
+        "Batman"
       ]
     },
     {
       "id": "people-069",
       "words": [
-        "唐僧",
-        "法海"
+        "Yoda",
+        "Master Splinter"
       ]
     },
     {
       "id": "people-070",
       "words": [
-        "孙悟空",
-        "六耳猕猴"
+        "Mario",
+        "Luigi"
       ]
     },
     {
       "id": "people-071",
       "words": [
-        "白素贞",
-        "小青"
+        "Elsa",
+        "Iceman"
       ]
     },
     {
       "id": "people-072",
       "words": [
-        "关公",
-        "钟馗"
+        "Knight in Shining Armor",
+        "Bodyguard"
       ]
     },
     {
       "id": "people-073",
       "words": [
-        "李逍遥",
-        "景天"
+        "Indiana Jones",
+        "Lara Croft"
       ]
     },
     {
       "id": "people-074",
       "words": [
-        "岳飞",
-        "霍去病"
+        "Captain America",
+        "Wonder Woman"
       ]
     },
     {
       "id": "people-075",
       "words": [
-        "奥特曼",
-        "葫芦娃"
+        "Power Ranger",
+        "Teenage Mutant Ninja Turtle"
       ]
     },
     {
       "id": "people-076",
       "words": [
-        "海绵宝宝",
-        "洗碗海绵"
+        "SpongeBob SquarePants",
+        "Dish Sponge"
       ]
     },
     {
       "id": "people-077",
       "words": [
-        "皮卡丘",
-        "充电宝"
+        "Pikachu",
+        "Power Bank"
       ]
     },
     {
       "id": "people-078",
       "words": [
-        "哆啦A梦",
-        "自动售货机"
+        "Genie",
+        "Vending Machine"
       ]
     },
     {
       "id": "people-079",
       "words": [
-        "圣诞老人",
-        "快递员"
+        "Santa Claus",
+        "Delivery Driver"
       ]
     },
     {
       "id": "people-080",
       "words": [
-        "丘比特",
-        "红娘"
+        "Cupid",
+        "Matchmaker"
       ]
     },
     {
       "id": "people-081",
       "words": [
-        "唐僧",
-        "导游"
+        "Gandalf",
+        "Tour Guide"
       ]
     }
   ],
-  "groupCount": 59
+  "groupCount": 55
 }

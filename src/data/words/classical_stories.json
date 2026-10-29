@@ -1,324 +1,274 @@
 {
   "id": "classical_stories",
-  "label": "古典文学与故事",
-  "description": "古典名著、民间传说及与现代生活的跨界联想",
+  "label": "Stories & Legends",
+  "description": "Classic books, fairy tales, myths, and their unexpected parallels with modern life.",
   "groups": [
     {
       "id": "classical_stories-001",
       "words": [
-        "西游记",
-        "封神榜"
-      ]
-    },
-    {
-      "id": "classical_stories-002",
-      "words": [
-        "三国演义",
-        "水浒传"
+        "The Lord of the Rings",
+        "Harry Potter"
       ]
     },
     {
       "id": "classical_stories-003",
       "words": [
-        "牛郎织女",
-        "白蛇传",
-        "梁祝"
+        "Romeo and Juliet",
+        "Beauty and the Beast",
+        "The Little Mermaid"
       ]
     },
     {
       "id": "classical_stories-004",
       "words": [
-        "唐诗",
-        "宋词",
-        "元曲"
-      ]
-    },
-    {
-      "id": "classical_stories-005",
-      "words": [
-        "西厢记",
-        "牡丹亭",
-        "长生殿"
+        "Haiku",
+        "Limerick",
+        "Sonnet"
       ]
     },
     {
       "id": "classical_stories-006",
       "words": [
-        "三字经",
-        "百家姓",
-        "千字文"
+        "Alphabet Book",
+        "Nursery Rhyme Book",
+        "Fairy Tale Book"
       ]
     },
     {
       "id": "classical_stories-007",
       "words": [
-        "论语",
-        "孟子",
-        "大学"
+        "Fable",
+        "Parable",
+        "Proverb"
       ]
     },
     {
       "id": "classical_stories-008",
       "words": [
-        "孙子兵法",
-        "三十六计"
-      ]
-    },
-    {
-      "id": "classical_stories-009",
-      "words": [
-        "诗经",
-        "楚辞"
+        "The Art of War",
+        "Chess Manual"
       ]
     },
     {
       "id": "classical_stories-010",
       "words": [
-        "空城计",
-        "连环计",
-        "苦肉计"
+        "Trojan Horse",
+        "Decoy",
+        "Secret Tunnel"
       ]
     },
     {
       "id": "classical_stories-011",
       "words": [
-        "景阳冈",
-        "野猪林",
-        "快活林"
+        "Sherwood Forest",
+        "The Hundred Acre Wood",
+        "The Forbidden Forest"
       ]
     },
     {
       "id": "classical_stories-012",
       "words": [
-        "大观园",
-        "潇湘馆"
+        "Hogwarts",
+        "Neverland"
       ]
     },
     {
       "id": "classical_stories-013",
       "words": [
-        "火焰山",
-        "流沙河",
-        "五指山"
+        "Mount Olympus",
+        "Atlantis",
+        "Camelot"
       ]
     },
     {
       "id": "classical_stories-014",
       "words": [
-        "卧龙",
-        "凤雏"
+        "Magic School",
+        "Boarding School"
       ]
     },
     {
       "id": "classical_stories-015",
       "words": [
-        "丈八蛇矛",
-        "方天画戟"
+        "Excalibur",
+        "Thor's Hammer"
       ]
     },
     {
       "id": "classical_stories-016",
       "words": [
-        "蟠桃",
-        "人参果"
+        "Poisoned Apple",
+        "Magic Beans"
       ]
     },
     {
       "id": "classical_stories-017",
       "words": [
-        "三顾茅庐",
-        "草船借箭"
+        "Trojan Horse",
+        "Birthday Surprise"
       ]
     },
     {
       "id": "classical_stories-018",
       "words": [
-        "大闹天宫",
-        "龙宫借宝"
+        "Jack and the Beanstalk",
+        "Aladdin"
       ]
     },
     {
       "id": "classical_stories-019",
       "words": [
-        "桃园结义",
-        "单刀赴会"
+        "Knights of the Round Table",
+        "Superhero Team"
       ]
     },
     {
       "id": "classical_stories-020",
       "words": [
-        "精卫填海",
-        "愚公移山"
+        "The Tortoise and the Hare",
+        "The Boy Who Cried Wolf"
       ]
     },
     {
       "id": "classical_stories-021",
       "words": [
-        "嫦娥奔月",
-        "夸父逐日"
+        "Icarus",
+        "Peter Pan"
       ]
     },
     {
       "id": "classical_stories-022",
       "words": [
-        "完璧归赵",
-        "负荆请罪"
-      ]
-    },
-    {
-      "id": "classical_stories-023",
-      "words": [
-        "破釜沉舟",
-        "背水一战"
-      ]
-    },
-    {
-      "id": "classical_stories-024",
-      "words": [
-        "掩耳盗铃",
-        "刻舟求剑"
+        "Glass Slipper",
+        "Wedding Ring"
       ]
     },
     {
       "id": "classical_stories-025",
       "words": [
-        "狐假虎威",
-        "守株待兔"
+        "Little Red Riding Hood",
+        "The Three Little Pigs"
       ]
     },
     {
       "id": "classical_stories-026",
       "words": [
-        "四大名著",
-        "四书五经"
+        "Fairy Tales",
+        "Nursery Rhymes"
       ]
     },
     {
       "id": "classical_stories-028",
       "words": [
-        "武松打虎",
-        "李逵杀虎"
+        "David and Goliath",
+        "Jack the Giant Slayer"
       ]
     },
     {
       "id": "classical_stories-029",
       "words": [
-        "三打白骨精",
-        "三借芭蕉扇"
+        "Three Wishes",
+        "Three Trials"
       ]
     },
     {
       "id": "classical_stories-030",
       "words": [
-        "天仙配",
-        "牛郎织女"
+        "Rapunzel",
+        "Snow White"
       ]
     },
     {
       "id": "classical_stories-031",
       "words": [
-        "女娲补天",
-        "盘古开天"
-      ]
-    },
-    {
-      "id": "classical_stories-032",
-      "words": [
-        "红楼梦",
-        "西厢记"
+        "Noah's Ark",
+        "The Garden of Eden"
       ]
     },
     {
       "id": "classical_stories-033",
       "words": [
-        "聊斋",
-        "山海经"
+        "Dracula",
+        "Frankenstein"
       ]
     },
     {
       "id": "classical_stories-034",
       "words": [
-        "梁祝",
-        "罗密欧与朱丽叶"
+        "Romeo and Juliet",
+        "Titanic"
       ]
     },
     {
       "id": "classical_stories-035",
       "words": [
-        "嫦娥奔月",
-        "后羿射日"
+        "Icarus",
+        "The Wright Brothers"
       ]
     },
     {
       "id": "classical_stories-036",
       "words": [
-        "木兰辞",
-        "孔雀东南飞"
-      ]
-    },
-    {
-      "id": "classical_stories-037",
-      "words": [
-        "滕王阁序",
-        "岳阳楼记"
+        "Mulan",
+        "Joan of Arc"
       ]
     },
     {
       "id": "classical_stories-038",
       "words": [
-        "三国演义",
-        "三国志"
+        "Historical Novel",
+        "History Textbook"
       ]
     },
     {
       "id": "classical_stories-039",
       "words": [
-        "精卫填海",
-        "大禹治水"
+        "Noah's Ark",
+        "Flood Barrier"
       ]
     },
     {
       "id": "classical_stories-040",
       "words": [
-        "木兰从军",
-        "穆桂英挂帅"
+        "Joan of Arc",
+        "Wonder Woman"
       ]
     },
     {
       "id": "classical_stories-041",
       "words": [
-        "蟠桃会",
-        "同学会"
+        "The Mad Hatter's Tea Party",
+        "Family Reunion"
       ]
     },
     {
       "id": "classical_stories-042",
       "words": [
-        "取经",
-        "出差"
+        "Hero's Quest",
+        "Business Trip"
       ]
     },
     {
       "id": "classical_stories-043",
       "words": [
-        "画皮",
-        "美颜"
+        "Magic Mirror",
+        "Beauty Filter"
       ]
     },
     {
       "id": "classical_stories-044",
       "words": [
-        "水帘洞",
-        "海景房"
+        "Mermaid Grotto",
+        "Beach House"
       ]
     },
     {
       "id": "classical_stories-045",
       "words": [
-        "女儿国",
-        "女生宿舍"
+        "Neverland",
+        "Summer Camp"
       ]
     }
   ],
-  "groupCount": 44
+  "groupCount": 37
 }

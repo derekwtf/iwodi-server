@@ -1,514 +1,521 @@
 {
   "id": "tradition_nature",
-  "label": "传统与自然",
-  "description": "传统节俗、工艺、自然动植物与跨界生活比喻",
+  "label": "Traditions & Nature",
+  "description": "Celebrations, crafts, plants, animals, and surprising connections to everyday life.",
   "groups": [
     {
       "id": "tradition_nature-001",
       "words": [
-        "春节",
-        "元宵",
-        "端午"
+        "Christmas",
+        "Easter",
+        "Hanukkah"
       ]
     },
     {
       "id": "tradition_nature-002",
       "words": [
-        "中秋",
-        "重阳",
-        "腊八"
+        "Thanksgiving",
+        "New Year's Eve",
+        "Valentine's Day"
       ]
     },
     {
       "id": "tradition_nature-003",
       "words": [
-        "清明",
-        "寒食",
-        "中元"
+        "Halloween",
+        "Day of the Dead",
+        "Ghost Tour"
       ]
     },
     {
       "id": "tradition_nature-004",
       "words": [
-        "春联",
-        "年画",
-        "灯笼"
+        "Wreath",
+        "Bunting",
+        "Lantern"
       ]
     },
     {
       "id": "tradition_nature-005",
       "words": [
-        "鞭炮",
-        "烟花",
-        "孔明灯"
+        "Firecracker",
+        "Sparkler",
+        "Sky Lantern"
       ]
     },
     {
       "id": "tradition_nature-006",
       "words": [
-        "剪纸",
-        "泥人",
-        "皮影"
+        "Paper Cutout",
+        "Clay Figurine",
+        "Shadow Puppet"
       ]
     },
     {
       "id": "tradition_nature-007",
       "words": [
-        "刺绣",
-        "织锦",
-        "蜡染"
+        "Embroidery",
+        "Tapestry",
+        "Tie-Dye"
       ]
     },
     {
       "id": "tradition_nature-008",
       "words": [
-        "陶瓷",
-        "紫砂",
-        "琉璃"
+        "Earthenware",
+        "Porcelain",
+        "Blown Glass"
       ]
     },
     {
       "id": "tradition_nature-009",
       "words": [
-        "毛笔",
-        "墨汁",
-        "宣纸"
+        "Calligraphy Brush",
+        "Fountain Pen",
+        "Quill"
       ]
     },
     {
       "id": "tradition_nature-010",
       "words": [
-        "砚台",
-        "镇纸",
-        "笔架"
+        "Ink Stamp",
+        "Wax Seal",
+        "Embosser"
       ]
     },
     {
       "id": "tradition_nature-011",
       "words": [
-        "二胡",
-        "古筝",
-        "琵琶"
+        "Violin",
+        "Harp",
+        "Guitar"
       ]
     },
     {
       "id": "tradition_nature-012",
       "words": [
-        "笛子",
-        "箫",
-        "唢呐"
+        "Flute",
+        "Clarinet",
+        "Trumpet"
       ]
     },
     {
       "id": "tradition_nature-013",
       "words": [
-        "象棋",
-        "围棋",
-        "跳棋"
+        "Chess",
+        "Checkers",
+        "Backgammon"
       ]
     },
     {
       "id": "tradition_nature-015",
       "words": [
-        "蹴鞠",
-        "投壶",
-        "射箭"
+        "Croquet",
+        "Horseshoes",
+        "Archery"
       ]
     },
     {
       "id": "tradition_nature-016",
       "words": [
-        "太极",
-        "咏春",
-        "少林"
+        "Tai Chi",
+        "Karate",
+        "Boxing"
       ]
     },
     {
       "id": "tradition_nature-019",
       "words": [
-        "梅花",
-        "兰花",
-        "竹子"
+        "Cherry Blossom",
+        "Orchid",
+        "Magnolia"
       ]
     },
     {
       "id": "tradition_nature-020",
       "words": [
-        "菊花",
-        "荷花",
-        "桂花"
+        "Sunflower",
+        "Lotus",
+        "Lavender"
       ]
     },
     {
       "id": "tradition_nature-025",
       "words": [
-        "长城",
-        "故宫",
-        "天坛"
+        "Great Wall",
+        "Pyramids",
+        "Colosseum"
       ]
     },
     {
       "id": "tradition_nature-026",
       "words": [
-        "兵马俑",
-        "莫高窟",
-        "龙门石窟"
+        "Stonehenge",
+        "Terracotta Army",
+        "Easter Island Statues"
       ]
     },
     {
       "id": "tradition_nature-028",
       "words": [
-        "龙",
-        "凤凰",
-        "麒麟"
+        "Dragon",
+        "Phoenix",
+        "Unicorn"
       ]
     },
     {
       "id": "tradition_nature-029",
       "words": [
-        "红包",
-        "福袋",
-        "压岁钱"
+        "Christmas Stocking",
+        "Party Favor",
+        "Surprise Box"
       ]
     },
     {
       "id": "tradition_nature-031",
       "words": [
-        "旗袍",
-        "汉服",
-        "唐装"
+        "Kimono",
+        "Kilt",
+        "Sari"
       ]
     },
     {
       "id": "tradition_nature-032",
       "words": [
-        "秧歌",
-        "腰鼓",
-        "舞狮"
+        "Line Dancing",
+        "Tap Dancing",
+        "Flamenco"
       ]
     },
     {
       "id": "tradition_nature-033",
       "words": [
-        "铜钱",
-        "元宝"
+        "Gold Coin",
+        "Gold Bar"
       ]
     },
     {
       "id": "tradition_nature-034",
       "words": [
-        "亭子",
-        "牌坊",
-        "宝塔"
+        "Gazebo",
+        "Triumphal Arch",
+        "Pagoda"
       ]
     },
     {
       "id": "tradition_nature-036",
       "words": [
-        "拜年",
-        "祭祖"
+        "Family Reunion",
+        "Grave Visit"
       ]
     },
     {
       "id": "tradition_nature-037",
       "words": [
-        "麻将",
-        "扑克",
-        "骰子"
+        "Playing Cards",
+        "Dice",
+        "Dominoes"
       ]
     },
     {
       "id": "tradition_nature-038",
       "words": [
-        "油纸伞",
-        "折扇"
+        "Parasol",
+        "Folding Fan"
       ]
     },
     {
       "id": "tradition_nature-039",
       "words": [
-        "青铜器",
-        "玉器",
-        "漆器"
+        "Bronze Statue",
+        "Marble Bust",
+        "Wooden Carving"
       ]
     },
     {
       "id": "tradition_nature-040",
       "words": [
-        "京剧",
-        "越剧",
-        "黄梅戏"
+        "Opera",
+        "Musical",
+        "Ballet"
       ]
     },
     {
       "id": "tradition_nature-041",
       "words": [
-        "花脸",
-        "青衣",
-        "小生"
+        "Stage Villain",
+        "Tragic Hero",
+        "Comic Sidekick"
       ]
     },
     {
       "id": "tradition_nature-042",
       "words": [
-        "编钟",
-        "古琴",
-        "鼓"
+        "Chimes",
+        "Xylophone",
+        "Drum"
       ]
     },
     {
       "id": "tradition_nature-043",
       "words": [
-        "景泰蓝",
-        "唐三彩",
-        "青花瓷"
+        "Stained Glass",
+        "Patchwork Quilt",
+        "Tile Mosaic"
       ]
     },
     {
       "id": "tradition_nature-044",
       "words": [
-        "树林",
-        "竹林"
+        "Woodland",
+        "Bamboo Grove"
       ]
     },
     {
       "id": "tradition_nature-045",
       "words": [
-        "湖泊",
-        "水库"
+        "Lake",
+        "Reservoir"
       ]
     },
     {
       "id": "tradition_nature-046",
       "words": [
-        "草原",
-        "牧场"
+        "Prairie",
+        "Pasture"
       ]
     },
     {
       "id": "tradition_nature-048",
       "words": [
-        "沙漠",
-        "戈壁"
+        "Sand Dunes",
+        "Salt Flats"
       ]
     },
     {
       "id": "tradition_nature-050",
       "words": [
-        "梯田",
-        "茶园"
+        "Rice Terrace",
+        "Tea Plantation"
       ]
     },
     {
       "id": "tradition_nature-051",
       "words": [
-        "玫瑰",
-        "月季"
+        "Rose",
+        "Carnation"
       ]
     },
     {
       "id": "tradition_nature-052",
       "words": [
-        "海豚",
-        "海狮"
+        "Dolphin",
+        "Sea Lion"
       ]
     },
     {
       "id": "tradition_nature-053",
       "words": [
-        "蝴蝶",
-        "飞蛾"
+        "Butterfly",
+        "Moth"
       ]
     },
     {
       "id": "tradition_nature-054",
       "words": [
-        "麻雀",
-        "乌鸦"
+        "Sparrow",
+        "Crow"
       ]
     },
     {
       "id": "tradition_nature-055",
       "words": [
-        "薰衣草",
-        "满天星"
+        "Lavender",
+        "Baby's Breath"
       ]
     },
     {
       "id": "tradition_nature-056",
       "words": [
-        "雾",
-        "霾"
+        "Fog",
+        "Smog"
       ]
     },
     {
       "id": "tradition_nature-057",
       "words": [
-        "露水",
-        "霜"
+        "Dew",
+        "Frost"
       ]
     },
     {
       "id": "tradition_nature-058",
       "words": [
-        "极光",
-        "彩虹"
+        "Northern Lights",
+        "Rainbow"
       ]
     },
     {
       "id": "tradition_nature-059",
       "words": [
-        "珊瑚",
-        "海葵"
+        "Coral",
+        "Sea Anemone"
       ]
     },
     {
       "id": "tradition_nature-060",
       "words": [
-        "竹子",
-        "芦苇"
+        "Bamboo",
+        "Reeds"
       ]
     },
     {
       "id": "tradition_nature-061",
       "words": [
-        "银杏",
-        "梧桐"
+        "Maple Tree",
+        "Palm Tree"
       ]
     },
     {
       "id": "tradition_nature-062",
       "words": [
-        "龙卷风",
-        "沙尘暴"
+        "Tornado",
+        "Dust Storm"
       ]
     },
     {
       "id": "tradition_nature-063",
       "words": [
-        "萤火虫",
-        "夜光藻"
+        "Firefly",
+        "Glowing Plankton"
       ]
     },
     {
       "id": "tradition_nature-064",
       "words": [
-        "蜡染",
-        "扎染"
+        "Tie-Dye",
+        "Camouflage Print"
       ]
     },
     {
       "id": "tradition_nature-065",
       "words": [
-        "舞狮",
-        "舞龙"
+        "Lion Dance",
+        "Dragon Dance"
       ]
     },
     {
       "id": "tradition_nature-066",
       "words": [
-        "皮影戏",
-        "木偶戏"
+        "Shadow Puppets",
+        "Marionettes"
       ]
     },
     {
       "id": "tradition_nature-067",
       "words": [
-        "古琴",
-        "古筝"
+        "Ukulele",
+        "Guitar"
       ]
     },
     {
       "id": "tradition_nature-068",
       "words": [
-        "活字印刷",
-        "雕版印刷"
+        "Screen Printing",
+        "Woodblock Printing"
       ]
     },
     {
       "id": "tradition_nature-069",
       "words": [
-        "日晷",
-        "沙漏"
+        "Sundial",
+        "Hourglass"
       ]
     },
     {
       "id": "tradition_nature-070",
       "words": [
-        "闹钟",
-        "公鸡"
+        "Alarm Clock",
+        "Rooster"
       ]
     },
     {
       "id": "tradition_nature-071",
       "words": [
-        "蒲公英",
-        "降落伞"
+        "Dandelion",
+        "Parachute"
       ]
     },
     {
       "id": "tradition_nature-072",
       "words": [
-        "含羞草",
-        "社恐"
+        "Turtle",
+        "Shy Person"
       ]
     },
     {
       "id": "tradition_nature-073",
       "words": [
-        "蜗牛",
-        "房奴"
+        "Snail",
+        "Mortgage Payer"
       ]
     },
     {
       "id": "tradition_nature-074",
       "words": [
-        "蚊帐",
-        "结界"
+        "Mosquito Net",
+        "Force Field"
       ]
     },
     {
       "id": "tradition_nature-075",
       "words": [
-        "仙人掌",
-        "狼牙棒"
+        "Cactus",
+        "Spiked Mace"
       ]
     },
     {
       "id": "tradition_nature-076",
       "words": [
-        "蛇蜕",
-        "旧衣服"
+        "Shed Snakeskin",
+        "Old Clothes"
       ]
     },
     {
       "id": "tradition_nature-077",
       "words": [
-        "冬眠",
-        "放寒假"
+        "Hibernation",
+        "Winter Break"
       ]
     },
     {
       "id": "tradition_nature-078",
       "words": [
-        "候鸟",
-        "春运旅客"
+        "Migrating Birds",
+        "Holiday Travelers"
       ]
     },
     {
       "id": "tradition_nature-079",
       "words": [
-        "蘑菇",
-        "雨伞"
+        "Mushroom",
+        "Umbrella"
       ]
     },
     {
       "id": "tradition_nature-080",
       "words": [
-        "河豚",
-        "气球"
+        "Pufferfish",
+        "Balloon"
+      ]
+    },
+    {
+      "id": "tradition_nature-081",
+      "words": [
+        "Snowman",
+        "Sandcastle"
       ]
     }
   ],
-  "groupCount": 68
+  "groupCount": 69
 }

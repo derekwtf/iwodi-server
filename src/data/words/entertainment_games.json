@@ -1,190 +1,204 @@
 {
   "id": "entertainment_games",
-  "label": "娱乐游戏",
-  "description": "舞台、追剧、玩家日常与娱乐圈的戏剧化联想",
+  "label": "Entertainment & Games",
+  "description": "Stage performances, screen time, gaming, and the drama of show business.",
   "groups": [
     {
       "id": "entertainment_games-001",
       "words": [
-        "相声",
-        "吵架"
+        "Comedy Duo",
+        "Argument"
       ]
     },
     {
       "id": "entertainment_games-002",
       "words": [
-        "演唱会",
-        "广场舞"
+        "Concert",
+        "Street Dance"
       ]
     },
     {
       "id": "entertainment_games-003",
       "words": [
-        "蹦迪",
-        "军训"
+        "Clubbing",
+        "Boot Camp"
       ]
     },
     {
       "id": "entertainment_games-004",
       "words": [
-        "剧透",
-        "告密"
+        "Spoiler",
+        "Snitching"
       ]
     },
     {
       "id": "entertainment_games-005",
       "words": [
-        "导演",
-        "班主任"
+        "Film Director",
+        "Homeroom Teacher"
       ]
     },
     {
       "id": "entertainment_games-006",
       "words": [
-        "替身",
-        "代练"
+        "Stunt Double",
+        "Substitute Player"
       ]
     },
     {
       "id": "entertainment_games-007",
       "words": [
-        "群演",
-        "背景板"
+        "Movie Extra",
+        "Stage Prop"
       ]
     },
     {
       "id": "entertainment_games-008",
       "words": [
-        "开挂",
-        "请神"
+        "Cheat Code",
+        "Magic Spell"
       ]
     },
     {
       "id": "entertainment_games-009",
       "words": [
-        "排位赛",
-        "科举"
+        "Ranked Match",
+        "Entrance Exam"
       ]
     },
     {
       "id": "entertainment_games-010",
       "words": [
-        "掉线",
-        "失踪"
+        "Disconnected Player",
+        "Missing Person"
       ]
     },
     {
       "id": "entertainment_games-011",
       "words": [
-        "游戏存档",
-        "后悔药"
+        "Save Point",
+        "Time Machine"
       ]
     },
     {
       "id": "entertainment_games-012",
       "words": [
-        "氪金",
-        "烧香"
+        "In-App Purchase",
+        "Wishing Well"
       ]
     },
     {
       "id": "entertainment_games-013",
       "words": [
-        "复活甲",
-        "护身符"
+        "Extra Life",
+        "Lucky Charm"
       ]
     },
     {
       "id": "entertainment_games-014",
       "words": [
-        "游戏皮肤",
-        "新衣服"
+        "Character Skin",
+        "New Outfit"
       ]
     },
     {
       "id": "entertainment_games-015",
       "words": [
-        "弹幕",
-        "小纸条"
+        "Live Chat",
+        "Passed Note"
       ]
     },
     {
       "id": "entertainment_games-016",
       "words": [
-        "抢票",
-        "抢红包"
+        "Concert Presale",
+        "Black Friday Sale"
       ]
     },
     {
       "id": "entertainment_games-017",
       "words": [
-        "单曲循环",
-        "洗脑"
+        "Song on Repeat",
+        "Brainwashing"
       ]
     },
     {
       "id": "entertainment_games-018",
       "words": [
-        "热搜",
-        "通缉令"
+        "Trending Topic",
+        "Wanted Poster"
       ]
     },
     {
       "id": "entertainment_games-019",
       "words": [
-        "明星塌房",
-        "产品召回"
+        "Celebrity Scandal",
+        "Product Recall"
       ]
     },
     {
       "id": "entertainment_games-020",
       "words": [
-        "颁奖礼",
-        "分赃"
+        "Awards Ceremony",
+        "Dividing the Loot"
       ]
     },
     {
       "id": "entertainment_games-021",
       "words": [
-        "选秀",
-        "选妃"
+        "Talent Show",
+        "Dating Show"
       ]
     },
     {
       "id": "entertainment_games-022",
       "words": [
-        "抽卡",
-        "刮刮乐"
+        "Loot Box",
+        "Scratch Card"
       ]
     },
     {
       "id": "entertainment_games-023",
       "words": [
-        "综艺剪辑",
-        "美颜滤镜"
+        "Reality TV Editing",
+        "Beauty Filter"
       ]
     },
     {
       "id": "entertainment_games-024",
       "words": [
-        "恐怖片",
-        "催款短信"
+        "Horror Movie",
+        "Overdue Bill"
       ]
     },
     {
       "id": "entertainment_games-025",
       "words": [
-        "脱口秀",
-        "检讨书"
+        "Stand-Up Routine",
+        "Public Apology"
       ]
     },
     {
       "id": "entertainment_games-026",
       "words": [
-        "红毯",
-        "斑马线"
+        "Red Carpet",
+        "Crosswalk"
+      ]
+    },
+    {
+      "id": "entertainment_games-027",
+      "words": [
+        "Bowling",
+        "Mini Golf"
+      ]
+    },
+    {
+      "id": "entertainment_games-028",
+      "words": [
+        "Karaoke",
+        "Lip Syncing"
       ]
     }
   ],
-  "groupCount": 26
+  "groupCount": 28
 }

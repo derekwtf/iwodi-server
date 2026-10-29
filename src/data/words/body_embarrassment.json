@@ -1,195 +1,195 @@
 {
   "id": "body_embarrassment",
-  "label": "身体糗事",
-  "description": "日常身体体验、出糗瞬间与形状声音的跨界联想",
+  "label": "Awkward Body Moments",
+  "description": "Bodily mishaps and everyday objects with surprisingly similar sounds, shapes, or behavior.",
   "groups": [
     {
       "id": "body_embarrassment-001",
       "words": [
-        "打嗝",
-        "放屁"
+        "Burping",
+        "Farting"
       ]
     },
     {
       "id": "body_embarrassment-002",
       "words": [
-        "梦话",
-        "醉话"
+        "Sleep Talking",
+        "Drunk Rambling"
       ]
     },
     {
       "id": "body_embarrassment-003",
       "words": [
-        "打呼噜",
-        "电钻"
+        "Snoring",
+        "Power Drill"
       ]
     },
     {
       "id": "body_embarrassment-004",
       "words": [
-        "秃头",
-        "落叶"
+        "Balding",
+        "Falling Leaves"
       ]
     },
     {
       "id": "body_embarrassment-005",
       "words": [
-        "鼻毛",
-        "睫毛"
+        "Nose Hair",
+        "Eyelashes"
       ]
     },
     {
       "id": "body_embarrassment-006",
       "words": [
-        "抬头纹",
-        "搓衣板"
+        "Forehead Wrinkles",
+        "Washboard"
       ]
     },
     {
       "id": "body_embarrassment-007",
       "words": [
-        "黑眼圈",
-        "烟熏妆"
+        "Dark Circles",
+        "Smoky Eye Makeup"
       ]
     },
     {
       "id": "body_embarrassment-008",
       "words": [
-        "肚腩",
-        "游泳圈"
+        "Beer Belly",
+        "Inflatable Swim Ring"
       ]
     },
     {
       "id": "body_embarrassment-009",
       "words": [
-        "牙套",
-        "铁丝网"
+        "Braces",
+        "Wire Fence"
       ]
     },
     {
       "id": "body_embarrassment-010",
       "words": [
-        "假牙",
-        "隐形眼镜"
+        "Dentures",
+        "Contact Lenses"
       ]
     },
     {
       "id": "body_embarrassment-011",
       "words": [
-        "拔牙",
-        "拆迁"
+        "Tooth Extraction",
+        "Building Demolition"
       ]
     },
     {
       "id": "body_embarrassment-012",
       "words": [
-        "打针",
-        "纹身"
+        "Getting a Shot",
+        "Getting a Tattoo"
       ]
     },
     {
       "id": "body_embarrassment-013",
       "words": [
-        "按摩",
-        "揉面"
+        "Getting a Massage",
+        "Kneading Dough"
       ]
     },
     {
       "id": "body_embarrassment-014",
       "words": [
-        "便秘",
-        "堵车"
+        "Constipation",
+        "Traffic Jam"
       ]
     },
     {
       "id": "body_embarrassment-015",
       "words": [
-        "拉肚子",
-        "泄洪"
+        "Diarrhea",
+        "Burst Water Pipe"
       ]
     },
     {
       "id": "body_embarrassment-016",
       "words": [
-        "打喷嚏",
-        "爆米花"
+        "Sneezing",
+        "Popcorn Popping"
       ]
     },
     {
       "id": "body_embarrassment-017",
       "words": [
-        "汗毛",
-        "草坪"
+        "Body Hair",
+        "Lawn"
       ]
     },
     {
       "id": "body_embarrassment-018",
       "words": [
-        "起床气",
-        "路怒症"
+        "Morning Grumpiness",
+        "Road Rage"
       ]
     },
     {
       "id": "body_embarrassment-019",
       "words": [
-        "减肥",
-        "还债"
+        "Losing Weight",
+        "Paying Off Debt"
       ]
     },
     {
       "id": "body_embarrassment-020",
       "words": [
-        "暴食",
-        "报复性消费"
+        "Binge Eating",
+        "Impulse Shopping"
       ]
     },
     {
       "id": "body_embarrassment-021",
       "words": [
-        "憋笑",
-        "憋尿"
+        "Holding in a Laugh",
+        "Holding in Pee"
       ]
     },
     {
       "id": "body_embarrassment-022",
       "words": [
-        "磨牙",
-        "磨刀"
+        "Grinding Teeth",
+        "Sharpening a Knife"
       ]
     },
     {
       "id": "body_embarrassment-023",
       "words": [
-        "落枕",
-        "卡壳"
+        "Stiff Neck",
+        "Rusty Hinge"
       ]
     },
     {
       "id": "body_embarrassment-024",
       "words": [
-        "流鼻涕",
-        "拉丝芝士"
+        "Runny Nose",
+        "Stringy Cheese"
       ]
     },
     {
       "id": "body_embarrassment-025",
       "words": [
-        "脚臭",
-        "臭豆腐"
+        "Smelly Feet",
+        "Blue Cheese"
       ]
     },
     {
       "id": "body_embarrassment-026",
       "words": [
-        "体检",
-        "年检"
+        "Medical Checkup",
+        "Vehicle Inspection"
       ]
     },
     {
       "id": "body_embarrassment-027",
       "words": [
-        "挂号",
-        "抢票"
+        "Booking a Doctor's Appointment",
+        "Buying Concert Tickets"
       ]
     }
   ],

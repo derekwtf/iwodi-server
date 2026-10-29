@@ -1,853 +1,853 @@
 {
   "id": "daily_items",
-  "label": "日常用品",
-  "description": "家居、穿戴、个护与常用器具",
+  "label": "Everyday Items",
+  "description": "Household essentials, clothing, personal care, and everyday tools",
   "groups": [
     {
       "id": "daily_items-001",
       "words": [
-        "卷筒纸",
-        "抽纸",
-        "手帕纸"
+        "Toilet Paper",
+        "Paper Towels",
+        "Tissues"
       ]
     },
     {
       "id": "daily_items-002",
       "words": [
-        "戒指",
-        "手镯",
-        "臂环"
+        "Ring",
+        "Bracelet",
+        "Armband"
       ]
     },
     {
       "id": "daily_items-003",
       "words": [
-        "钱包",
-        "卡包",
-        "名片夹"
+        "Wallet",
+        "Credit Card Holder",
+        "Business Card Case"
       ]
     },
     {
       "id": "daily_items-004",
       "words": [
-        "保温杯",
-        "玻璃杯",
-        "塑料杯"
+        "Insulated Tumbler",
+        "Drinking Glass",
+        "Plastic Cup"
       ]
     },
     {
       "id": "daily_items-005",
       "words": [
-        "衣架",
-        "晾衣绳"
+        "Clothes Hanger",
+        "Clothesline"
       ]
     },
     {
       "id": "daily_items-006",
       "words": [
-        "急救包",
-        "医药箱",
-        "创可贴"
+        "First Aid Kit",
+        "Medicine Cabinet",
+        "Bandage"
       ]
     },
     {
       "id": "daily_items-007",
       "words": [
-        "地毯",
-        "地垫",
-        "门垫"
+        "Carpet",
+        "Bath Mat",
+        "Doormat"
       ]
     },
     {
       "id": "daily_items-009",
       "words": [
-        "抹布",
-        "拖把"
+        "Cleaning Rag",
+        "Mop"
       ]
     },
     {
       "id": "daily_items-010",
       "words": [
-        "口红",
-        "指甲油"
+        "Lipstick",
+        "Nail Polish"
       ]
     },
     {
       "id": "daily_items-011",
       "words": [
-        "粉底",
-        "腮红",
-        "眉笔"
+        "Foundation",
+        "Blush",
+        "Eyebrow Pencil"
       ]
     },
     {
       "id": "daily_items-014",
       "words": [
-        "荧光笔",
-        "记号笔",
-        "白板笔"
+        "Highlighter",
+        "Permanent Marker",
+        "Dry-Erase Marker"
       ]
     },
     {
       "id": "daily_items-015",
       "words": [
-        "指南针",
-        "地图"
+        "Compass",
+        "Map"
       ]
     },
     {
       "id": "daily_items-016",
       "words": [
-        "胶水",
-        "固体胶",
-        "双面胶"
+        "Liquid Glue",
+        "Glue Stick",
+        "Double-Sided Tape"
       ]
     },
     {
       "id": "daily_items-017",
       "words": [
-        "落地灯",
-        "台灯",
-        "小夜灯"
+        "Floor Lamp",
+        "Desk Lamp",
+        "Night Light"
       ]
     },
     {
       "id": "daily_items-018",
       "words": [
-        "洗发露",
-        "护发素",
-        "沐浴露"
+        "Shampoo",
+        "Conditioner",
+        "Body Wash"
       ]
     },
     {
       "id": "daily_items-019",
       "words": [
-        "枕巾",
-        "枕套",
-        "枕芯"
+        "Pillowcase",
+        "Throw Pillow",
+        "Body Pillow"
       ]
     },
     {
       "id": "daily_items-021",
       "words": [
-        "香水",
-        "身体喷雾",
-        "香薰"
+        "Perfume",
+        "Body Spray",
+        "Incense"
       ]
     },
     {
       "id": "daily_items-022",
       "words": [
-        "吹风机",
-        "卷发棒",
-        "直发器"
+        "Hair Dryer",
+        "Curling Iron",
+        "Hair Straightener"
       ]
     },
     {
       "id": "daily_items-023",
       "words": [
-        "鞋柜",
-        "玄关柜",
-        "置物柜"
+        "Shoe Cabinet",
+        "Entryway Table",
+        "Storage Locker"
       ]
     },
     {
       "id": "daily_items-024",
       "words": [
-        "体重秤",
-        "身高尺"
+        "Bathroom Scale",
+        "Height Chart"
       ]
     },
     {
       "id": "daily_items-026",
       "words": [
-        "手电筒",
-        "应急灯",
-        "露营灯"
+        "Flashlight",
+        "Emergency Light",
+        "Camping Lantern"
       ]
     },
     {
       "id": "daily_items-027",
       "words": [
-        "行李箱",
-        "旅行袋"
+        "Suitcase",
+        "Duffel Bag"
       ]
     },
     {
       "id": "daily_items-028",
       "words": [
-        "笔袋",
-        "笔筒",
-        "文具盒"
+        "Pencil Pouch",
+        "Pencil Cup",
+        "Pencil Box"
       ]
     },
     {
       "id": "daily_items-030",
       "words": [
-        "发卡",
-        "发带",
-        "发绳"
+        "Bobby Pin",
+        "Hair Ribbon",
+        "Hair Tie"
       ]
     },
     {
       "id": "daily_items-031",
       "words": [
-        "铅笔",
-        "钢笔",
-        "中性笔"
+        "Pencil",
+        "Fountain Pen",
+        "Gel Pen"
       ]
     },
     {
       "id": "daily_items-032",
       "words": [
-        "保温饭盒",
-        "焖烧杯",
-        "保温壶"
+        "Insulated Lunch Box",
+        "Food Thermos",
+        "Insulated Coffee Pot"
       ]
     },
     {
       "id": "daily_items-033",
       "words": [
-        "锅铲",
-        "汤勺",
-        "漏勺"
+        "Spatula",
+        "Ladle",
+        "Slotted Spoon"
       ]
     },
     {
       "id": "daily_items-034",
       "words": [
-        "手套",
-        "袖套",
-        "围裙"
+        "Gloves",
+        "Arm Sleeves",
+        "Apron"
       ]
     },
     {
       "id": "daily_items-035",
       "words": [
-        "餐桌",
-        "茶几",
-        "边桌"
+        "Dining Table",
+        "Coffee Table",
+        "Side Table"
       ]
     },
     {
       "id": "daily_items-036",
       "words": [
-        "橡皮",
-        "修正带",
-        "涂改液"
+        "Eraser",
+        "Correction Tape",
+        "Correction Fluid"
       ]
     },
     {
       "id": "daily_items-037",
       "words": [
-        "钢丝球",
-        "海绵擦"
+        "Steel Wool",
+        "Cleaning Sponge"
       ]
     },
     {
       "id": "daily_items-038",
       "words": [
-        "电熨斗",
-        "挂烫机",
-        "蒸汽刷"
+        "Iron",
+        "Garment Steamer",
+        "Lint Roller"
       ]
     },
     {
       "id": "daily_items-039",
       "words": [
-        "榨汁机",
-        "豆浆机",
-        "破壁机"
+        "Juicer",
+        "Nut Milk Maker",
+        "Blender"
       ]
     },
     {
       "id": "daily_items-040",
       "words": [
-        "被子",
-        "床单",
-        "被套"
+        "Comforter",
+        "Bedsheet",
+        "Duvet Cover"
       ]
     },
     {
       "id": "daily_items-041",
       "words": [
-        "订书机",
-        "打孔器",
-        "起钉器"
+        "Stapler",
+        "Hole Punch",
+        "Staple Remover"
       ]
     },
     {
       "id": "daily_items-042",
       "words": [
-        "围巾",
-        "丝巾",
-        "披肩"
+        "Winter Scarf",
+        "Silk Scarf",
+        "Shawl"
       ]
     },
     {
       "id": "daily_items-043",
       "words": [
-        "棉签",
-        "洗脸扑",
-        "粉扑"
+        "Cotton Swab",
+        "Facial Sponge",
+        "Powder Puff"
       ]
     },
     {
       "id": "daily_items-044",
       "words": [
-        "运动鞋",
-        "板鞋",
-        "帆布鞋"
+        "Running Shoes",
+        "Skate Shoes",
+        "Hiking Boots"
       ]
     },
     {
       "id": "daily_items-045",
       "words": [
-        "纽扣",
-        "拉链",
-        "魔术贴"
+        "Button",
+        "Zipper",
+        "Velcro"
       ]
     },
     {
       "id": "daily_items-047",
       "words": [
-        "卷尺",
-        "直尺",
-        "软尺"
+        "Retractable Tape Measure",
+        "Ruler",
+        "Sewing Tape Measure"
       ]
     },
     {
       "id": "daily_items-048",
       "words": [
-        "茶壶",
-        "茶杯",
-        "茶盘"
+        "Teapot",
+        "Teacup",
+        "Tea Tray"
       ]
     },
     {
       "id": "daily_items-049",
       "words": [
-        "耳环",
-        "耳钉",
-        "耳夹"
+        "Hoop Earrings",
+        "Stud Earrings",
+        "Clip-On Earrings"
       ]
     },
     {
       "id": "daily_items-050",
       "words": [
-        "绳子",
-        "胶带"
+        "Rope",
+        "Tape"
       ]
     },
     {
       "id": "daily_items-051",
       "words": [
-        "圆规",
-        "量角器",
-        "绘图板"
+        "Drawing Compass",
+        "Protractor",
+        "Drawing Board"
       ]
     },
     {
       "id": "daily_items-053",
       "words": [
-        "冰箱",
-        "冰柜",
-        "酒柜"
+        "Refrigerator",
+        "Chest Freezer",
+        "Wine Fridge"
       ]
     },
     {
       "id": "daily_items-054",
       "words": [
-        "空调",
-        "风扇",
-        "取暖器"
+        "Air Conditioner",
+        "Fan",
+        "Space Heater"
       ]
     },
     {
       "id": "daily_items-055",
       "words": [
-        "置物架",
-        "书架",
-        "鞋架"
+        "Spice Rack",
+        "Bookshelf",
+        "Shoe Rack"
       ]
     },
     {
       "id": "daily_items-056",
       "words": [
-        "纸巾",
-        "湿巾",
-        "手帕"
+        "Tissue",
+        "Wet Wipe",
+        "Handkerchief"
       ]
     },
     {
       "id": "daily_items-058",
       "words": [
-        "皮带",
-        "背带",
-        "腰封"
+        "Belt",
+        "Suspenders",
+        "Cummerbund"
       ]
     },
     {
       "id": "daily_items-059",
       "words": [
-        "扫把",
-        "簸箕"
+        "Broom",
+        "Dustpan"
       ]
     },
     {
       "id": "daily_items-060",
       "words": [
-        "针线盒",
-        "缝纫机",
-        "熨烫板"
+        "Sewing Kit",
+        "Sewing Machine",
+        "Ironing Board"
       ]
     },
     {
       "id": "daily_items-061",
       "words": [
-        "图钉",
-        "磁铁"
+        "Thumbtack",
+        "Magnet"
       ]
     },
     {
       "id": "daily_items-062",
       "words": [
-        "胸针",
-        "领针",
-        "别针"
+        "Brooch",
+        "Tie Pin",
+        "Safety Pin"
       ]
     },
     {
       "id": "daily_items-063",
       "words": [
-        "电饭煲",
-        "高压锅",
-        "炖锅"
+        "Rice Cooker",
+        "Pressure Cooker",
+        "Slow Cooker"
       ]
     },
     {
       "id": "daily_items-064",
       "words": [
-        "烧水壶",
-        "饮水机",
-        "净水器"
+        "Electric Kettle",
+        "Water Dispenser",
+        "Water Filter"
       ]
     },
     {
       "id": "daily_items-065",
       "words": [
-        "背包",
-        "手提包",
-        "斜挎包"
+        "Backpack",
+        "Handbag",
+        "Crossbody Bag"
       ]
     },
     {
       "id": "daily_items-066",
       "words": [
-        "托盘",
-        "餐盘",
-        "果盘"
+        "Serving Tray",
+        "Dinner Plate",
+        "Fruit Bowl"
       ]
     },
     {
       "id": "daily_items-067",
       "words": [
-        "鸭舌帽",
-        "遮阳帽",
-        "渔夫帽"
+        "Baseball Cap",
+        "Sun Visor",
+        "Bucket Hat"
       ]
     },
     {
       "id": "daily_items-068",
       "words": [
-        "回形针",
-        "书签",
-        "便利贴"
+        "Paper Clip",
+        "Bookmark",
+        "Sticky Note"
       ]
     },
     {
       "id": "daily_items-069",
       "words": [
-        "剪刀",
-        "裁纸刀",
-        "美工刀"
+        "Scissors",
+        "Paper Cutter",
+        "Craft Knife"
       ]
     },
     {
       "id": "daily_items-070",
       "words": [
-        "拖鞋",
-        "洞洞鞋",
-        "凉鞋"
+        "Slippers",
+        "Clogs",
+        "Sandals"
       ]
     },
     {
       "id": "daily_items-071",
       "words": [
-        "电动牙刷",
-        "普通牙刷",
-        "冲牙器"
+        "Electric Toothbrush",
+        "Manual Toothbrush",
+        "Water Flosser"
       ]
     },
     {
       "id": "daily_items-072",
       "words": [
-        "怀表",
-        "手表"
+        "Pocket Watch",
+        "Wristwatch"
       ]
     },
     {
       "id": "daily_items-073",
       "words": [
-        "计算器",
-        "算盘"
+        "Calculator",
+        "Abacus"
       ]
     },
     {
       "id": "daily_items-074",
       "words": [
-        "窗帘",
-        "窗纱",
-        "百叶窗"
+        "Blackout Curtains",
+        "Window Screen",
+        "Venetian Blinds"
       ]
     },
     {
       "id": "daily_items-075",
       "words": [
-        "梳子",
-        "发夹",
-        "发箍"
+        "Comb",
+        "Hair Clip",
+        "Headband"
       ]
     },
     {
       "id": "daily_items-076",
       "words": [
-        "雨伞",
-        "太阳伞",
-        "雨衣"
+        "Rain Umbrella",
+        "Beach Umbrella",
+        "Raincoat"
       ]
     },
     {
       "id": "daily_items-077",
       "words": [
-        "打火机",
-        "火柴",
-        "点火器"
+        "Cigarette Lighter",
+        "Matches",
+        "Flint and Steel"
       ]
     },
     {
       "id": "daily_items-078",
       "words": [
-        "筷子",
-        "勺子",
-        "叉子"
+        "Chopsticks",
+        "Spoon",
+        "Fork"
       ]
     },
     {
       "id": "daily_items-079",
       "words": [
-        "油壶",
-        "醋瓶",
-        "酱油瓶"
+        "Oil Dispenser",
+        "Vinegar Bottle",
+        "Soy Sauce Bottle"
       ]
     },
     {
       "id": "daily_items-081",
       "words": [
-        "牙刷",
-        "牙膏",
-        "牙线"
+        "Toothbrush",
+        "Toothpaste",
+        "Dental Floss"
       ]
     },
     {
       "id": "daily_items-082",
       "words": [
-        "笔记本",
-        "日记本",
-        "练习本"
+        "Notebook",
+        "Diary",
+        "Workbook"
       ]
     },
     {
       "id": "daily_items-083",
       "words": [
-        "蜡笔",
-        "彩笔",
-        "毛笔"
+        "Crayons",
+        "Colored Markers",
+        "Paintbrush"
       ]
     },
     {
       "id": "daily_items-084",
       "words": [
-        "洗手液",
-        "洗洁精",
-        "洗衣液"
+        "Hand Soap",
+        "Dish Soap",
+        "Laundry Detergent"
       ]
     },
     {
       "id": "daily_items-085",
       "words": [
-        "毛巾",
-        "浴巾"
+        "Hand Towel",
+        "Bath Towel"
       ]
     },
     {
       "id": "daily_items-086",
       "words": [
-        "钥匙",
-        "锁"
+        "Key",
+        "Lock"
       ]
     },
     {
       "id": "daily_items-087",
       "words": [
-        "日历",
-        "闹钟"
+        "Calendar",
+        "Alarm Clock"
       ]
     },
     {
       "id": "daily_items-088",
       "words": [
-        "眼镜",
-        "墨镜"
+        "Eyeglasses",
+        "Sunglasses"
       ]
     },
     {
       "id": "daily_items-089",
       "words": [
-        "信封",
-        "信纸"
+        "Envelope",
+        "Writing Paper"
       ]
     },
     {
       "id": "daily_items-090",
       "words": [
-        "锤子",
-        "扳手"
+        "Hammer",
+        "Wrench"
       ]
     },
     {
       "id": "daily_items-092",
       "words": [
-        "镜子",
-        "玻璃"
+        "Mirror",
+        "Window"
       ]
     },
     {
       "id": "daily_items-093",
       "words": [
-        "梯子",
-        "凳子"
+        "Ladder",
+        "Step Stool"
       ]
     },
     {
       "id": "daily_items-094",
       "words": [
-        "扇子",
-        "电风扇"
+        "Hand Fan",
+        "Electric Fan"
       ]
     },
     {
       "id": "daily_items-095",
       "words": [
-        "沙发",
-        "椅子"
+        "Sofa",
+        "Chair"
       ]
     },
     {
       "id": "daily_items-096",
       "words": [
-        "碗",
-        "盘子"
+        "Bowl",
+        "Plate"
       ]
     },
     {
       "id": "daily_items-097",
       "words": [
-        "水桶",
-        "脸盆"
+        "Bucket",
+        "Washbasin"
       ]
     },
     {
       "id": "daily_items-098",
       "words": [
-        "袜子",
-        "鞋子"
+        "Socks",
+        "Shoes"
       ]
     },
     {
       "id": "daily_items-099",
       "words": [
-        "水龙头",
-        "花洒"
+        "Faucet",
+        "Showerhead"
       ]
     },
     {
       "id": "daily_items-100",
       "words": [
-        "电磁炉",
-        "电火锅"
+        "Induction Cooktop",
+        "Electric Hot Pot"
       ]
     },
     {
       "id": "daily_items-101",
       "words": [
-        "加湿器",
-        "除湿机",
-        "香薰机"
+        "Humidifier",
+        "Dehumidifier",
+        "Essential Oil Diffuser"
       ]
     },
     {
       "id": "daily_items-102",
       "words": [
-        "浴缸",
-        "鱼缸"
+        "Bathtub",
+        "Fish Tank"
       ]
     },
     {
       "id": "daily_items-103",
       "words": [
-        "口红",
-        "唇釉"
+        "Lipstick",
+        "Lip Gloss"
       ]
     },
     {
       "id": "daily_items-104",
       "words": [
-        "近视眼镜",
-        "隐形眼镜"
+        "Prescription Glasses",
+        "Contact Lenses"
       ]
     },
     {
       "id": "daily_items-105",
       "words": [
-        "蒸汽眼罩",
-        "暖宝宝"
+        "Heated Eye Mask",
+        "Heat Patch"
       ]
     },
     {
       "id": "daily_items-106",
       "words": [
-        "羽绒服",
-        "冲锋衣"
+        "Puffer Jacket",
+        "Rain Jacket"
       ]
     },
     {
       "id": "daily_items-107",
       "words": [
-        "密封袋",
-        "保鲜膜"
+        "Resealable Bag",
+        "Plastic Wrap"
       ]
     },
     {
       "id": "daily_items-108",
       "words": [
-        "护手霜",
-        "身体乳"
+        "Hand Cream",
+        "Body Lotion"
       ]
     },
     {
       "id": "daily_items-109",
       "words": [
-        "扫地机器人",
-        "洗地机"
+        "Robot Vacuum",
+        "Electric Mop"
       ]
     },
     {
       "id": "daily_items-110",
       "words": [
-        "空气炸锅",
-        "烤箱"
+        "Air Fryer",
+        "Oven"
       ]
     },
     {
       "id": "daily_items-111",
       "words": [
-        "睡眠面膜",
-        "贴片面膜"
+        "Overnight Face Mask",
+        "Sheet Mask"
       ]
     },
     {
       "id": "daily_items-112",
       "words": [
-        "漱口水",
-        "口气清新剂"
+        "Mouthwash",
+        "Breath Spray"
       ]
     },
     {
       "id": "daily_items-113",
       "words": [
-        "削皮刀",
-        "刨丝器"
+        "Vegetable Peeler",
+        "Grater"
       ]
     },
     {
       "id": "daily_items-114",
       "words": [
-        "电热毯",
-        "暖手宝"
+        "Electric Blanket",
+        "Hand Warmer"
       ]
     },
     {
       "id": "daily_items-116",
       "words": [
-        "气垫粉底",
-        "粉饼"
+        "Liquid Foundation",
+        "Pressed Powder"
       ]
     },
     {
       "id": "daily_items-117",
       "words": [
-        "牙膏",
-        "洗面奶"
+        "Toothpaste",
+        "Face Wash"
       ]
     },
     {
       "id": "daily_items-118",
       "words": [
-        "沐浴露",
-        "沐浴盐"
+        "Body Wash",
+        "Bath Salts"
       ]
     },
     {
       "id": "daily_items-119",
       "words": [
-        "假发",
-        "帽子"
+        "Wig",
+        "Hat"
       ]
     },
     {
       "id": "daily_items-120",
       "words": [
-        "拖把",
-        "假发"
+        "Mop",
+        "Wig"
       ]
     },
     {
       "id": "daily_items-121",
       "words": [
-        "遥控器",
-        "指挥棒"
+        "Remote Control",
+        "Conductor's Baton"
       ]
     },
     {
       "id": "daily_items-122",
       "words": [
-        "沙发",
-        "猫窝"
+        "Sofa",
+        "Cat Bed"
       ]
     },
     {
       "id": "daily_items-123",
       "words": [
-        "防晒霜",
-        "雨衣"
+        "Sunscreen",
+        "Raincoat"
       ]
     },
     {
       "id": "daily_items-124",
       "words": [
-        "围裙",
-        "防弹衣"
+        "Apron",
+        "Bulletproof Vest"
       ]
     }
   ],

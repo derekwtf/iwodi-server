@@ -112,7 +112,7 @@ class WordLibrary {
       return this.normalizeCategoryCollection([
         {
           id: 'default',
-          label: '默认词库',
+          label: 'Default Words',
           groups: source,
         },
       ], {})

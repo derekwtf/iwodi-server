@@ -1,181 +1,181 @@
 {
   "id": "mystery_fantasy",
-  "label": "奇幻怪谈",
-  "description": "神怪设定与现代生活互相借词，不依赖冷门作品设定",
+  "label": "Magic & Mystery",
+  "description": "Supernatural twists on everyday life, with familiar creatures, spells, and strange coincidences.",
   "groups": [
     {
       "id": "mystery_fantasy-001",
       "words": [
-        "闹鬼",
-        "漏电"
+        "Haunted House",
+        "Faulty Wiring"
       ]
     },
     {
       "id": "mystery_fantasy-002",
       "words": [
-        "鬼打墙",
-        "导航失灵"
+        "Time Loop",
+        "Broken GPS"
       ]
     },
     {
       "id": "mystery_fantasy-003",
       "words": [
-        "僵尸",
-        "梦游"
+        "Zombie",
+        "Sleepwalker"
       ]
     },
     {
       "id": "mystery_fantasy-004",
       "words": [
-        "吸血鬼",
-        "蚊子"
+        "Vampire",
+        "Mosquito"
       ]
     },
     {
       "id": "mystery_fantasy-005",
       "words": [
-        "女巫",
-        "药剂师"
+        "Witch",
+        "Pharmacist"
       ]
     },
     {
       "id": "mystery_fantasy-006",
       "words": [
-        "水晶球",
-        "监控屏"
+        "Crystal Ball",
+        "Security Monitor"
       ]
     },
     {
       "id": "mystery_fantasy-007",
       "words": [
-        "符纸",
-        "封条"
+        "Protection Spell",
+        "Security Alarm"
       ]
     },
     {
       "id": "mystery_fantasy-008",
       "words": [
-        "结界",
-        "围墙"
+        "Force Field",
+        "Garden Fence"
       ]
     },
     {
       "id": "mystery_fantasy-009",
       "words": [
-        "招魂",
-        "群里喊人"
+        "Seance",
+        "Roll Call"
       ]
     },
     {
       "id": "mystery_fantasy-010",
       "words": [
-        "托梦",
-        "留言"
+        "Message from Beyond",
+        "Voicemail"
       ]
     },
     {
       "id": "mystery_fantasy-011",
       "words": [
-        "占卜",
-        "抽盲盒"
+        "Tarot Reading",
+        "Mystery Box"
       ]
     },
     {
       "id": "mystery_fantasy-012",
       "words": [
-        "渡劫",
-        "赶截止日期"
+        "Doomsday",
+        "Project Deadline"
       ]
     },
     {
       "id": "mystery_fantasy-013",
       "words": [
-        "法器",
-        "遥控器"
+        "Magic Ring",
+        "Remote Control"
       ]
     },
     {
       "id": "mystery_fantasy-014",
       "words": [
-        "传送门",
-        "地铁闸机"
+        "Magic Portal",
+        "Subway Turnstile"
       ]
     },
     {
       "id": "mystery_fantasy-015",
       "words": [
-        "分身术",
-        "多开账号"
+        "Cloning Yourself",
+        "Multiple Accounts"
       ]
     },
     {
       "id": "mystery_fantasy-016",
       "words": [
-        "读心术",
-        "聊天记录"
+        "Mind Reading",
+        "Chat History"
       ]
     },
     {
       "id": "mystery_fantasy-017",
       "words": [
-        "魔法棒",
-        "自拍杆"
+        "Magic Wand",
+        "Selfie Stick"
       ]
     },
     {
       "id": "mystery_fantasy-018",
       "words": [
-        "复活",
-        "重启"
+        "Resurrection",
+        "Reboot"
       ]
     },
     {
       "id": "mystery_fantasy-019",
       "words": [
-        "灵魂出窍",
-        "开会走神"
+        "Astral Projection",
+        "Daydreaming"
       ]
     },
     {
       "id": "mystery_fantasy-020",
       "words": [
-        "驱魔",
-        "杀毒"
+        "Exorcism",
+        "Virus Scan"
       ]
     },
     {
       "id": "mystery_fantasy-021",
       "words": [
-        "藏宝图",
-        "外卖定位"
+        "Treasure Map",
+        "Delivery Address"
       ]
     },
     {
       "id": "mystery_fantasy-022",
       "words": [
-        "封印",
-        "冻结账号"
+        "Magical Binding",
+        "Account Suspension"
       ]
     },
     {
       "id": "mystery_fantasy-023",
       "words": [
-        "契约",
-        "用户协议"
+        "Deal with the Devil",
+        "Terms and Conditions"
       ]
     },
     {
       "id": "mystery_fantasy-024",
       "words": [
-        "月老",
-        "推荐算法"
+        "Cupid",
+        "Recommendation Algorithm"
       ]
     },
     {
       "id": "mystery_fantasy-025",
       "words": [
-        "神谕",
-        "老板批示"
+        "Divine Command",
+        "Memo from the Boss"
       ]
     }
   ],
