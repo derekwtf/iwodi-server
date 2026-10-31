@@ -37,7 +37,7 @@ sudoedit /etc/qile-wodi-app/app.env
 
 沿用 [环境模板](../.env.example)，显式设置 `APP_CHANNEL=app`、`HOST=127.0.0.1`、`PORT=3011`、上述独立 `USER_DB_PATH`、独立生成且跨发布保留的 `AUTH_TOKEN_SECRET`。数据库和密钥不放发布目录；不能使用微信库或旧微信密钥。首次创建库须人工核实路径，路径拼错可能初始化一个空库。
 
-`APPLE_CLIENT_ID`、`GOOGLE_WEB_CLIENT_ID` 和 Apple 撤销配置填写真实值；未配置的平台会拒绝授权，不能填假值绕过。`APP_VIP_PAYMENT_ENABLED`、`APPLE_STORE_ENABLED`、`GOOGLE_STORE_ENABLED` 保持 `false`，商店验证未验收不得开放；已有交易环境停卖后仍保留验证 / 通知凭证。公开页面配置按实际主体、支持邮箱和域名填写，不能用占位地址发行。App 广告开关在构建配置中另行验收，不由本服务模板开放。
+`APPLE_CLIENT_ID`、`GOOGLE_WEB_CLIENT_ID` 和 Apple 撤销配置填写真实值；未配置的平台会拒绝授权，不能填假值绕过。通用环境模板默认停卖；用户要求的 Google Play 生产开关及增量配置见下方 2.2，已有交易环境停卖后仍保留验证 / 通知凭证。公开页面配置按实际主体、支持邮箱和域名填写，不能用占位地址发行。App 广告开关在构建配置中另行验收，不由本服务模板开放。
 
 ### 2.1 运营支持与公开页面
 
@@ -76,19 +76,19 @@ APP_POLICY_EFFECTIVE_DATE=2026-10-31
 
 Google Play Developer API 和 Pub/Sub API 已启用。验单服务账号 `iwodi-play-verifier@iwodi-play.iam.gserviceaccount.com` 获本应用财务查看和订单管理权限；本机验单凭据 JSON 位于仓库外的 `/Users/dorok/.config/iwodi/google-play/verifier-a05866c2a2aa.json`，权限为 `0600`。该路径只适用于保管该文件的本机，不是服务器路径；私钥不得提交 Git、贴入聊天、写入日志或放入 `EXPO_PUBLIC_*`。
 
-Google Play RTDN 使用主题 `projects/iwodi-play/topics/play-billing-events`，已授权 Google 官方发布者；推送订阅 `play-billing-push` 使用推送身份 `iwodi-play-push@iwodi-play.iam.gserviceaccount.com`，目标和 OIDC audience 均为 `https://iwodi.284264172.xyz/app/store/events/google`。该地址是生产目标；测试交易及通知必须另行规划隔离的测试服务和路由。
+Google Play RTDN 使用主题 `projects/iwodi-play/topics/play-billing-events`，已授权 Google 官方发布者；推送订阅 `play-billing-push` 使用推送身份 `iwodi-play-push@iwodi-play.iam.gserviceaccount.com`，目标和 OIDC audience 均为 `https://iwodi.284264172.xyz/app/store/events/google`。
 
 经用户确认，现网已加载此次 Google 配置并重启：健康检查显示 Google 登录配置为 `true`，无认证的伪造通知返回 `403`；这只证明配置标记与拒绝匿名请求，不能证明真实登录或验单成功。VIP 售卖开关保持 `false`。Play Console 提示测试通知已发出；随后 Pub/Sub 监控出现推送确认指标，未确认消息为零。该聚合数据支持推送已被确认，但现有日志不足以将单条消息与服务端 `204` 精确关联，真实购买 / 退款通知仍待验。
 
 此次操作前已通过受管在线备份工具生成 App 数据库备份，原定最晚到期时间为 `2026-11-07 10:47:26 UTC`，受现有备份清理规则约束；不能将旧备份直接用于覆盖生产库。服务器 `/etc/qile-wodi-app/.google-play-20261031.staged.env` 是本次暂存配置，`/etc/qile-wodi-app/.app.env.pre-google-play-20261031` 是原配置备份，两者均为 `root:root`、权限 `0600`，包含敏感配置。用户在完成核验和回退窗口后应安全处理这些临时副本，不得提交或公开。
 
-**后续由用户操作服务器**。下面是生产环境的非秘密配置示例；先确认实际 systemd unit、环境文件、运行用户、数据库与备份路径，不假设与本文件示例路径相同。只修改已核实的 App 环境文件，保留原 `USER_DB_PATH`、`AUTH_TOKEN_SECRET`、其他平台和网站设置，不复制模板覆盖现有文件：
+**后续由用户操作服务器**。下面是用户要求启用 Google Play 的生产环境非秘密配置，与 [增量模板](google-play-production.env.example) 相同；先确认实际 systemd unit、环境文件、运行用户、数据库与备份路径，不假设与本文件示例路径相同。只修改已核实的 App 环境文件，保留原 `USER_DB_PATH`、`AUTH_TOKEN_SECRET`、已有私钥和网站设置，不复制模板覆盖现有文件：
 
 ```dotenv
 GOOGLE_WEB_CLIENT_ID=299375445471-dtll3k3o73sne55b5k9j3mcsk4864i0o.apps.googleusercontent.com
-APP_VIP_PAYMENT_ENABLED=false
+APP_VIP_PAYMENT_ENABLED=true
 APPLE_STORE_ENABLED=false
-GOOGLE_STORE_ENABLED=false
+GOOGLE_STORE_ENABLED=true
 GOOGLE_STORE_PACKAGE_NAME=com.zhibeii.iwodi
 GOOGLE_STORE_PRODUCT_ID=vip
 GOOGLE_STORE_ENVIRONMENT=production
@@ -99,13 +99,28 @@ GOOGLE_STORE_NOTIFICATION_EMAIL=iwodi-play-push@iwodi-play.iam.gserviceaccount.c
 
 `GOOGLE_STORE_PRIVATE_KEY` 也须通过服务器受限配置安全提供，值是上述验单服务账号 JSON 的 `private_key` 内容；当前代码读取的是密钥值，不读取 JSON 文件路径。环境文件应仅允许服务运行用户及必要管理员读取；用受保护的编辑器或既有密钥注入方式填入，PEM 换行可写为字面 `\n`，不要经命令行参数、聊天、终端回显或 Git 传递。更换服务器时由用户安全传输凭据并按服务器实际权限配置；不得把上方本机 JSON 路径直接作为私钥值。
 
-商品未开放时上述三个开关均为 `false`。已完整配置的通知验证在停卖状态仍可运行，历史交易补偿也会在服务启动和定时执行；确认已有订单及其环境，不能把“停卖”误解为所有账本处理关闭。成功的 Google 测试通知应返回 HTTP `204`；伪造或无效签名应拒绝。服务端默认不记录成功通知，须结合既有反向代理访问日志或 Pub/Sub 投递监控核实，不记录认证头或消息正文。
+上述增量配置打开 Google Play 售卖并保持 Apple 关闭；仓库通用 `.env.example` 的默认值未更改，仓库配置不会自动修改现网。用户部署时在没有活跃对局的维护窗口备份并更新实际环境文件，重启对应 App 服务后核对健康状态、商品报价与购买流程；重启会结束该实例的内存房间。
 
-生产环境保持 `GOOGLE_STORE_ENVIRONMENT=production`；Google 测试购买带有测试标记，当前实现会严格拒绝与环境不匹配的交易。沙盒交易使用独立的 `sandbox` 服务、数据库和签名密钥，并规划测试通知路由；不要为了测试切换现有生产环境或覆盖已有订单数据。单独的 RTDN 测试通知不包含交易，可用于验证推送签名与路由，但不证明真实购买、退款或恢复通过。
+若需停卖，将 `APP_VIP_PAYMENT_ENABLED` 或 `GOOGLE_STORE_ENABLED` 设回 `false` 并在维护窗口重启；保留当前数据库、签名密钥、Google 生产验单和通知凭证，以继续处理已产生的订单、退款和补偿。已完整配置的通知验证在停卖状态仍可运行，历史交易补偿也会在服务启动和定时执行；不能把停卖误解为所有账本处理关闭。成功的 Google 测试通知应返回 HTTP `204`；伪造或无效签名应拒绝。服务端默认不记录成功通知，须结合既有反向代理访问日志或 Pub/Sub 投递监控核实，不记录认证头或消息正文。
 
-Google OAuth 同意页当前为 testing，暂用当前 Google 账号邮箱，用户已同意；正式发行前改为 `geek@inpole.com` 并验证真实 Google 登录与相关发布要求。售价、地区、许可测试账号、Play 签名发布构建、购买 / 取消 / 待处理 / 恢复 / 退款及 RTDN 的真实端到端验证未完成前，不开放收费。客户端的 `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` 必须与服务端一致，付款构建门控另行按验收计划配置。
+#### 同一地址的许可测试与正式模式
 
-Play Console 当前的 `VIP 30 day` / `vip` 商品有一个有效购买选项，界面显示覆盖 174 个国家 / 地区；这只是现有商店配置，不代表这些地区均已完成发行验收。Google OAuth 当前处于 testing；已创建正式 Play 签名对应的 Android 客户端，SHA-1 为 `97:DB:08:77:C3:3D:3B:DA:D6:E2:98:C9:DB:1D:7F:27:96:A7:FE:A2`。App 的 `google-login-test` 构建配置仅用于登录验证，不能代替隔离的支付沙盒。
+两个模式均使用 `https://iwodi.284264172.xyz` 和已有 Google Play 包名 / 商品；不需要新增域名，由用户在维护窗口操作：
+
+| 模式 | 配置 | 数据与用途 |
+|---|---|---|
+| 许可测试 | [测试增量模板](google-play-license-test.env.example)，`GOOGLE_STORE_ENVIRONMENT=sandbox` | 切换到使用独立测试数据库和独立 `AUTH_TOKEN_SECRET` 的测试实例，使用 Play 许可测试账号；测试环境不承载生产用户数据。 |
+| 正式 | [生产增量模板](google-play-production.env.example)，`GOOGLE_STORE_ENVIRONMENT=production` | 恢复原生产配置、原生产数据库及原生产 `AUTH_TOKEN_SECRET`；处理真实交易。 |
+
+测试模板中数据库路径仅为示例，须先创建测试专用目录、设置服务用户权限并生成独立测试密钥。将模板合并到单独受保护的测试环境配置，安全注入 Google 验单私钥；不要覆盖生产环境文件、数据库或密钥。切换到测试时，将同一域名的请求临时指向独立测试实例，或在保留完整生产配置的前提下切换服务实例；正式服务与测试服务不能同时占用同一监听端口。切换前记录正在使用的生产服务、反代配置、数据库路径及密钥的安全保管方式；切回时恢复原生产服务和配置，保留两个环境各自最新数据库，绝不以备份或测试库覆盖生产库。
+
+切换会中断现有 Socket 连接并结束被停止实例的内存对局；测试期间普通用户可能连接到测试账号和空房间，无法看到生产账号 / 对局，非许可测试的真实购买也会被 sandbox 环境拒绝。应安排用户可感知的维护窗口，避免将测试环境当作正常线上服务开放。Play 许可测试账号的购买带有测试标记，production 配置会拒绝；`sandbox` 模式才能验证测试交易。
+
+同一 Play 应用的正式和测试通知共享 RTDN topic。测试期间正式交易通知到达 sandbox 会因环境不匹配返回 `503` 并由 Pub/Sub 重试；反之切回 production 后仍未处理的测试通知也可能失败重试。测试期间既有正式订单的通知、查单和退款处理可能延迟，消息超出订阅保留期限可能丢失；用户应监控积压及失败，切回生产后核对正式订单、通知和补偿，不能承诺自动全部恢复。单独的 Play 测试通知不包含交易，只能验证推送签名与路由。
+
+Google OAuth 同意页当前为 testing，暂用当前 Google 账号邮箱，用户已同意；正式发行前改为 `geek@inpole.com` 并验证真实 Google 登录与相关发布要求。售价、地区、Play 签名发布构建、购买 / 取消 / 待处理 / 恢复 / 退款及 RTDN 的真实端到端验证仍待用户执行，模板本身不证明验收通过。客户端的 `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` 必须与服务端一致，付款构建门控需设置 `EXPO_PUBLIC_IAP_CONFIGURED=1`。
+
+Play Console 当前的 `VIP 30 day` / `vip` 商品有一个有效购买选项，界面显示覆盖 174 个国家 / 地区；这只是现有商店配置，不代表这些地区均已完成发行验收。Google OAuth 当前处于 testing；已创建正式 Play 签名对应的 Android 客户端，SHA-1 为 `97:DB:08:77:C3:3D:3B:DA:D6:E2:98:C9:DB:1D:7F:27:96:A7:FE:A2`。App 的 `google-login-test` 构建配置仅用于登录验证，不能代替真实支付验证。
 
 ## 3. 服务安装与验证清单
 
