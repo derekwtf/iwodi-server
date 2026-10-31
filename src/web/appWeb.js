@@ -22,6 +22,7 @@ function readAppWebConfig(env = process.env) {
   }
   const origin = read('INVITATION_ORIGIN', (value) => httpsUrl(value, true))
   const operatorName = read('APP_OPERATOR_NAME')
+  const operatorWebsite = read('APP_OPERATOR_WEBSITE', (value) => httpsUrl(value))
   const supportEmail = read('APP_SUPPORT_EMAIL', (value) =>
     /^[A-Za-z0-9._+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$/.test(value) && value)
   const policyEffectiveDate = read('APP_POLICY_EFFECTIVE_DATE', (value) => {
@@ -65,7 +66,7 @@ function readAppWebConfig(env = process.env) {
     return { configured: !missing.length, missing }
   }
   return {
-    origin, operatorName, supportEmail, retentionDays: RETENTION_DAYS, policyEffectiveDate, appStoreUrl, googlePlayUrl,
+    origin, operatorName, operatorWebsite, supportEmail, retentionDays: RETENTION_DAYS, policyEffectiveDate, appStoreUrl, googlePlayUrl,
     appleTeamId, appleBundleIds, androidPackageName, androidFingerprints, invalid,
     status: {
       invitation: status(['INVITATION_ORIGIN']),
@@ -153,7 +154,8 @@ function createAppWebRouter(config = readAppWebConfig()) {
 
   router.get('/support', (req, res) => {
     if (!config.status.support.configured) return unavailable(res, copy.support)
-    page(res, copy.support, `<p class="details">Operated by ${escapeHtml(config.operatorName)}<br>Contact ${email()}</p><h2>Game help & nickname reports</h2><p>Include the time, room code and relevant nicknames. Hide secret words, roles and unrelated personal information in screenshots. The Host can remove players from the Lobby.</p><h2>Purchases & orders</h2><p>Copy the order ID from the app’s VIP page. Email it with your purchase platform and a description of the issue. An order ID helps us find your order; it is not proof of payment.</p><p>Do not send login credentials, identity tokens, purchase tokens, full payment receipts or bank card details. We will never ask for these by email.</p><p>Apple or Google reviews store refund requests under its own rules. Contacting support or deleting your account does not request a refund. Use your purchase history or the store’s official support service to request one. We can help check whether VIP was credited in the app.</p><p><a href="/account-deletion">How to request account deletion</a></p>`)
+    const website = config.operatorWebsite ? `<br><a href="${escapeHtml(config.operatorWebsite)}" rel="noopener noreferrer">Official website</a>` : ''
+    page(res, copy.support, `<p class="details">Operated by ${escapeHtml(config.operatorName)}<br>Contact ${email()}${website}</p><h2>Game help & nickname reports</h2><p>Include the time, room code and relevant nicknames. Hide secret words, roles and unrelated personal information in screenshots. The Host can remove players from the Lobby.</p><h2>Purchases & orders</h2><p>Copy the order ID from the app’s VIP page. Email it with your purchase platform and a description of the issue. An order ID helps us find your order; it is not proof of payment.</p><p>Do not send login credentials, identity tokens, purchase tokens, full payment receipts or bank card details. We will never ask for these by email.</p><p>Apple or Google reviews store refund requests under its own rules. Contacting support or deleting your account does not request a refund. Use your purchase history or the store’s official support service to request one. We can help check whether VIP was credited in the app.</p><p><a href="/account-deletion">How to request account deletion</a></p>`)
   })
 
   router.get('/account-deletion', (req, res) => {

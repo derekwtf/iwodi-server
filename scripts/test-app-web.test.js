@@ -75,6 +75,20 @@ test('configuration reuses app identity IDs, requires real public details and re
   assert.equal(invalid.status.appleAssociation.configured, false)
 })
 
+test('support page displays the optional HTTPS operator website and rejects unsafe values', async (t) => {
+  const withWebsite = { ...complete, APP_OPERATOR_WEBSITE: 'https://inpole.com' }
+  assert.equal(readAppWebConfig(withWebsite).operatorWebsite, 'https://inpole.com/')
+  const get = await fixture(t, withWebsite)
+  const html = await (await get('/support')).text()
+  assert.match(html, /href="https:\/\/inpole\.com\/"[^>]*>Official website<\/a>/)
+  const invalid = readAppWebConfig({ ...complete, APP_OPERATOR_WEBSITE: 'javascript:alert(1)' })
+  assert.equal(invalid.operatorWebsite, '')
+  assert.ok(invalid.invalid.includes('APP_OPERATOR_WEBSITE'))
+  assert.equal(invalid.status.support.configured, true)
+  const getWithoutWebsite = await fixture(t, complete)
+  assert.doesNotMatch(await (await getWithoutWebsite('/support')).text(), />Official website<\/a>/)
+})
+
 test('unconfigured websites publish neither contacts nor policies nor associated-domain identities; game health remains available', async (t) => {
   const get = await fixture(t, {})
   for (const path of ['/support', '/account-deletion', '/privacy', '/terms']) {
