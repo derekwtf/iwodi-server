@@ -1,6 +1,6 @@
 # App 独立服务部署准备
 
-> 状态：App 域名已有可访问的线上实例；本次仓库配置和代码尚未部署，目标 Linux 运维验收、真实 Apple / Google 联调及商店发行仍未完成。
+> 状态：App 域名已有可访问的线上实例。2026-10-31 经用户确认，已加载 Google 登录 / Play 通知和验单配置并重启；VIP 售卖仍关闭，真实 Google 登录、交易及通知端到端验收、完整运维验收和商店发行仍未完成。下述部署命令仅供用户后续执行，不代表其他仓库修改均已部署。
 
 ## 1. 独立范围
 
@@ -41,7 +41,7 @@ sudoedit /etc/qile-wodi-app/app.env
 
 ### 2.1 运营支持与公开页面
 
-已确认运营团队为 **inpole studio**，官网为 **https://inpole.com**，支持邮箱为 **geek@inpole.com**；App 功能域名为 **https://iwodi.284264172.xyz**，隐私政策生效日期为 **2026-10-31**。这些资料仅写入仓库模板，尚未部署。2026-10-31 对官网执行 HTTPS HEAD 请求返回 HTTP/2 200；官网内容及邮箱收发仍未验证，团队名称也不代表法律主体已核验。
+已确认运营团队为 **inpole studio**，官网为 **https://inpole.com**，支持邮箱为 **geek@inpole.com**；App 功能域名为 **https://iwodi.284264172.xyz**，隐私政策生效日期为 **2026-10-31**。2026-10-31 对官网执行 HTTPS HEAD 请求返回 HTTP/2 200，官网内容尚未验证；用户确认邮箱可收发及处理支持，本次未独立测试邮箱。团队名称不代表法律主体已核验，运营资料在现网是否生效仍须核验。
 
 在独立 App 环境的 `/etc/qile-wodi-app/app.env` 中确认或填写：
 
@@ -64,11 +64,48 @@ APP_POLICY_EFFECTIVE_DATE=2026-10-31
 | 服务条款 | `https://iwodi.284264172.xyz/terms` |
 | 账号删除 | `https://iwodi.284264172.xyz/account-deletion` |
 
-这些地址为已确定的配置目标；部分页面已有线上响应，但本次配置尚未发布，发布前须逐一验证内容和可用性。
+这些地址为已确定的配置目标；部分页面已有线上响应，运营资料和政策配置是否已生效须逐一复验。
 
 2026-10-31 外网检查：`/health` 返回 `status=ok`、`service=qile-wodi-server`、`auth.channel=app`，公开页面政策配置报告缺少 `APP_POLICY_EFFECTIVE_DATE`，说明已有 App 实例在运行；`/support` 和 `/account-deletion` 返回 HTTP 200，但响应中 Cloudflare 混淆后的邮箱解码为 `i@inpole.com`，与本次确认的 `geek@inpole.com` 不一致；`/privacy` 和 `/terms` 返回 HTTP 503。以上是检查时的线上结果，不代表仓库的新配置已部署。须在目标环境核对并写入 App 配置、部署匹配的服务端版本、重启服务后，再从外网检查四个页面的 HTTP 状态、显示内容与支持邮箱，并验证隐私政策日期；确认实际配置、反向代理或缓存问题已经解决后才能作为发行地址使用。
 
 上线前确认运营团队对应的法律主体及商店开发者资料、邮箱收发与支持流程、官网可访问性，并核对 `/support`、`/privacy`、`/terms`、`/account-deletion` 实际内容。对外公开链接应来自实际已部署的 HTTPS 源站；不因模板中已有资料就视为网站已上线或政策已生效。
+
+### 2.2 Google Play 登录、验单与通知
+
+2026-10-31 已创建 Google Cloud 项目 `iwodi-play`；Play 包名为 `com.zhibeii.iwodi`，一次性可消耗商品 ID 为 `vip`，每次购买增加 30 天，不自动续费。项目内部逻辑商品仍为 `vip_month`，两者用途不同。
+
+Google Play Developer API 和 Pub/Sub API 已启用。验单服务账号 `iwodi-play-verifier@iwodi-play.iam.gserviceaccount.com` 获本应用财务查看和订单管理权限；本机验单凭据 JSON 位于仓库外的 `/Users/dorok/.config/iwodi/google-play/verifier-a05866c2a2aa.json`，权限为 `0600`。该路径只适用于保管该文件的本机，不是服务器路径；私钥不得提交 Git、贴入聊天、写入日志或放入 `EXPO_PUBLIC_*`。
+
+Google Play RTDN 使用主题 `projects/iwodi-play/topics/play-billing-events`，已授权 Google 官方发布者；推送订阅 `play-billing-push` 使用推送身份 `iwodi-play-push@iwodi-play.iam.gserviceaccount.com`，目标和 OIDC audience 均为 `https://iwodi.284264172.xyz/app/store/events/google`。该地址是生产目标；测试交易及通知必须另行规划隔离的测试服务和路由。
+
+经用户确认，现网已加载此次 Google 配置并重启：健康检查显示 Google 登录配置为 `true`，无认证的伪造通知返回 `403`；这只证明配置标记与拒绝匿名请求，不能证明真实登录或验单成功。VIP 售卖开关保持 `false`。Play Console 提示测试通知已发出；随后 Pub/Sub 监控出现推送确认指标，未确认消息为零。该聚合数据支持推送已被确认，但现有日志不足以将单条消息与服务端 `204` 精确关联，真实购买 / 退款通知仍待验。
+
+此次操作前已通过受管在线备份工具生成 App 数据库备份，原定最晚到期时间为 `2026-11-07 10:47:26 UTC`，受现有备份清理规则约束；不能将旧备份直接用于覆盖生产库。服务器 `/etc/qile-wodi-app/.google-play-20261031.staged.env` 是本次暂存配置，`/etc/qile-wodi-app/.app.env.pre-google-play-20261031` 是原配置备份，两者均为 `root:root`、权限 `0600`，包含敏感配置。用户在完成核验和回退窗口后应安全处理这些临时副本，不得提交或公开。
+
+**后续由用户操作服务器**。下面是生产环境的非秘密配置示例；先确认实际 systemd unit、环境文件、运行用户、数据库与备份路径，不假设与本文件示例路径相同。只修改已核实的 App 环境文件，保留原 `USER_DB_PATH`、`AUTH_TOKEN_SECRET`、其他平台和网站设置，不复制模板覆盖现有文件：
+
+```dotenv
+GOOGLE_WEB_CLIENT_ID=299375445471-dtll3k3o73sne55b5k9j3mcsk4864i0o.apps.googleusercontent.com
+APP_VIP_PAYMENT_ENABLED=false
+APPLE_STORE_ENABLED=false
+GOOGLE_STORE_ENABLED=false
+GOOGLE_STORE_PACKAGE_NAME=com.zhibeii.iwodi
+GOOGLE_STORE_PRODUCT_ID=vip
+GOOGLE_STORE_ENVIRONMENT=production
+GOOGLE_STORE_CLIENT_EMAIL=iwodi-play-verifier@iwodi-play.iam.gserviceaccount.com
+GOOGLE_STORE_NOTIFICATION_AUDIENCE=https://iwodi.284264172.xyz/app/store/events/google
+GOOGLE_STORE_NOTIFICATION_EMAIL=iwodi-play-push@iwodi-play.iam.gserviceaccount.com
+```
+
+`GOOGLE_STORE_PRIVATE_KEY` 也须通过服务器受限配置安全提供，值是上述验单服务账号 JSON 的 `private_key` 内容；当前代码读取的是密钥值，不读取 JSON 文件路径。环境文件应仅允许服务运行用户及必要管理员读取；用受保护的编辑器或既有密钥注入方式填入，PEM 换行可写为字面 `\n`，不要经命令行参数、聊天、终端回显或 Git 传递。更换服务器时由用户安全传输凭据并按服务器实际权限配置；不得把上方本机 JSON 路径直接作为私钥值。
+
+商品未开放时上述三个开关均为 `false`。已完整配置的通知验证在停卖状态仍可运行，历史交易补偿也会在服务启动和定时执行；确认已有订单及其环境，不能把“停卖”误解为所有账本处理关闭。成功的 Google 测试通知应返回 HTTP `204`；伪造或无效签名应拒绝。服务端默认不记录成功通知，须结合既有反向代理访问日志或 Pub/Sub 投递监控核实，不记录认证头或消息正文。
+
+生产环境保持 `GOOGLE_STORE_ENVIRONMENT=production`；Google 测试购买带有测试标记，当前实现会严格拒绝与环境不匹配的交易。沙盒交易使用独立的 `sandbox` 服务、数据库和签名密钥，并规划测试通知路由；不要为了测试切换现有生产环境或覆盖已有订单数据。单独的 RTDN 测试通知不包含交易，可用于验证推送签名与路由，但不证明真实购买、退款或恢复通过。
+
+Google OAuth 同意页当前为 testing，暂用当前 Google 账号邮箱，用户已同意；正式发行前改为 `geek@inpole.com` 并验证真实 Google 登录与相关发布要求。售价、地区、许可测试账号、Play 签名发布构建、购买 / 取消 / 待处理 / 恢复 / 退款及 RTDN 的真实端到端验证未完成前，不开放收费。客户端的 `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` 必须与服务端一致，付款构建门控另行按验收计划配置。
+
+Play Console 当前的 `VIP 30 day` / `vip` 商品有一个有效购买选项，界面显示覆盖 174 个国家 / 地区；这只是现有商店配置，不代表这些地区均已完成发行验收。Google OAuth 当前处于 testing；已创建正式 Play 签名对应的 Android 客户端，SHA-1 为 `97:DB:08:77:C3:3D:3B:DA:D6:E2:98:C9:DB:1D:7F:27:96:A7:FE:A2`。App 的 `google-login-test` 构建配置仅用于登录验证，不能代替隔离的支付沙盒。
 
 ## 3. 服务安装与验证清单
 
