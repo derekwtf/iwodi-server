@@ -1,6 +1,6 @@
 # App 独立服务部署准备
 
-> 状态：仅准备材料，未执行部署、目标 Linux 验证或商店发行。真实 Apple / Google、域名及商店配置尚未就绪；阶段 12 运维验收仍未开始。
+> 状态：App 域名已有可访问的线上实例；本次仓库配置和代码尚未部署，目标 Linux 运维验收、真实 Apple / Google 联调及商店发行仍未完成。
 
 ## 1. 独立范围
 
@@ -17,7 +17,7 @@
 
 ## 2. 首次准备清单
 
-以下命令尚未执行。先在目标 Linux 从已验收的服务端提交准备独立发布目录，使用实际运行的 Node 主版本执行 `npm ci --omit=dev` 并检查 `better-sqlite3` 可加载；不复制本机 `node_modules`。创建当前入口符号链接时指向该目录，不覆盖现有实际目录。
+以下为目标环境准备步骤，不代表已在现有线上实例执行。先在目标 Linux 从已验收的服务端提交准备独立发布目录，使用实际运行的 Node 主版本执行 `npm ci --omit=dev` 并检查 `better-sqlite3` 可加载；不复制本机 `node_modules`。创建当前入口符号链接时指向该目录，不覆盖现有实际目录。
 
 首次创建系统用户与长期目录：
 
@@ -39,6 +39,37 @@ sudoedit /etc/qile-wodi-app/app.env
 
 `APPLE_CLIENT_ID`、`GOOGLE_WEB_CLIENT_ID` 和 Apple 撤销配置填写真实值；未配置的平台会拒绝授权，不能填假值绕过。`APP_VIP_PAYMENT_ENABLED`、`APPLE_STORE_ENABLED`、`GOOGLE_STORE_ENABLED` 保持 `false`，商店验证未验收不得开放；已有交易环境停卖后仍保留验证 / 通知凭证。公开页面配置按实际主体、支持邮箱和域名填写，不能用占位地址发行。App 广告开关在构建配置中另行验收，不由本服务模板开放。
 
+### 2.1 运营支持与公开页面
+
+已确认运营团队为 **inpole studio**，官网为 **https://inpole.com**，支持邮箱为 **geek@inpole.com**；App 功能域名为 **https://iwodi.284264172.xyz**，隐私政策生效日期为 **2026-10-31**。这些资料仅写入仓库模板，尚未部署。2026-10-31 对官网执行 HTTPS HEAD 请求返回 HTTP/2 200；官网内容及邮箱收发仍未验证，团队名称也不代表法律主体已核验。
+
+在独立 App 环境的 `/etc/qile-wodi-app/app.env` 中确认或填写：
+
+```dotenv
+APP_OPERATOR_NAME="inpole studio"
+APP_OPERATOR_WEBSITE=https://inpole.com
+APP_SUPPORT_EMAIL=geek@inpole.com
+INVITATION_ORIGIN=https://iwodi.284264172.xyz
+APP_POLICY_EFFECTIVE_DATE=2026-10-31
+```
+
+`APP_OPERATOR_WEBSITE` 是支持页上的可选 HTTPS 官网链接，不影响页面发布门控；`APP_OPERATOR_NAME` 和 `APP_SUPPORT_EMAIL` 仍须显式配置。`INVITATION_ORIGIN` 为承载 App 邀请、支持、隐私政策和关联文件的 HTTPS 源站，与运营官网分开；现有域名可通过 HTTPS 访问，仍须核对 DNS、证书、反向代理和关联文件是否满足正式部署要求。`APP_POLICY_EFFECTIVE_DATE=2026-10-31` 与当前 App 内置政策日期一致；商店链接和平台关联 ID / 签名指纹分别按实际发行配置填写。
+
+预定公开页面地址：
+
+| 用途 | 地址 |
+|---|---|
+| 支持 | `https://iwodi.284264172.xyz/support` |
+| 隐私政策 | `https://iwodi.284264172.xyz/privacy` |
+| 服务条款 | `https://iwodi.284264172.xyz/terms` |
+| 账号删除 | `https://iwodi.284264172.xyz/account-deletion` |
+
+这些地址为已确定的配置目标；部分页面已有线上响应，但本次配置尚未发布，发布前须逐一验证内容和可用性。
+
+2026-10-31 外网检查：`/health` 返回 `status=ok`、`service=qile-wodi-server`、`auth.channel=app`，公开页面政策配置报告缺少 `APP_POLICY_EFFECTIVE_DATE`，说明已有 App 实例在运行；`/support` 和 `/account-deletion` 返回 HTTP 200，但响应中 Cloudflare 混淆后的邮箱解码为 `i@inpole.com`，与本次确认的 `geek@inpole.com` 不一致；`/privacy` 和 `/terms` 返回 HTTP 503。以上是检查时的线上结果，不代表仓库的新配置已部署。须在目标环境核对并写入 App 配置、部署匹配的服务端版本、重启服务后，再从外网检查四个页面的 HTTP 状态、显示内容与支持邮箱，并验证隐私政策日期；确认实际配置、反向代理或缓存问题已经解决后才能作为发行地址使用。
+
+上线前确认运营团队对应的法律主体及商店开发者资料、邮箱收发与支持流程、官网可访问性，并核对 `/support`、`/privacy`、`/terms`、`/account-deletion` 实际内容。对外公开链接应来自实际已部署的 HTTPS 源站；不因模板中已有资料就视为网站已上线或政策已生效。
+
 ## 3. 服务安装与验证清单
 
 模板为 [qile-wodi-app.service.example](qile-wodi-app.service.example)，通过 `/usr/bin/env APP_CHANNEL=app` 强制渠道后执行 Node，避免模板环境文件中的微信默认值改变运行渠道；数据库、密钥及端口仍须独立配置。确认 `/usr/bin/node` 为已安装依赖对应的版本，并确保独立用户可读取代码、配置及所需证书。
@@ -52,9 +83,9 @@ sudo systemctl status qile-wodi-app --no-pager
 curl --fail http://127.0.0.1:3011/health
 ```
 
-以上启动步骤须在目标环境准备就绪后执行；当前没有已运行的独立服务。健康结果应显示 `auth.channel=app`，配置标记仅表明配置状态，不能代替真实登录、删除、支付或持续数据库可用性检查。
+以上启动步骤须在目标环境准备就绪后执行，不能据此认定现有线上实例已采用这些路径或 systemd 配置。公网已有 App 服务响应，健康结果应显示 `auth.channel=app`；配置标记仅表明配置状态，不能代替真实登录、删除、支付或持续数据库可用性检查。
 
-域名、海外区域和证书尚待确定。沿用 [代理说明](../deploy.md#5-域名https-与反向代理) 的整站转发模式，将独立域名代理到 `127.0.0.1:3011`，保留 WebSocket Upgrade、`/auth`、`/app/store/events`、公开页面及关联文件路径；不得改写现有微信站点。反代可信来源配置须与实际代理一致，不将 `APP_TRUST_PROXY` 盲设为全信任。
+现有实例的主机区域、源站和证书配置仍待核实。部署或调整时沿用 [代理说明](../deploy.md#5-域名https-与反向代理) 的整站转发模式，将 `iwodi.284264172.xyz` 对应的独立 App 服务代理到其实际监听地址（本示例为 `127.0.0.1:3011`），保留 WebSocket Upgrade、`/auth`、`/app/store/events`、公开页面及关联文件路径；不得改写现有微信站点。反代可信来源配置须与实际代理一致，不将 `APP_TRUST_PROXY` 盲设为全信任。
 
 App 收到 SIGTERM / SIGINT 后幂等停止接收新 HTTP / Socket 工作、停止周期任务并关闭内存房间；SQLite 保留至事件循环排空，包含客户端已先断开的在途请求，超过 25 秒则以失败状态退出，不保证超时外部操作完成。此行为已有本机子进程回归，仍待目标 Linux 演练；重启不会恢复旧房间。发布避开活跃对局，旧代码兼容当前协议及数据库时才可回退代码，始终保留最新数据库、账本和长期密钥，不用旧库补偿代码回退。
 
@@ -98,4 +129,4 @@ sudo journalctl -u qile-wodi-app-backup-prune --no-pager -n 20
 
 ## 5. 尚待运维决定与验收
 
-待确定主机 / 区域、独立域名、备份介质和频率、可接受恢复窗口、清理 / 告警责任人及灾难恢复依据；再执行目标 Linux 安装、故障与停服演练、真实平台联调。备份检查不会证明已删除账号不复活或新交易不丢失，这两项须单独取得恢复证据。部署、签名构建、商店审核、下载及收费 / 广告放行按 [阶段 12](../../documents/PLAN/app/12-独立部署与商店发行.md) 分别验收。
+待核实现有主机 / 区域、DNS / 证书及部署配置，确定备份介质和频率、可接受恢复窗口、清理 / 告警责任人及灾难恢复依据；再执行目标 Linux 运维验收、故障与停服演练、真实平台联调。备份检查不会证明已删除账号不复活或新交易不丢失，这两项须单独取得恢复证据。部署、签名构建、商店审核、下载及收费 / 广告放行按 [阶段 12](../../documents/PLAN/app/12-独立部署与商店发行.md) 分别验收。
